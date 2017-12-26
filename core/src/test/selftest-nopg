@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ "$ALL_VERSIONS" != "" ]; then
+    exec ./vixal-core -ll fatal --test --all-versions -a -r simple
+else
+    exec ./vixal-core -ll fatal --test -a -r simple
+fi
