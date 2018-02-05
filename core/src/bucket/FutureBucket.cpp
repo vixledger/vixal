@@ -27,8 +27,7 @@ FutureBucket::FutureBucket(Application &app,
         : mState(FB_LIVE_INPUTS),
           mInputCurrBucket(curr),
           mInputSnapBucket(snap),
-          mInputShadowBuckets(shadows),
-          mKeepDeadEntries(keepDeadEntries) {
+          mInputShadowBuckets(shadows) {
     // Constructed with a bunch of inputs, _immediately_ commence merging
     // them; there's no valid state for have-inputs-but-not-merging, the
     // presence of inputs implies merging, and vice-versa.
@@ -39,7 +38,7 @@ FutureBucket::FutureBucket(Application &app,
     for (auto const &b : mInputShadowBuckets) {
         mInputShadowBucketHashes.push_back(binToHex(b->getHash()));
     }
-    startMerge(app);
+    startMerge(app, keepDeadEntries);
 }
 
 void
@@ -52,10 +51,6 @@ FutureBucket::setLiveOutput(std::shared_ptr<Bucket> output) {
     mOutputBucket = promise.get_future().share();
     promise.set_value(output);
     checkState();
-}
-
-FutureBucket::FutureBucket(std::shared_ptr<Bucket> output) {
-    setLiveOutput(std::move(output));
 }
 
 static void
@@ -223,7 +218,7 @@ FutureBucket::getOutputHash() const {
 }
 
 void
-FutureBucket::startMerge(Application &app) {
+FutureBucket::startMerge(Application &app, bool keepDeadEntries) {
     // NB: startMerge starts with FutureBucket in a half-valid state; the inputs
     // are live but the merge is not yet running. So you can't call checkState()
     // on entry, only on exit.
@@ -233,19 +228,10 @@ FutureBucket::startMerge(Application &app) {
     std::shared_ptr<Bucket> curr = mInputCurrBucket;
     std::shared_ptr<Bucket> snap = mInputSnapBucket;
     std::vector<std::shared_ptr<Bucket>> shadows = mInputShadowBuckets;
-    bool keepDeadEntries = mKeepDeadEntries;
 
     assert(curr);
     assert(snap);
     assert(!mOutputBucket.valid());
-
-    // Retain all buckets while being merged. They'll be freed by the
-    // BucketManagers only after the merge is done and resolved.
-    curr->setRetain(true);
-    snap->setRetain(true);
-    for (auto b : shadows) {
-        b->setRetain(true);
-    }
 
     CLOG(TRACE, "Bucket") << "Preparing merge of curr="
                           << hexAbbrev(curr->getHash())
@@ -275,7 +261,7 @@ FutureBucket::startMerge(Application &app) {
 }
 
 void
-FutureBucket::makeLive(Application &app) {
+FutureBucket::makeLive(Application &app, bool keepDeadEntries) {
     checkState();
     assert(!isLive());
     assert(hasHashes());
@@ -296,7 +282,7 @@ FutureBucket::makeLive(Application &app) {
             mInputShadowBuckets.push_back(b);
         }
         mState = FB_LIVE_INPUTS;
-        startMerge(app);
+        startMerge(app, keepDeadEntries);
         assert(isLive());
     }
 }

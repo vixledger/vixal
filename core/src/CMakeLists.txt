@@ -175,7 +175,7 @@ set(BUCKET_SOURCE_FILES
         bucket/BucketManagerImpl.cpp
         bucket/FutureBucket.cpp
         bucket/PublishQueueBuckets.cpp
-        )
+        ../include/bucket/BucketInputIterator.h bucket/BucketInputIterator.cpp ../include/bucket/BucketOutputIterator.h bucket/BucketOutputIterator.cpp)
 
 add_library(bucket SHARED ${BUCKET_SOURCE_FILES})
 target_link_libraries(bucket crypto medida database ledger transactions)
@@ -497,7 +497,7 @@ set(APP_SOURCE_FILES
         application/Config.cpp
         application/PersistentState.cpp
         application/NtpSynchronizationChecker.cpp
-        )
+        application/Maintainer.cpp ../include/application/Maintainer.h)
 add_library(application SHARED ${APP_SOURCE_FILES})
 target_link_libraries(application
         soci_core util medida jsoncpp

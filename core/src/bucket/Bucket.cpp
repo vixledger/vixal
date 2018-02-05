@@ -17,35 +17,20 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/TrustFrame.h"
-#include "util/format.h"
 #include "medida/medida.h"
+#include "util/format.h"
 #include "util/Fs.h"
+#include "bucket/BucketInputIterator.h"
+#include "bucket/BucketOutputIterator.h"
+#include "application/Maintainer.h"
 
 namespace vixal {
-
-static std::string
-randomBucketName(std::string const &tmpDir) {
-    for (;;) {
-        std::string name = tmpDir + "/tmp-bucket-" + binToHex(randomBytes(8)) + ".xdr";
-        std::ifstream ifile(name);
-        if (!ifile) {
-            return name;
-        }
-    }
-}
 
 Bucket::Bucket(std::string const &filename, Hash const &hash)
         : mFilename(filename), mHash(hash) {
     assert(filename.empty() || fs::exists(filename));
     if (!filename.empty()) {
         CLOG(TRACE, "Bucket") << "Bucket::Bucket() created, file exists : " << mFilename;
-    }
-}
-
-Bucket::~Bucket() {
-    if (!mFilename.empty() && !mRetain) {
-        CLOG(TRACE, "Bucket") << "Bucket::~Bucket removing file: " << mFilename;
-        std::remove(mFilename.c_str());
     }
 }
 
@@ -61,119 +46,11 @@ Bucket::getFilename() const {
     return mFilename;
 }
 
-void
-Bucket::setRetain(bool r) {
-    mRetain = r;
-}
-
-/**
- * Helper class that reads from the file underlying a bucket, keeping the bucket
- * alive for the duration of its existence.
- */
-void
-Bucket::InputIterator::loadEntry() {
-    if (mIn.readOne(mEntry)) {
-        mEntryPtr = &mEntry;
-    } else {
-        mEntryPtr = nullptr;
-    }
-}
-
-Bucket::InputIterator::operator bool() const {
-    return mEntryPtr != nullptr;
-}
-
-BucketEntry const &Bucket::InputIterator::operator*() {
-    return *mEntryPtr;
-}
-
-Bucket::InputIterator::InputIterator(std::shared_ptr<Bucket const> bucket)
-        : mBucket(std::move(bucket)), mEntryPtr(nullptr) {
-    if (!mBucket->mFilename.empty()) {
-        CLOG(TRACE, "Bucket") << "Bucket::InputIterator opening file to read: " << mBucket->mFilename;
-        mIn.open(mBucket->mFilename);
-        loadEntry();
-    }
-}
-
-Bucket::InputIterator::~InputIterator() {
-    mIn.close();
-}
-
-Bucket::InputIterator &Bucket::InputIterator::operator++() {
-    if (mIn) {
-        loadEntry();
-    } else {
-        mEntryPtr = nullptr;
-    }
-    return *this;
-}
-
-
-/**
- * Helper class that points to an output tempfile. Absorbs BucketEntries and
- * hashes them while writing to either destination. Produces a Bucket when done.
- */
-Bucket::OutputIterator::OutputIterator(std::string const &tmpDir, bool keepDeadEntries)
-        : mFilename(randomBucketName(tmpDir)),
-          mBuf(nullptr),
-          mHasher(SHA256::create()),
-          mKeepDeadEntries(keepDeadEntries) {
-    CLOG(TRACE, "Bucket") << "Bucket::OutputIterator opening file to write: " << mFilename;
-    mOut.open(mFilename);
-}
-
-void
-Bucket::OutputIterator::put(BucketEntry const &e) {
-    if (!mKeepDeadEntries && e.type() == DEADENTRY) {
-        return;
-    }
-
-    // Check to see if there's an existing buffered entry.
-    if (mBuf) {
-        // mCmp(e, *mBuf) means e < *mBuf; this should never be true since it would mean that we're getting
-        // entries out of order.
-        assert(!mCmp(e, *mBuf));
-
-        // Check to see if the new entry should flush (greater identity), or merely replace (same identity),
-        // the buffered entry.
-        if (mCmp(*mBuf, e)) {
-            mOut.writeOne(*mBuf, mHasher.get(), &mBytesPut);
-            mObjectsPut++;
-        }
-    } else {
-        mBuf = std::make_unique<BucketEntry>();
-    }
-
-    // In any case, replace *mBuf with e.
-    *mBuf = e;
-}
-
-std::shared_ptr<Bucket>
-Bucket::OutputIterator::getBucket(BucketManager &bucketManager) {
-    assert(mOut);
-    if (mBuf) {
-        mOut.writeOne(*mBuf, mHasher.get(), &mBytesPut);
-        mObjectsPut++;
-        mBuf.reset();
-    }
-
-    mOut.close();
-    if (mObjectsPut == 0 || mBytesPut == 0) {
-        assert(mObjectsPut == 0);
-        assert(mBytesPut == 0);
-        CLOG(DEBUG, "Bucket") << "Deleting empty bucket file " << mFilename;
-        std::remove(mFilename.c_str());
-        return std::make_shared<Bucket>();
-    }
-    return bucketManager.adoptFileAsBucket(mFilename, mHasher->finish(), mObjectsPut, mBytesPut);
-}
-
 
 bool
 Bucket::containsBucketIdentity(BucketEntry const &id) const {
     BucketEntryIdCmp cmp;
-    Bucket::InputIterator iter(shared_from_this());
+    BucketInputIterator iter(shared_from_this());
     while (iter) {
         if (!(cmp(*iter, id) || cmp(id, *iter))) {
             return true;
@@ -186,7 +63,7 @@ Bucket::containsBucketIdentity(BucketEntry const &id) const {
 std::pair<size_t, size_t>
 Bucket::countLiveAndDeadEntries() const {
     size_t live = 0, dead = 0;
-    Bucket::InputIterator iter(shared_from_this());
+    BucketInputIterator iter(shared_from_this());
     while (iter) {
         if ((*iter).type() == LIVEENTRY) {
             ++live;
@@ -232,8 +109,8 @@ Bucket::fresh(BucketManager &bucketManager,
 
     std::sort(dead.begin(), dead.end(), BucketEntryIdCmp());
 
-    OutputIterator liveOut(bucketManager.getTmpDir(), true);
-    OutputIterator deadOut(bucketManager.getTmpDir(), true);
+    BucketOutputIterator liveOut(bucketManager.getTmpDir(), true);
+    BucketOutputIterator deadOut(bucketManager.getTmpDir(), true);
     for (auto const &e : live) {
         liveOut.put(e);
     }
@@ -247,24 +124,25 @@ Bucket::fresh(BucketManager &bucketManager,
 }
 
 inline void
-maybe_put(BucketEntryIdCmp const &cmp, Bucket::OutputIterator &out, Bucket::InputIterator &in,
-          std::vector<Bucket::InputIterator> &shadowIterators) {
+maybePut(BucketOutputIterator &out, BucketEntry const &entry,
+          std::vector<BucketInputIterator> &shadowIterators) {
+    BucketEntryIdCmp cmp;
     for (auto &si : shadowIterators) {
         // Advance the shadowIterator while it's less than the candidate
-        while (si && cmp(*si, *in)) {
+        while (si && cmp(*si, entry)) {
             ++si;
         }
-        // We have stepped si forward to the point that either si is exhausted, or else *si >= *in; we now check the
+        // We have stepped si forward to the point that either si is exhausted, or else *si >= entry; we now check the
         // opposite direction to see if we have equality.
-        if (si && !cmp(*in, *si)) {
-            // If so, then *in is shadowed in at least one level and we will not be doing a 'put'; we return early.
+        if (si && !cmp(entry, *si)) {
+            // If so, then entry is shadowed in at least one level and we will not be doing a 'put'; we return early.
             // There is no need to advance the other iterators, they will advance as and if necessary in future
-            // calls to maybe_put.
+            // calls to maybePut.
             return;
         }
     }
     // Nothing shadowed.
-    out.put(*in);
+    out.put(entry);
 }
 
 std::shared_ptr<Bucket>
@@ -280,35 +158,35 @@ Bucket::merge(BucketManager &bucketManager,
     assert(oldBucket);
     assert(newBucket);
 
-    Bucket::InputIterator oi(oldBucket);
-    Bucket::InputIterator ni(newBucket);
+    BucketInputIterator oi(oldBucket);
+    BucketInputIterator ni(newBucket);
 
-    std::vector<Bucket::InputIterator> shadowIterators(shadows.begin(), shadows.end());
+    std::vector<BucketInputIterator> shadowIterators(shadows.begin(), shadows.end());
 
     auto timer = bucketManager.getMergeTimer().timeScope();
-    Bucket::OutputIterator out(bucketManager.getTmpDir(), keepDeadEntries);
+    BucketOutputIterator out(bucketManager.getTmpDir(), keepDeadEntries);
 
     BucketEntryIdCmp cmp;
     while (oi || ni) {
         if (!ni) {
             // Out of new entries, take old entries.
-            maybe_put(cmp, out, oi, shadowIterators);
+            maybePut(out, *oi, shadowIterators);
             ++oi;
         } else if (!oi) {
             // Out of old entries, take new entries.
-            maybe_put(cmp, out, ni, shadowIterators);
+            maybePut(out, *ni, shadowIterators);
             ++ni;
         } else if (cmp(*oi, *ni)) {
             // Next old-entry has smaller key, take it.
-            maybe_put(cmp, out, oi, shadowIterators);
+            maybePut(out, *oi, shadowIterators);
             ++oi;
         } else if (cmp(*ni, *oi)) {
             // Next new-entry has smaller key, take it.
-            maybe_put(cmp, out, ni, shadowIterators);
+            maybePut(out, *ni, shadowIterators);
             ++ni;
         } else {
             // Old and new are for the same key, take new.
-            maybe_put(cmp, out, ni, shadowIterators);
+            maybePut(out, *ni, shadowIterators);
             ++oi;
             ++ni;
         }
@@ -373,7 +251,7 @@ checkDBAgainstBuckets(medida::MetricsRegistry &metrics,
     {
         auto &meter = metrics.newMeter({"bucket", "checkdb", "object-compare"}, "comparison");
         auto compareTimer = metrics.newTimer({"bucket", "checkdb", "compare"}).timeScope();
-        for (Bucket::InputIterator iter(superBucket); iter; ++iter) {
+        for (BucketInputIterator iter(superBucket); iter; ++iter) {
             meter.mark();
             auto &e = *iter;
             if (e.type() == LIVEENTRY) {

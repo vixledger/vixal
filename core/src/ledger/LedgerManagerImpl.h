@@ -123,7 +123,7 @@ public:
 
     void closeLedger(LedgerCloseData const &ledgerData) override;
 
-    void deleteOldEntries(Database &db, uint32_t ledgerSeq) override;
+    void deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32 count) override;
 
     void checkDbState() override;
 };

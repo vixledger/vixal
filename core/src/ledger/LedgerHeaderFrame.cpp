@@ -211,9 +211,10 @@ LedgerHeaderFrame::copyLedgerHeadersToStream(Database &db, soci::session &sess,
 }
 
 void
-LedgerHeaderFrame::deleteOldEntries(Database &db, uint32_t ledgerSeq) {
-    db.getSession() << "DELETE FROM ledgerheaders WHERE ledgerseq <= "
-                    << ledgerSeq;
+LedgerHeaderFrame::deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t count) {
+    db.getSession() << "DELETE FROM ledgerheaders WHERE ledgerseq IN (SELECT "
+            "ledgerseq FROM ledgerheaders WHERE ledgerseq <= "
+                    << ledgerSeq << " LIMIT " << count << ")";
 }
 
 void

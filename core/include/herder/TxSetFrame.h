@@ -5,6 +5,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "xdr/ledger.h"
+#include "xdr/ledger-entries.h"
 #include "transactions/TransactionFrame.h"
 
 namespace vixal {

@@ -691,10 +691,10 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const &ledgerData) {
 }
 
 void
-LedgerManagerImpl::deleteOldEntries(Database &db, uint32_t ledgerSeq) {
-    LedgerHeaderFrame::deleteOldEntries(db, ledgerSeq);
-    TransactionFrame::deleteOldEntries(db, ledgerSeq);
-    HerderPersistence::deleteOldEntries(db, ledgerSeq);
+LedgerManagerImpl::deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t count) {
+    LedgerHeaderFrame::deleteOldEntries(db, ledgerSeq, count);
+    TransactionFrame::deleteOldEntries(db, ledgerSeq, count);
+    HerderPersistence::deleteOldEntries(db, ledgerSeq, count);
 }
 
 void
@@ -848,8 +848,6 @@ LedgerManagerImpl::storeCurrentLedger() {
         has.resolveAnyReadyFutures();
     }
 
-    // we will need these buckets after restart
-    mApp.getBucketManager().retainAll(has);
     mApp.getPersistentState().setState(PersistentState::kHistoryArchiveState,
                                        has.toString());
 }

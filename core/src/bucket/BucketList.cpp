@@ -59,24 +59,12 @@ BucketLevel::getSnap() const {
 void
 BucketLevel::setCurr(std::shared_ptr<Bucket> b) {
     mNextCurr.clear();
-    if (mCurr) {
-        mCurr->setRetain(false);
-    }
     mCurr = b;
-    if (mCurr) {
-        mCurr->setRetain(true);
-    }
 }
 
 void
 BucketLevel::setSnap(std::shared_ptr<Bucket> b) {
-    if (mSnap) {
-        mSnap->setRetain(false);
-    }
     mSnap = b;
-    if (mSnap) {
-        mSnap->setRetain(true);
-    }
 }
 
 void
@@ -116,9 +104,13 @@ BucketLevel::prepare(Application &app, uint32_t currLedger,
         }
     }
 
-    bool keepDeadEntries = mLevel < BucketList::kNumLevels - 1;
-    mNextCurr = FutureBucket(app, curr, snap, shadows, keepDeadEntries);
+    mNextCurr = FutureBucket(app, curr, snap, shadows, BucketList::keepDeadEntries(mLevel));
     assert(mNextCurr.isMerging());
+}
+
+bool
+BucketList::keepDeadEntries(uint32_t i) {
+    return i < BucketList::kNumLevels - 1;
 }
 
 std::shared_ptr<Bucket>
@@ -372,16 +364,15 @@ BucketList::addBatch(Application &app, uint32_t currLedger,
 
 void
 BucketList::restartMerges(Application &app) {
-    size_t i = 0;
-    for (auto &level : mLevels) {
-        auto &next = level.getNext();
+    for (auto i = 0; i < mLevels.size(); i++) {
+        auto& level = mLevels[i];
+        auto& next = level.getNext();
         if (next.hasHashes() && !next.isLive()) {
-            next.makeLive(app);
+            next.makeLive(app, keepDeadEntries(i));
             if (next.isMerging()) {
                 CLOG(INFO, "Bucket") << "Restarted merge on BucketList level " << i;
             }
         }
-        ++i;
     }
 }
 

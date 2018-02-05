@@ -55,7 +55,7 @@ public:
                                             uint32_t ledgerCount,
                                             XDROutputFileStream &headersOut);
 
-    static void deleteOldEntries(Database &db, uint32_t ledgerSeq);
+    static void deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t count);
 
     static void dropAll(Database &db);
 

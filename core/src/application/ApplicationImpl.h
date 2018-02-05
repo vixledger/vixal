@@ -77,6 +77,8 @@ public:
 
     HistoryManager &getHistoryManager() override;
 
+    Maintainer &getMaintainer() override;
+
     ProcessManager &getProcessManager() override;
 
     Herder &getHerder() override;
@@ -124,8 +126,6 @@ public:
 
     void checkDB() override;
 
-    void maintenance() override;
-
     void applyCfgCommands() override;
 
     void reportCfgMetrics() override;
@@ -164,6 +164,7 @@ private:
     std::unique_ptr<HerderPersistence> mHerderPersistence;
     std::unique_ptr<HistoryManager> mHistoryManager;
     std::unique_ptr<InvariantManager> mInvariantManager;
+    std::unique_ptr<Maintainer> mMaintainer;
     std::shared_ptr<ProcessManager> mProcessManager;
     std::unique_ptr<CommandHandler> mCommandHandler;
     std::shared_ptr<WorkManager> mWorkManager;

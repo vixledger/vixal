@@ -11,7 +11,6 @@
 #include "xdrpp/printer.h"
 
 namespace vixal {
-using xdr::operator==;
 
 LedgerDelta::LedgerDelta(LedgerDelta &outerDelta)
         : mOuterDelta(&outerDelta), mHeader(&outerDelta.getHeader()), mCurrentHeader(outerDelta.getHeader()),

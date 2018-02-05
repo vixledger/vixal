@@ -16,6 +16,8 @@
 
 namespace vixal {
 
+using xdr::operator<;
+
 Floodgate::FloodRecord::FloodRecord(VixalMessage const &msg, uint32_t ledger,
                                     Peer::pointer peer)
         : mLedgerSeq(ledger), mMessage(msg) {

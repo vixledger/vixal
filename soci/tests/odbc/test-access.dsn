@@ -9,5 +9,5 @@ MaxScanRows=8
 MaxBufferSize=2048
 FIL=MS Access
 DriverId=25
-DefaultDir=/Users/liuwei/works/cplusplus/blockchain/vixal/soci\tests\odbc
-DBQ=/Users/liuwei/works/cplusplus/blockchain/vixal/soci\tests\odbc\soci_test.mdb
+DefaultDir=/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/soci\tests\odbc
+DBQ=/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/soci\tests\odbc\soci_test.mdb

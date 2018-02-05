@@ -89,11 +89,11 @@ BucketManagerImpl::getBucketDir() {
 
         std::string lock = d + "/" + kLockFilename;
 
-        if (!fs::lockFile(lock)) {
-            std::string msg("Found existing lockfile '" + lock +
-                            "' that is already locked.");
-            throw std::runtime_error(msg);
-        }
+        // there are many reasons the lock can fail so let lockFile throw
+        // directly for more clear error messages since we end up just raising
+        // a runtime exception anyway
+        fs::lockFile(lock);
+
         mLockedBucketDir = std::make_unique<std::string>(d);
     }
     return *(mLockedBucketDir);
@@ -179,7 +179,6 @@ BucketManagerImpl::getBucketByHash(uint256 const &hash) {
 
 void
 BucketManagerImpl::forgetUnreferencedBuckets() {
-
     std::lock_guard<std::recursive_mutex> lock(mBucketMutex);
     std::set<Hash> referenced;
     for (uint32_t i = 0; i < BucketList::kNumLevels; ++i) {
@@ -221,13 +220,15 @@ BucketManagerImpl::forgetUnreferencedBuckets() {
 
         if (referenced.find(j->first) == referenced.end() &&
             j->second.use_count() == 1) {
+            auto filename = j->second->getFilename();
             CLOG(TRACE, "Bucket")
                     << "BucketManager::forgetUnreferencedBuckets dropping "
-                    << j->second->getFilename();
-            j->second->setRetain(false);
+                    << filename;
+            if (!filename.empty()) {
+                CLOG(TRACE, "Bucket") << "removing bucket file: " << filename;
+                std::remove(filename.c_str());
+            }
             mSharedBuckets.erase(j);
-        } else {
-            j->second->setRetain(true);
         }
     }
     mSharedBucketsSize.set_count(mSharedBuckets.size());
@@ -284,16 +285,6 @@ BucketManagerImpl::checkForMissingBucketsFiles(HistoryArchiveState const &has) {
 }
 
 void
-BucketManagerImpl::retainAll(HistoryArchiveState const& has) {
-    for (auto const& bucket : has.allBuckets()) {
-        auto const& b = getBucketByHash(hexToBin256(bucket));
-        if (b) {
-            b->setRetain(true);
-        }
-    }
-}
-
-void
 BucketManagerImpl::assumeState(HistoryArchiveState const &has) {
     for (uint32_t i = 0; i < BucketList::kNumLevels; ++i) {
         auto curr = getBucketByHash(hexToBin256(has.currentBuckets.at(i).curr));
@@ -306,8 +297,6 @@ BucketManagerImpl::assumeState(HistoryArchiveState const &has) {
         mBucketList.getLevel(i).setSnap(snap);
         mBucketList.getLevel(i).setNext(has.currentBuckets.at(i).next);
     }
-    // we will need these buckets after restart
-    retainAll(has);
     mBucketList.restartMerges(mApp);
 }
 

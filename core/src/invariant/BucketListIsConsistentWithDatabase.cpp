@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <bucket/BucketInputIterator.h>
 #include "invariant/BucketListIsConsistentWithDatabase.h"
 #include "bucket/Bucket.h"
 #include "database/Database.h"
@@ -35,14 +36,13 @@ std::string
 BucketListIsConsistentWithDatabase::checkOnBucketApply(
         std::shared_ptr<Bucket const> bucket, uint32_t oldestLedger,
         uint32_t newestLedger) {
-    BucketEntryIdCmp cmp;
 
     uint64_t nAccounts = 0, nTrustLines = 0, nOffers = 0, nData = 0;
     bool hasPreviousEntry = false;
     BucketEntry previousEntry;
-    for (Bucket::InputIterator iter(bucket); iter; ++iter) {
+    for (BucketInputIterator iter(bucket); iter; ++iter) {
         auto const &e = *iter;
-        if (hasPreviousEntry && !cmp(previousEntry, e)) {
+        if (hasPreviousEntry && !BucketEntryIdCmp{}(previousEntry, e)) {
             std::string s = "Bucket has out of order entries: ";
             s += xdr::xdr_to_string(previousEntry, "previous");
             s += xdr::xdr_to_string(e, "current");

@@ -26,9 +26,15 @@
 #include "work/WorkManager.h"
 #include <random>
 #include <util/basen.h>
+#include <bucket/BucketOutputIterator.h>
+#include <bucket/BucketInputIterator.h>
 
 using namespace vixal;
 using namespace std::placeholders;
+
+namespace vixal {
+using xdr::operator<;
+}
 
 namespace BucketListIsConsistentWithDatabaseTests {
 
@@ -122,15 +128,15 @@ getHistoryArchiveState(Application::pointer appGenerate,
     for (uint32_t i = 0; i <= BucketList::kNumLevels - 1; i++) {
         auto &level = blGenerate.getLevel(i);
         {
-            Bucket::OutputIterator out(bmApply.getTmpDir(), true);
-            for (Bucket::InputIterator in(level.getCurr()); in; ++in) {
+            BucketOutputIterator out(bmApply.getTmpDir(), true);
+            for (BucketInputIterator in(level.getCurr()); in; ++in) {
                 out.put(*in);
             }
             out.getBucket(bmApply);
         }
         {
-            Bucket::OutputIterator out(bmApply.getTmpDir(), true);
-            for (Bucket::InputIterator in(level.getSnap()); in; ++in) {
+            BucketOutputIterator out(bmApply.getTmpDir(), true);
+            for (BucketInputIterator in(level.getSnap()); in; ++in) {
                 out.put(*in);
             }
             out.getBucket(bmApply);
@@ -435,7 +441,7 @@ public:
 
 bool
 doesBucketContain(std::shared_ptr<Bucket const> bucket, const BucketEntry &be) {
-    for (Bucket::InputIterator iter(bucket); iter; ++iter) {
+    for (BucketInputIterator iter(bucket); iter; ++iter) {
         if (*iter == be) {
             return true;
         }

@@ -16,8 +16,6 @@
 
 namespace vixal {
 
-using xdr::operator==;
-
 VerifyBucketWork::VerifyBucketWork(
         Application &app, AbstractWork &parent,
         std::map<std::string, std::shared_ptr<Bucket>> &buckets,

@@ -2,7 +2,6 @@
 #include "herder/Herder.h"
 
 namespace vixal {
-
 std::chrono::seconds const Herder::EXP_LEDGER_TIMESPAN_SECONDS(5);
 std::chrono::seconds const Herder::MAX_SCP_TIMEOUT_SECONDS(240);
 std::chrono::seconds const Herder::CONSENSUS_STUCK_TIMEOUT_SECONDS(35);

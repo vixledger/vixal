@@ -21,8 +21,7 @@ HerderPersistence::create(Application &app) {
 HerderPersistenceImpl::HerderPersistenceImpl(Application &app) : mApp(app) {
 }
 
-HerderPersistenceImpl::~HerderPersistenceImpl() {
-}
+HerderPersistenceImpl::~HerderPersistenceImpl() = default;
 
 void
 HerderPersistenceImpl::saveSCPHistory(uint32_t seq,
@@ -243,10 +242,12 @@ HerderPersistence::dropAll(Database &db) {
 }
 
 void
-HerderPersistence::deleteOldEntries(Database &db, uint32_t ledgerSeq) {
-    db.getSession() << "DELETE FROM scphistory WHERE ledgerseq <= "
-                    << ledgerSeq;
-    db.getSession() << "DELETE FROM scpquorums WHERE lastledgerseq <= "
-                    << ledgerSeq;
+HerderPersistence::deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t count) {
+    db.getSession() << "DELETE FROM scphistory WHERE ledgerseq IN (SELECT "
+            "ledgerseq FROM scphistory WHERE ledgerseq <= "
+                    << ledgerSeq << " LIMIT " << count << ")";
+    db.getSession() << "DELETE FROM scpquorums WHERE lastledgerseq IN (SELECT "
+            "lastledgerseq FROM scpquorums WHERE lastledgerseq <= "
+                    << ledgerSeq << " LIMIT " << count << ")";
 }
 }

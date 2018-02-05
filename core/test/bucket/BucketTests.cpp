@@ -32,6 +32,7 @@
 #include "xdrpp/autocheck.h"
 #include <algorithm>
 #include <future>
+#include <bucket/BucketInputIterator.h>
 
 using namespace vixal;
 
@@ -98,7 +99,7 @@ checkBucketSizeAndBounds(BucketList &bl, uint32_t ledgerSeq, uint32_t level,
     std::set<uint32_t> ledgers;
     uint32_t lbound = std::numeric_limits<uint32_t>::max();
     uint32_t ubound = 0;
-    for (Bucket::InputIterator iter(bucket); iter; ++iter) {
+    for (BucketInputIterator iter(bucket); iter; ++iter) {
         auto lastModified = (*iter).liveEntry().lastModifiedLedgerSeq;
         ledgers.insert(lastModified);
         lbound = std::min(lbound, lastModified);

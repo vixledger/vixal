@@ -10,6 +10,7 @@
 #include "application/Application.h"
 
 namespace vixal {
+
 namespace InvariantTestUtils {
 
 LedgerEntry

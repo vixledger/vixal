@@ -6,8 +6,10 @@
 #include "crypto/Hex.h"
 #include "util/format.h"
 #include "util/Logging.h"
+
 #include <map>
 #include <regex>
+#include <sstream>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -30,12 +32,12 @@ namespace fs {
 
 static std::map<std::string, HANDLE> lockMap;
 
-bool
-lockFile(std::string const& path)
-{
-    if (lockMap.find(path) != lockMap.end())
-    {
-        throw std::runtime_error("file is already locked by this process");
+void
+lockFile(std::string const& path) {
+    std::ostringstream errmsg;
+    if (lockMap.find(path) != lockMap.end()) {
+        errmsg << "file already locked by this process: " << path;
+        throw std::runtime_error(errmsg.str());
     }
     HANDLE h = ::CreateFile(path.c_str(), GENERIC_WRITE,
                             0, // don't allow sharing
@@ -43,43 +45,36 @@ lockFile(std::string const& path)
                             FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_TEMPORARY |
                                 FILE_FLAG_DELETE_ON_CLOSE,
                             NULL);
-    if (h != INVALID_HANDLE_VALUE)
-    {
-        lockMap.insert(std::make_pair(path, h));
+    if (h == INVALID_HANDLE_VALUE) {
+        // not sure if there is more verbose info that can be obtained here
+        errmsg << "unable to create lock file: " << path;
+        throw std::runtime_error(errmsg.str());
     }
-    return h != INVALID_HANDLE_VALUE;
+    lockMap.insert(std::make_pair(path, h));
 }
 
 void
-unlockFile(std::string const& path)
-{
+unlockFile(std::string const& path) {
     auto it = lockMap.find(path);
-    if (it != lockMap.end())
-    {
+    if (it != lockMap.end()) {
         ::CloseHandle(it->second);
         lockMap.erase(it);
-    }
-    else
-    {
+    } else {
         throw std::runtime_error("file was not locked");
     }
 }
 
 bool
-exists(std::string const& name)
-{
-    if (name.empty())
+exists(std::string const& name) {
+    if (name.empty()) {
         return false;
+    }
 
-    if (GetFileAttributes(name.c_str()) == INVALID_FILE_ATTRIBUTES)
-    {
+    if (GetFileAttributes(name.c_str()) == INVALID_FILE_ATTRIBUTES) {
         if (GetLastError() == ERROR_FILE_NOT_FOUND ||
-            GetLastError() == ERROR_PATH_NOT_FOUND)
-        {
+            GetLastError() == ERROR_PATH_NOT_FOUND) {
             return false;
-        }
-        else
-        {
+        } else {
             std::string msg("error accessing path: ");
             throw std::runtime_error(msg + name);
         }
@@ -88,16 +83,14 @@ exists(std::string const& name)
 }
 
 bool
-mkdir(std::string const& name)
-{
+mkdir(std::string const& name) {
     bool b = _mkdir(name.c_str()) == 0;
     CLOG(DEBUG, "Fs") << (b ? "created dir " : "failed to create dir ") << name;
     return b;
 }
 
 void
-deltree(std::string const& d)
-{
+deltree(std::string const& d) {
     SHFILEOPSTRUCT s = {0};
     std::string from = d;
     from.push_back('\0');
@@ -105,33 +98,27 @@ deltree(std::string const& d)
     s.wFunc = FO_DELETE;
     s.pFrom = from.data();
     s.fFlags = FOF_NO_UI;
-    if (SHFileOperation(&s) != 0)
-    {
+    if (SHFileOperation(&s) != 0) {
         throw std::runtime_error("SHFileOperation failed in deltree");
     }
 }
 
 long
-getCurrentPid()
-{
+getCurrentPid() {
     return static_cast<long>(GetCurrentProcessId());
 }
 
 bool
-processExists(long pid)
-{
+processExists(long pid) {
     std::vector<DWORD> buffer(4096);
     DWORD bytesWritten;
-    for (;;)
-    {
+    for (;;) {
         if (!EnumProcesses(buffer.data(),
                            static_cast<DWORD>(buffer.size() * sizeof(DWORD)),
-                           &bytesWritten))
-        {
+                           &bytesWritten)) {
             throw std::runtime_error("EnumProcess failed");
         }
-        if (bytesWritten / sizeof(DWORD) < buffer.size())
-        {
+        if (bytesWritten / sizeof(DWORD) < buffer.size()) {
             auto found = std::find(buffer.begin(), buffer.end(),
                                    static_cast<DWORD>(pid));
             return !(found == buffer.end());
@@ -153,23 +140,29 @@ processExists(long pid)
 
 static std::map<std::string, int> lockMap;
 
-bool
+void
 lockFile(std::string const &path) {
+    std::ostringstream errmsg;
+
     if (lockMap.find(path) != lockMap.end()) {
-        throw std::runtime_error("file is already locked by this process");
+        errmsg << "file already locked by this process: " << path;
+        throw std::runtime_error(errmsg.str());
     }
     int fd = open(path.c_str(), O_RDWR | O_CREAT, S_IRWXU);
 
-    if (fd != -1) {
-        int r = flock(fd, LOCK_EX | LOCK_NB);
-        if (r == 0) {
-            lockMap.insert(std::make_pair(path, fd));
-        } else {
-            close(fd);
-            fd = -1;
-        }
+    if (fd == -1) {
+        errmsg << "unable to open lock file: " << path << " ("
+               << strerror(errno) << ")";
+        throw std::runtime_error(errmsg.str());
     }
-    return fd != -1;
+    int r = flock(fd, LOCK_EX | LOCK_NB);
+    if (r != 0) {
+        close(fd);
+        errmsg << "unable to flock file: " << path << " (" << strerror(errno)
+               << ")";
+        throw std::runtime_error(errmsg.str());
+    }
+    lockMap.insert(std::make_pair(path, fd));
 }
 
 void

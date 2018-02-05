@@ -11,9 +11,12 @@
 #include "util/types.h"
 #include "xdrpp/marshal.h"
 
+#include <ctime>
+
 namespace vixal {
 using xdr::operator==;
 using xdr::operator<;
+
 using namespace std::placeholders;
 
 Slot::Slot(uint64 slotIndex, SCP &scp)
@@ -76,7 +79,8 @@ Slot::getExternalizingState() const {
 
 void
 Slot::recordStatement(SCPStatement const &st) {
-    mStatementsHistory.emplace_back(std::make_pair(st, mFullyValidated));
+    mStatementsHistory.emplace_back(
+            HistoricalStatement{std::time(nullptr), st, mFullyValidated});
 }
 
 SCP::EnvelopeState
@@ -152,8 +156,8 @@ Slot::isNodeInQuorum(NodeID const &node) {
     // this may be reduced to the pair (at most) of the latest
     // statements for each protocol
     for (auto const &e : mStatementsHistory) {
-        auto &n = m[e.first.nodeID];
-        n.emplace_back(&e.first);
+        auto &n = m[e.mStatement.nodeID];
+        n.emplace_back(&e.mStatement);
     }
     return mSCP.getLocalNode()->isNodeInQuorum(
             node,
@@ -247,11 +251,12 @@ Slot::dumpInfo(Json::Value &ret) {
     int count = 0;
     for (auto const &item : mStatementsHistory) {
         Json::Value &v = slotValue["statements"][count++];
-        v.append(mSCP.envToStr(item.first));
-        v.append(item.second);
+        v.append((Json::UInt64)item.mWhen);
+        v.append(mSCP.envToStr(item.mStatement));
+        v.append(item.mValidated);
 
         Hash const &qSetHash =
-                getCompanionQuorumSetHashFromStatement(item.first);
+                getCompanionQuorumSetHashFromStatement(item.mStatement);
         auto qSet = getSCPDriver().getQSet(qSetHash);
         if (qSet) {
             qSetsUsed.insert(std::make_pair(qSetHash, qSet));

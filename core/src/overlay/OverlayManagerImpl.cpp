@@ -38,7 +38,7 @@ connection is established
 
 keyAB and keyBA are per-connection HMAC keys derived from non-interactive ECDH on random curve25519 keys
 conveyed in CertA and CertB (certs signed by Node Ed25519 keys) the result of which is then fed through
-HKDF with the per-connection nonces. See PeerAuth.h.
+HKDF with the per-connection nounces. See PeerAuth.h.
 
 If any verify step fails, the peer disconnects immediately.
 
@@ -48,6 +48,7 @@ namespace vixal {
 
 using namespace soci;
 using namespace std;
+using xdr::operator<;
 
 std::unique_ptr<OverlayManager>
 OverlayManager::create(Application &app) {
@@ -153,15 +154,25 @@ OverlayManagerImpl::storeConfigPeers() {
 
 void
 OverlayManagerImpl::connectToMorePeers(std::uint32_t max) {
-    vector<PeerRecord> peers;
+    const int batchSize = std::max(10u, max);
 
     // load best candidates from the database,
     // when PREFERRED_PEER_ONLY is set and we connect to a non
     // preferred_peer we just end up dropping & backing off
     // it during handshake (this allows for preferred_peers
-    // to work for both ip based and key based preferred mode).
-    PeerRecord::loadPeerRecords(mApp.getDatabase(), max, mApp.getClock().now(),
-                                peers);
+    // to work for both ip based and key based preferred mode)
+
+    vector<PeerRecord> peers;
+
+    PeerRecord::loadPeerRecords(mApp.getDatabase(), batchSize,
+                                mApp.getClock().now(),
+                                [&](PeerRecord const& pr) {
+                                    // skip peers that we're already connected to
+                                    if (!getConnectedPeer(pr.ip(), pr.port())) {
+                                        peers.emplace_back(pr);
+                                    }
+                                    return peers.size() < max;
+                                });
     orderByPreferredPeers(peers);
 
     for (auto &pr : peers) {
@@ -171,9 +182,7 @@ OverlayManagerImpl::connectToMorePeers(std::uint32_t max) {
         if (getAuthenticatedPeersCount() >= mApp.getConfig().TARGET_PEER_CONNECTIONS) {
             break;
         }
-        if (!getConnectedPeer(pr.ip(), pr.port())) {
-            connectTo(pr);
-        }
+        connectTo(pr);
     }
 }
 

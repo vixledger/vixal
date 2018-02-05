@@ -46,6 +46,11 @@ struct xdr_overflow : xdr_runtime_error {
     using xdr_runtime_error::xdr_runtime_error;
 };
 
+//! Attempt to exceed recursion limits.
+struct xdr_stack_overflow : xdr_runtime_error {
+    using xdr_runtime_error::xdr_runtime_error;
+};
+
 //! Message not multiple of 4 bytes, or cannot fully be parsed.
 struct xdr_bad_message_size : xdr_runtime_error {
     using xdr_runtime_error::xdr_runtime_error;
@@ -237,9 +242,10 @@ struct xdr_integral_base : xdr_traits_base {
     static constexpr const bool xdr_defined = false;
     static constexpr const bool is_numeric = true;
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::size_t fixed_size = sizeof(uint_type);
-
-    static constexpr std::size_t serial_size(type) { return fixed_size; }
+    static constexpr const std::size_t
+    fixed_size = sizeof(uint_type);
+    static constexpr std::size_t
+    serial_size(type) {return fixed_size;}
 
     static uint_type to_uint(type t) { return t; }
 
@@ -279,9 +285,10 @@ struct xdr_fp_base : xdr_traits_base {
     static constexpr const bool xdr_defined = false;
     static constexpr const bool is_numeric = true;
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::size_t fixed_size = sizeof(uint_type);
-
-    static constexpr std::size_t serial_size(type) { return fixed_size; }
+    static constexpr const std::size_t
+    fixed_size = sizeof(uint_type);
+    static constexpr std::size_t
+    serial_size(type) {return fixed_size;}
 
     static uint_type to_uint(type t) { return xdr_reinterpret<uint_type>(t); }
 
@@ -327,7 +334,8 @@ struct xdr_traits<bool>
 //! Maximum length of vectors.  (The RFC says 0xffffffff, but out of
 //! paranoia for integer overflows we chose something that still fits
 //! in 32 bits when rounded up to a multiple of four.)
-static constexpr const uint32_t XDR_MAX_LEN = 0xfffffffc;
+static constexpr const uint32_t
+XDR_MAX_LEN = 0xfffffffc;
 
 namespace detail {
 //! Convenience supertype for traits of the three container types
@@ -383,8 +391,9 @@ template<typename T>
 struct xdr_container_base<T, false, true>
         : xdr_container_base<T, false, false> {
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::size_t fixed_size =
-            T::container_fixed_nelem * xdr_traits<typename T::value_type>::fixed_size;
+    static constexpr const std::size_t
+    fixed_size =
+    T::container_fixed_nelem * xdr_traits<typename T::value_type>::fixed_size;
 
     static std::size_t serial_size(const T &) { return fixed_size; }
 };
@@ -394,7 +403,8 @@ struct no_clear_t {
     constexpr no_clear_t() {}
 };
 
-constexpr const no_clear_t no_clear;
+constexpr const no_clear_t
+no_clear;
 } // namespace detail
 
 //! XDR arrays are implemented using std::array as a supertype.
@@ -413,7 +423,8 @@ struct xarray
 
     static constexpr const std::size_t container_fixed_nelem = N;
 
-    static constexpr std::size_t size() { return N; }
+    static constexpr std::size_t
+    size() { return N; }
 
     static void validate() {}
 
@@ -455,9 +466,11 @@ struct opaque_array
 template<uint32_t N>
 struct xdr_traits<opaque_array<N>> : xdr_traits_base {
     static constexpr const bool is_bytes = true;
-    static constexpr const std::size_t has_fixed_size = true;
-    static constexpr const std::size_t fixed_size =
-            (std::size_t(N) + std::size_t(3)) & ~std::size_t(3);
+    static constexpr const std::size_t
+    has_fixed_size = true;
+    static constexpr const std::size_t
+    fixed_size =
+    (std::size_t(N) + std::size_t(3)) & ~std::size_t(3);
 
     static std::size_t serial_size(const opaque_array<N> &) { return fixed_size; }
 
@@ -474,7 +487,9 @@ struct xvector : std::vector<T> {
     using vector::vector;
 
     //! Return the maximum size allowed by the type.
-    static constexpr uint32_t max_size() { return N; }
+    static constexpr uint32_t
+
+    max_size() { return N; }
 
     //! Check whether a size is in bounds
     static void check_size(size_t n) {
@@ -518,9 +533,10 @@ template<uint32_t N = XDR_MAX_LEN> using opaque_vec = xvector<std::uint8_t, N>;
 template<uint32_t N>
 struct xdr_traits<xvector<std::uint8_t, N>> : xdr_traits_base {
     static constexpr const bool is_bytes = true;
-    static constexpr const bool has_fixed_size = false;
+    static constexpr const bool has_fixed_size = false;;
+    static constexpr std::size_t
 
-    static constexpr std::size_t serial_size(const opaque_vec<N> &a) {
+    serial_size(const opaque_vec<N> &a) {
         return (std::size_t(a.size()) + std::size_t(7)) & ~std::size_t(3);
     }
 
@@ -536,7 +552,9 @@ struct xstring : std::string {
     using string = std::string;
 
     //! Return the maximum size allowed by the type.
-    static constexpr uint32_t max_size() { return N; }
+    static constexpr uint32_t
+
+    max_size() { return N; }
 
     //! Check whether a size is in bounds
     static void check_size(size_t n) {
@@ -611,9 +629,10 @@ struct xstring : std::string {
 template<uint32_t N>
 struct xdr_traits<xstring<N>> : xdr_traits_base {
     static constexpr const bool is_bytes = true;
-    static constexpr const bool has_fixed_size = false;
+    static constexpr const bool has_fixed_size = false;;
+    static constexpr std::size_t
 
-    static constexpr std::size_t serial_size(const xstring<N> &a) {
+    serial_size(const xstring<N> &a) {
         return (std::size_t(a.size()) + std::size_t(7)) & ~std::size_t(3);
     }
 
@@ -740,9 +759,10 @@ struct field_ptr {
     using class_type = T;
     using field_type = F;
     using value_type = F T::*;
-
     //static constexpr value_type value = Ptr;
-    static constexpr value_type value() { return Ptr; }
+    static constexpr value_type
+
+    value() { return Ptr; }
 
     F &operator()(T &t) const { return t.*Ptr; }
 
@@ -759,11 +779,13 @@ namespace detail {
 template<typename FP, typename ...Fields>
 struct xdr_struct_base_fs : xdr_struct_base<Fields...> {
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::size_t fixed_size =
-            (xdr_traits<typename FP::field_type>::fixed_size
-             + xdr_struct_base<Fields...>::fixed_size);
+    static constexpr const std::size_t
+    fixed_size =
+    (xdr_traits<typename FP::field_type>::fixed_size
+     + xdr_struct_base<Fields...>::fixed_size);
+    static constexpr std::size_t
 
-    static constexpr std::size_t serial_size(const typename FP::class_type &) {
+    serial_size(const typename FP::class_type &) {
         return fixed_size;
     }
 };
@@ -787,17 +809,19 @@ struct xdr_struct_base<> : xdr_traits_base {
     static constexpr const bool is_class = true;
     static constexpr const bool is_struct = true;
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::size_t fixed_size = 0;
+    static constexpr const std::size_t
+    fixed_size = 0;
+    template<typename T> static constexpr std::size_t
 
-    template<typename T>
-    static constexpr std::size_t serial_size(const T &) {
+    serial_size(const T &) {
         return fixed_size;
     }
 };
 
 template<typename FP, typename ...Rest>
 struct xdr_struct_base<FP, Rest...>
-        : std::conditional<(detail::has_fixed_size_t<typename FP::field_type>::value && xdr_struct_base<Rest...>::has_fixed_size),
+        : std::conditional<(detail::has_fixed_size_t<typename FP::field_type>::value
+                            && xdr_struct_base<Rest...>::has_fixed_size),
                 detail::xdr_struct_base_fs<FP, Rest...>,
                 detail::xdr_struct_base_vs<FP, Rest...>>::type {
     using field_info = FP;
@@ -856,10 +880,12 @@ struct tuple_base_fs<N, std::tuple<T...>> : xdr_traits_base {
     static constexpr const bool is_class = true;
     static constexpr const bool is_struct = true;
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::uint32_t fixed_size =
-            xdr_traits<elem_type>::fixed_size + next::fixed_size;
+    static constexpr const std::uint32_t
+    fixed_size =
+    xdr_traits<elem_type>::fixed_size + next::fixed_size;
+    static constexpr std::size_t
 
-    static constexpr std::size_t serial_size(const type &) { return fixed_size; }
+    serial_size(const type &) { return fixed_size; }
 };
 
 template<std::size_t N, typename T>
@@ -891,15 +917,17 @@ struct tuple_base<0, std::tuple<T...>>
     static constexpr const bool is_class = true;
     static constexpr const bool is_struct = true;
     static constexpr const bool has_fixed_size = true;
-    static constexpr const std::size_t fixed_size = 0;
+    static constexpr const std::size_t
+    fixed_size = 0;
+    static constexpr std::size_t
 
-    static constexpr std::size_t serial_size(const type &) { return fixed_size; }
+    serial_size(const type &) { return fixed_size; }
 
     template<typename Archive>
-    static void save(Archive & /*ar*/ , const type & /*obj*/) {}
+    static void save(Archive &/*ar*/, const type &/*obj*/) {}
 
     template<typename Archive>
-    static void load(Archive & /*ar*/ , type & /*obj*/ ) {}
+    static void load(Archive &/*ar*/, type &/*obj*/) {}
 };
 
 template<std::size_t N, typename...T>
@@ -1003,11 +1031,14 @@ struct field_constructor_t {
         new(&(t.*mp)) F(detail::member(std::forward<TT>(tt), mp));
     }
 };
+
 //! Passed to the auto-generated _xdr_with_mem_ptr static method to
 //! construct the active union field (or at least the union field
 //! corresponding to the second argument to _xdr_with_mem_ptr, which
 //! should be the active union field).
-constexpr const field_constructor_t field_constructor{};
+constexpr const field_constructor_t
+field_constructor {
+};
 
 struct field_destructor_t {
     constexpr field_destructor_t() {}
@@ -1016,8 +1047,11 @@ struct field_destructor_t {
     void
     operator()(F T::*mp, T &t) const { detail::member(t, mp).~F(); }
 };
+
 //! Passed to _xdr_with_mem_ptr to destroy the active union field.
-constexpr const field_destructor_t field_destructor{};
+constexpr const field_destructor_t
+field_destructor {
+};
 
 struct field_assigner_t {
     constexpr field_assigner_t() {}
@@ -1028,8 +1062,11 @@ struct field_assigner_t {
         detail::member(t, mp) = detail::member(std::forward<TT>(tt), mp);
     }
 };
+
 //! Passed to _xdr_with_mem_ptr to assign to the active union field.
-constexpr const field_assigner_t field_assigner{};
+constexpr const field_assigner_t
+field_assigner {
+};
 
 struct field_archiver_t {
     constexpr field_archiver_t() {}
@@ -1046,8 +1083,11 @@ struct field_archiver_t {
         archive(ar, detail::member(t, mp), name);
     }
 };
+
 //! Passed to _xdr_with_mem_ptr to archive the active union field.
-constexpr const field_archiver_t field_archiver{};
+constexpr const field_archiver_t
+field_archiver {
+};
 
 struct field_size_t {
     constexpr field_size_t() {}
@@ -1058,9 +1098,12 @@ struct field_size_t {
         size = xdr_traits<F>::serial_size(detail::member(t, mp));
     }
 };
+
 //! Passed to _xdr_with_mem_ptr to compute the size of the active
 //! union field.
-constexpr const field_size_t field_size{};
+constexpr const field_size_t
+field_size {
+};
 
 
 ////////////////////////////////////////////////////////////////
@@ -1071,7 +1114,8 @@ namespace detail {
 template<typename T, typename F>
 struct struct_equal_helper {
     static bool equal(const T &a, const T &b) {
-        constexpr const typename F::field_info fi{};
+        constexpr
+        const typename F::field_info fi{};
         if (!(fi(a) == fi(b)))
             return false;
         return struct_equal_helper<T, typename F::next_field>::equal(a, b);
@@ -1084,21 +1128,7 @@ struct struct_equal_helper<T, xdr_struct_base<>> {
 };
 
 template<typename T, typename F>
-struct struct_lt_helper {
-    static bool lt(const T &a, const T &b) {
-        constexpr const typename F::field_info fi{};
-        if ((fi(a) < fi(b)))
-            return true;
-        if ((fi(b) < fi(a)))
-            return false;
-        return struct_lt_helper<T, typename F::next_field>::lt(a, b);
-    }
-};
-
-template<typename T>
-struct struct_lt_helper<T, xdr_struct_base<>> {
-    static bool lt(const T &, const T &) { return false; }
-};
+struct struct_lt_helper;
 } // namespace detail
 
 
@@ -1170,7 +1200,9 @@ struct union_field_equal_t {
     }
 };
 
-constexpr const union_field_equal_t union_field_equal{};
+constexpr const union_field_equal_t
+union_field_equal {
+};
 
 struct union_field_lt_t {
     constexpr union_field_lt_t() {}
@@ -1181,7 +1213,9 @@ struct union_field_lt_t {
     }
 };
 
-constexpr const union_field_lt_t union_field_lt{};
+constexpr const union_field_lt_t
+union_field_lt {
+};
 } // namespace detail
 
 //! Equality of XDR unions.  See note at \c xdr::operator== for XDR
@@ -1215,7 +1249,26 @@ operator<(const T &a, const T &b) {
     return r;
 }
 
+namespace detail {
+template<typename T, typename F>
+struct struct_lt_helper {
+    static bool lt(const T &a, const T &b) {
+        constexpr
+        const typename F::field_info fi{};
+        if ((fi(a) < fi(b)))
+            return true;
+        if ((fi(b) < fi(a)))
+            return false;
+        return struct_lt_helper<T, typename F::next_field>::lt(a, b);
+    }
+};
+
+template<typename T>
+struct struct_lt_helper<T, xdr_struct_base<>> {
+    static bool lt(const T &, const T &) { return false; }
+};
+} // namespace detail
+
 } // namespace xdr
 
 #endif // !_XDRC_TYPES_H_HEADER_INCLUDED_
-

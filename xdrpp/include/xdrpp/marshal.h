@@ -15,6 +15,11 @@
 
 namespace xdr {
 
+//! Set this to something lower than 0xffffffff to ensure that data
+//! that might overflow the call stack instead throws an
+//! xdr_stack_overflow exception.
+extern std::uint32_t marshaling_stack_limit;
+
 //! Common utility types and functions for all the marshaling classes.
 struct marshal_base {
     struct u64conv {
@@ -27,6 +32,8 @@ struct marshal_base {
 
         u64conv(std::uint64_t u) : u64(u) {}
     };
+
+    std::uint32_t stack_limit = marshaling_stack_limit;
 
     //! Copy \c len bytes to buf, then consume 0-3 bytes of padding to
     //! make the total number of bytes consumed divisible by 4.  \throws
@@ -140,7 +147,13 @@ struct xdr_generic_put : Base {
     template<typename T>
     typename std::enable_if<
             xdr_traits<T>::is_class || xdr_traits<T>::is_container>::type
-    operator()(const T &t) { xdr_traits<T>::save(*this, t); }
+    operator()(const T &t) {
+        if (!marshal_base::stack_limit--) {
+            throw xdr_stack_overflow("stack overflow in xdr_generic_put");
+        }
+        xdr_traits<T>::save(*this, t);
+        ++marshal_base::stack_limit;
+    }
 };
 
 //! Archive type for unmarshaling from a buffer.  Depending on the
@@ -210,7 +223,13 @@ struct xdr_generic_get : Base {
     template<typename T>
     typename std::enable_if<
             xdr_traits<T>::is_class || xdr_traits<T>::is_container>::type
-    operator()(T &t) { xdr_traits<T>::load(*this, t); }
+    operator()(T &t) {
+        if (!marshal_base::stack_limit--) {
+            throw xdr_stack_overflow("stack overflow in xdr_generic_get");
+        }
+        xdr_traits<T>::load(*this, t);
+        ++marshal_base::stack_limit;
+    }
 
     void done() {
         if (p_ != e_)

@@ -48,15 +48,15 @@ public:
 
     enum State {
         // Loading state from database, not yet active
-        LM_BOOTING_STATE,
+                LM_BOOTING_STATE,
 
         // local state is in sync with view of consensus coming from herder
         // desynchronization will cause transition to CATCHING_UP_STATE.
-        LM_SYNCED_STATE,
+                LM_SYNCED_STATE,
 
         // local state doesn't match view of consensus from herder
         // catchup is in progress
-        LM_CATCHING_UP_STATE,
+                LM_CATCHING_UP_STATE,
 
         LM_NUM_STATE
     };
@@ -181,7 +181,7 @@ public:
     virtual void closeLedger(LedgerCloseData const &ledgerData) = 0;
 
     // deletes old entries stored in the database
-    virtual void deleteOldEntries(Database &db, uint32_t ledgerSeq) = 0;
+    virtual void deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t count) = 0;
 
     // checks the database for inconsistencies between objects
     virtual void checkDbState() = 0;

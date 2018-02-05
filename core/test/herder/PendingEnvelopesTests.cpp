@@ -164,13 +164,12 @@ TEST_CASE("PendingEnvelopes::recvSCPEnvelope", "[herder]") {
     SECTION("return READY when receiving envelope with quorum set and tx set "
                     "that were manually added before") {
         SECTION("as not-removable") {
-            pendingEnvelopes.addSCPQuorumSet(saneQSetHash, 0, saneQSet);
+            pendingEnvelopes.addSCPQuorumSet(saneQSetHash, saneQSet);
             pendingEnvelopes.addTxSet(p.second->getContentsHash(), 0, p.second);
         }
 
         SECTION("as removable") {
-            pendingEnvelopes.addSCPQuorumSet(
-                    saneQSetHash, 2 * Herder::MAX_SLOTS_TO_REMEMBER + 1, saneQSet);
+            pendingEnvelopes.addSCPQuorumSet(saneQSetHash, saneQSet);
             pendingEnvelopes.addTxSet(p.second->getContentsHash(),
                                       2 * Herder::MAX_SLOTS_TO_REMEMBER + 1,
                                       p.second);

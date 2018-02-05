@@ -7,7 +7,6 @@
 #include "bucket/LedgerCmp.h"
 #include "util/noncopyable.h"
 
-#include "xdr/ledger-entries.h"
 #include "xdr/xdr.h"
 
 /**

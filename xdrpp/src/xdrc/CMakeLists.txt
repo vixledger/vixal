@@ -32,8 +32,7 @@ set(APP_HEADERS
 set(APP_SOURCES
         xdrc.cc
         gen_hh.cc
-        gen_server.cc
-        )
+        gen_server.cc)
 
 # Set the build version. It will be used in the name of the lib, with corresponding
 # symlinks created. SOVERSION could also be specified for api version. 

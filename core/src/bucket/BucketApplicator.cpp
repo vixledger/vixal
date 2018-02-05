@@ -4,9 +4,7 @@
 
 #include "util/asio.h"
 #include "bucket/BucketApplicator.h"
-#include "bucket/Bucket.h"
 #include "ledger/LedgerDelta.h"
-#include "util/Logging.h"
 
 namespace vixal {
 

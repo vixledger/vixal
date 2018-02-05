@@ -3,6 +3,8 @@
 
 namespace xdr {
 
+std::uint32_t marshaling_stack_limit = 0xffffffff;
+
 msg_ptr
 message_t::alloc(std::size_t size) {
     // In RPC (see RFC5531 section 11), the high bit means this is the

@@ -25,6 +25,7 @@
 #include "invariant/MinimumAccountBalance.h"
 #include "application/CommandHandler.h"
 #include "application/ExternalQueue.h"
+#include "application/Maintainer.h"
 
 #include "overlay/BanManager.h"
 #include "overlay/OverlayManager.h"
@@ -104,6 +105,7 @@ ApplicationImpl::initialize() {
     mCatchupManager = CatchupManager::create(*this);
     mHistoryManager = HistoryManager::create(*this);
     mInvariantManager = createInvariantManager();
+    mMaintainer = std::make_unique<Maintainer>(*this);
     mProcessManager = ProcessManager::create(*this);
     mCommandHandler = std::make_unique<CommandHandler>(*this);
     mWorkManager = WorkManager::create(*this);
@@ -302,11 +304,7 @@ ApplicationImpl::start() {
 
                 // restores Herder's state before starting overlay
                 mHerder->restoreState();
-                // perform maintenance tasks if configured to do so
-                // for now, we only perform it when CATCHUP_COMPLETE is not set
-                if (mConfig.MAINTENANCE_ON_STARTUP && !mConfig.CATCHUP_COMPLETE) {
-                    maintenance();
-                }
+                mMaintainer->start();
                 mOverlayManager->start();
                 auto npub = mHistoryManager->publishQueuedHistory();
                 if (npub != 0) {
@@ -419,13 +417,6 @@ ApplicationImpl::checkDB() {
                               this->getDatabase(),
                               this->getBucketManager().getBucketList());
     });
-}
-
-void
-ApplicationImpl::maintenance() {
-    LOG(INFO) << "Performing maintenance";
-    ExternalQueue ps(*this);
-    ps.process();
 }
 
 void
@@ -542,6 +533,11 @@ ApplicationImpl::getCatchupManager() {
 HistoryManager &
 ApplicationImpl::getHistoryManager() {
     return *mHistoryManager;
+}
+
+Maintainer &
+ApplicationImpl::getMaintainer() {
+    return *mMaintainer;
 }
 
 ProcessManager &

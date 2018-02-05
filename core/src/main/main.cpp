@@ -418,7 +418,6 @@ loadXdr(Config const &cfg, std::string const &bucketFile) {
     if (checkInitialized(app)) {
         uint256 zero;
         Bucket bucket(bucketFile, zero);
-        bucket.setRetain(true);
         bucket.apply(app->getDatabase());
     } else {
         LOG(INFO) << "Database is not initialized";
@@ -540,6 +539,8 @@ main(int argc, char *const *argv) {
         LOG(FATAL) << "Could not initialize crypto";
         return 1;
     }
+
+    xdr::marshaling_stack_limit = 1000;
 
     std::string cfgFile("vixal-core.cfg");
     std::string command;

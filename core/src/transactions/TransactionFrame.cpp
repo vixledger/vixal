@@ -14,25 +14,19 @@
 #include "application/Application.h"
 #include "transactions/SignatureChecker.h"
 #include "transactions/SignatureUtils.h"
-#include "util/Algoritm.h"
 #include "util/Logging.h"
 #include "util/XDRStream.h"
 #include "util/basen.h"
-#include "xdrpp/marshal.h"
 #include "invariant/InvariantManager.h"
-
-#include <string>
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 
-#include <algorithm>
 #include <numeric>
 
 namespace vixal {
 
 using namespace std;
-using xdr::operator==;
 
 TransactionFramePtr
 TransactionFrame::makeTransactionFromWire(Hash const &networkID,
@@ -106,7 +100,7 @@ TransactionFrame::getMinFee(LedgerManager const &lm) const {
         count = 1;
     }
 
-    return lm.getTxFee() * count;
+    return static_cast<int64_t>(lm.getTxFee() * count);
 }
 
 void
@@ -722,9 +716,12 @@ TransactionFrame::dropAll(Database &db) {
 }
 
 void
-TransactionFrame::deleteOldEntries(Database &db, uint32_t ledgerSeq) {
-    db.getSession() << "DELETE FROM txhistory WHERE ledgerseq <= " << ledgerSeq;
-    db.getSession() << "DELETE FROM txfeehistory WHERE ledgerseq <= "
-                    << ledgerSeq;
+TransactionFrame::deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t count) {
+    db.getSession() << "DELETE FROM txhistory WHERE ledgerseq IN (SELECT "
+            "ledgerseq FROM txhistory WHERE ledgerseq <= "
+                    << ledgerSeq << " LIMIT " << count << ")";
+    db.getSession() << "DELETE FROM txfeehistory WHERE ledgerseq IN (SELECT "
+            "ledgerseq FROM txfeehistory WHERE ledgerseq <= "
+                    << ledgerSeq << " LIMIT " << count << ")";
 }
 }

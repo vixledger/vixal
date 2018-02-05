@@ -22,11 +22,15 @@ public:
     // sets the cursor of a given resource
     void setCursorForResource(std::string const &resid, uint32 cursor);
 
+    // gets the cursor of a given resource, gets all cursors of resid is empty
+    void getCursorForResource(std::string const &resid,
+                              std::map<std::string, uint32> &curMap);
+
     // deletes the subscription for the resource
     void deleteCursor(std::string const &resid);
 
-    // safely delete data
-    void process();
+    // safely delete data, maximum count entries from each table
+    void deleteOldEntries(uint32 count);
 
 private:
     void checkID(std::string const &resid);

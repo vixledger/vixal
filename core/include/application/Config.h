@@ -78,8 +78,13 @@ public:
     // If you want, say, a week of history, set this to 120000.
     uint32_t CATCHUP_RECENT;
 
-    // Enables or disables automatic maintenance on startup
-    bool MAINTENANCE_ON_STARTUP;
+    // Interval between automatic maintenance executions
+    std::chrono::seconds AUTOMATIC_MAINTENANCE_PERIOD;
+
+    // Number of unneeded rows in each table that will be removed during one
+    // maintenance run
+    uint32_t AUTOMATIC_MAINTENANCE_COUNT;
+
 
     // A config parameter that enables synthetic load generation on demand,
     // using the `generateload` runtime command (see CommandHandler.cpp). This
@@ -143,6 +148,7 @@ public:
     // overlay config
     unsigned short PEER_PORT;
     unsigned short TARGET_PEER_CONNECTIONS;
+    int MAX_ADDITIONAL_PEER_CONNECTIONS;
     unsigned short MAX_PEER_CONNECTIONS;
     unsigned short MAX_PENDING_CONNECTIONS;
     unsigned short PEER_AUTHENTICATION_TIMEOUT;

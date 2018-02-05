@@ -131,6 +131,7 @@ InvariantManagerImpl::enableInvariant(std::string const &name) {
     auto iter = std::find(mEnabled.begin(), mEnabled.end(), registryIter->second);
     if (iter == mEnabled.end()) {
         mEnabled.push_back(registryIter->second);
+        CLOG(INFO, "Invariant") << "Enabled invariant '" << name << "'";
     } else {
         throw std::runtime_error{"Invariant " + name + " already enabled"};
     }

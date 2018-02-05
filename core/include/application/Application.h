@@ -31,6 +31,8 @@ class CatchupManager;
 
 class HistoryManager;
 
+class Maintainer;
+
 class ProcessManager;
 
 class Herder;
@@ -195,6 +197,8 @@ public:
 
     virtual HistoryManager &getHistoryManager() = 0;
 
+    virtual Maintainer& getMaintainer() = 0;
+
     virtual ProcessManager &getProcessManager() = 0;
 
     virtual Herder &getHerder() = 0;
@@ -250,9 +254,6 @@ public:
 
     // Run a consistency check between the database and the bucketlist.
     virtual void checkDB() = 0;
-
-    // perform maintenance tasks
-    virtual void maintenance() = 0;
 
     // Execute any administrative commands written in the Config.COMMANDS
     // variable of the config file. This permits scripting certain actions to
