@@ -145,28 +145,28 @@ simulateUpgrade(std::vector<LedgerUpgradeNode> const &nodes,
 LedgerUpgrade
 makeProtocolVersionUpgrade(int version) {
     auto result = LedgerUpgrade{LEDGER_UPGRADE_VERSION};
-    result.newLedgerVersion() = version;
+    result.newLedgerVersion() = static_cast<uint32>(version);
     return result;
 }
 
 LedgerUpgrade
 makeBaseFeeUpgrade(int baseFee) {
     auto result = LedgerUpgrade{LEDGER_UPGRADE_BASE_FEE};
-    result.newBaseFee() = baseFee;
+    result.newBaseFee() = static_cast<uint32>(baseFee);
     return result;
 }
 
 LedgerUpgrade
 makeTxCountUpgrade(int txCount) {
     auto result = LedgerUpgrade{LEDGER_UPGRADE_MAX_TX_SET_SIZE};
-    result.newMaxTxSetSize() = txCount;
+    result.newMaxTxSetSize() = static_cast<uint32>(txCount);
     return result;
 }
 
 LedgerUpgrade
 makeBaseReserveUpgrade(int baseReserve) {
     auto result = LedgerUpgrade{LEDGER_UPGRADE_BASE_RESERVE};
-    result.newBaseReserve() = baseReserve;
+    result.newBaseReserve() = static_cast<uint32>(baseReserve);
     return result;
 }
 
@@ -527,10 +527,11 @@ TEST_CASE("simulate upgrades", "[herder][upgrades]") {
 
     SECTION("1 of 3 vote early - 2 upgrade late") {
         auto nodes = std::vector<LedgerUpgradeNode>{{upgrade, genesis(0, 10)},
+                                                    {upgrade, genesis(0, 30)},
                                                     {upgrade, genesis(0, 30)}};
         auto checks = std::vector<LedgerUpgradeCheck>{
                 {genesis(0, 20), {noUpgrade, noUpgrade, noUpgrade}},
-                {genesis(0, 36), {upgrade,   upgrade,   upgrade}}};
+                {genesis(0, 36), {upgrade, upgrade, upgrade}}};
         simulateUpgrade(nodes, checks);
     }
 

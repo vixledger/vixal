@@ -36,12 +36,12 @@ server::server(asio::io_context &io_context, const std::string &address,
 }
 
 void server::add404(routeHandler callback) {
-    addRoute("404", callback);
+    addRoute("404", std::move(callback));
 }
 
 void
 server::addRoute(const std::string &routeName, routeHandler callback) {
-    mRoutes[routeName] = callback;
+    mRoutes[routeName] = std::move(callback);
 }
 
 void
@@ -76,8 +76,9 @@ server::handle_request(const request &req, reply &rep) {
         return;
     }
 
-    if (request_path.size() && request_path[0] == '/')
+    if (request_path.size() && request_path[0] == '/') {
         request_path = request_path.substr(1);
+    }
 
     std::string command;
     std::string params;
@@ -160,7 +161,7 @@ void server::parseParams(const std::string &params, std::map<std::string, std::s
             else value += c;
         }
     }
-    if (name.size() && value.size()) {
+    if (!name.empty() && !value.empty()) {
         retMap[name] = value;
     }
 }

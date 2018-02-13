@@ -6,18 +6,21 @@
 
 #include "autocheck/autocheck.hpp"
 #include "catch.hpp"
+
 #include "application/Config.h"
+#include "application/Application.h"
+
 #include "test/test.h"
 #include "test/TestUtils.h"
 #include "util/Logging.h"
+
 #include <chrono>
 
 using namespace vixal;
 
 TEST_CASE("pointToTm tmToPoint stuff", "[timer]") {
     VirtualClock::time_point tp;
-    tp = tp + std::chrono::seconds(12); // 01/01/70 00:00:12 UTC+8 is before GMT
-    // epoch, mktime may fail.
+    tp = tp + std::chrono::seconds(12); // 01/01/70 00:00:12 UTC+8 is before GMT epoch, mktime may fail.
 
     std::tm tt = VirtualClock::pointToTm(tp);
 
@@ -76,12 +79,15 @@ TEST_CASE("VirtualClock::from_time_t", "[timer]") {
 }
 
 TEST_CASE("virtual event dispatch order and times", "[timer]") {
+    Config cfg(getTestConfig());
     VirtualClock clock;
 
-    VirtualTimer timer1(clock);
-    VirtualTimer timer20(clock);
-    VirtualTimer timer21(clock);
-    VirtualTimer timer200(clock);
+    Application::pointer app = createTestApplication(clock, cfg);
+
+    VirtualTimer timer1(*app);
+    VirtualTimer timer20(*app);
+    VirtualTimer timer21(*app);
+    VirtualTimer timer200(*app);
 
     size_t eventsDispatched = 0;
 
@@ -128,6 +134,9 @@ TEST_CASE("virtual event dispatch order and times", "[timer]") {
 TEST_CASE("shared virtual time advances only when all apps idle",
           "[timer][sharedtimer]") {
     VirtualClock clock;
+    Application::pointer app1 = createTestApplication(clock, getTestConfig(0));
+    Application::pointer app2 = createTestApplication(clock, getTestConfig(1));
+
 
     size_t app1Event = 0;
     size_t app2Event = 0;
@@ -144,7 +153,7 @@ TEST_CASE("shared virtual time advances only when all apps idle",
     CHECK(timerFired == 0);
 
     // Fire one timer
-    VirtualTimer timer(clock);
+    VirtualTimer timer(*app1);
     timer.expires_after(std::chrono::seconds(1));
     timer.async_wait([&](asio::error_code const &e) { ++timerFired; });
     clock.crank(false);
@@ -173,12 +182,14 @@ TEST_CASE("shared virtual time advances only when all apps idle",
 
 TEST_CASE("timer cancels", "[timer]") {
     VirtualClock clock;
+    Application::pointer app = createTestApplication(clock, getTestConfig(0));
+
 
     int timerFired = 0;
     int timerCancelled = 0;
     std::vector<std::unique_ptr<VirtualTimer>> timers;
     for (int i = 0; i < 10; i++) {
-        timers.push_back(std::make_unique<VirtualTimer>(clock));
+        timers.push_back(std::make_unique<VirtualTimer>(*app));
         timers.back()->expires_after(std::chrono::seconds(i));
         timers.back()->async_wait(
                 [&timerFired, &timerCancelled, i](asio::error_code const &ec) {

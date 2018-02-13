@@ -5,11 +5,11 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "bucket/Bucket.h"
-#include "xdr/xdr.h"
 #include "util/noncopyable.h"
+
 #include <memory>
 
-#include "medida/timer_context.h"
+#include <medida/timer_context.h>
 
 namespace vixal {
 

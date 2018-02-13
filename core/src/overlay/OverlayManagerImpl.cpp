@@ -3,24 +3,15 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 
-#include <crypto/SecretKey.h>
+#include "crypto/SecretKey.h"
+
 #include "OverlayManagerImpl.h"
-#include "overlay/PeerRecord.h"
-#include "overlay/TCPPeer.h"
 
-#include "crypto/KeyUtils.h"
 
-#include "database/Database.h"
 #include "application/Application.h"
-#include "application/Config.h"
 
 #include "util/Logging.h"
 
-#include "medida/counter.h"
-#include "medida/meter.h"
-#include "medida/metrics_registry.h"
-
-#include <algorithm>
 #include <random>
 
 /**
@@ -38,7 +29,7 @@ connection is established
 
 keyAB and keyBA are per-connection HMAC keys derived from non-interactive ECDH on random curve25519 keys
 conveyed in CertA and CertB (certs signed by Node Ed25519 keys) the result of which is then fed through
-HKDF with the per-connection nounces. See PeerAuth.h.
+HKDF with the per-connection nonce. See PeerAuth.h.
 
 If any verify step fails, the peer disconnects immediately.
 
@@ -48,7 +39,6 @@ namespace vixal {
 
 using namespace soci;
 using namespace std;
-using xdr::operator<;
 
 std::unique_ptr<OverlayManager>
 OverlayManager::create(Application &app) {
@@ -156,10 +146,8 @@ void
 OverlayManagerImpl::connectToMorePeers(std::uint32_t max) {
     const int batchSize = std::max(10u, max);
 
-    // load best candidates from the database,
-    // when PREFERRED_PEER_ONLY is set and we connect to a non
-    // preferred_peer we just end up dropping & backing off
-    // it during handshake (this allows for preferred_peers
+    // load best candidates from the database, when PREFERRED_PEER_ONLY is set and we connect to a non
+    // preferred_peer we just end up dropping & backing off it during handshake (this allows for preferred_peers
     // to work for both ip based and key based preferred mode)
 
     vector<PeerRecord> peers;

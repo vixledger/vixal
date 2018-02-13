@@ -11,13 +11,16 @@
 #include "database/Database.h"
 #include "ledger/LedgerManager.h"
 #include "http/HttpClient.h"
-#include "util/getopt.h"
 #include "historywork/GetHistoryArchiveStateWork.h"
 #include "work/WorkManager.h"
 #include "application/PersistentState.h"
+#include "application/Maintainer.h"
+#include "application/ExternalQueue.h"
 #include "dumpxdr.h"
+
+#include "util/getopt.h"
 #include "util/Fs.h"
-#include <util/format.h>
+#include "util/format.h"
 
 #if !defined(AUTO_INITIALIZE_EASYLOGGINGPP)
 INITIALIZE_EASYLOGGINGPP
@@ -97,8 +100,7 @@ static const struct option vixal_core_options[] = {
 
 static void
 usage(int err = 1) {
-    std::ostream &os = err ? std::cerr : std::cout;
-    os << "usage: vixal-core [OPTIONS]\n"
+    auto usageMsg = "usage: vixal-core [OPTIONS]\n"
             "where OPTIONS can be any of:\n"
             "      --base64             Use base64 for --printtxn and --signtxn\n"
             "      --catchup-at SEQ     Do a catchup at ledger SEQ, then quit\n"
@@ -139,6 +141,11 @@ usage(int err = 1) {
             "                           (Default is VIXAL_NETWORK_ID environment variable)\n"
             // "      --test               Run self-tests\n"
             "      --version            Print version information\n";
+    if (err) {
+        std::cerr << usageMsg;
+    } else {
+        std::cout << usageMsg;
+    }
     exit(err);
 }
 
@@ -358,7 +365,7 @@ parseLedger(std::string const &str) {
                 fmt::format("{} is not a valid ledger number", str));
     }
 
-    return result;
+    return static_cast<uint32_t>(result);
 }
 
 static uint32_t
@@ -370,7 +377,7 @@ parseLedgerCount(std::string const &str) {
                 fmt::format("{} is not a valid ledger count", str));
     }
 
-    return result;
+    return static_cast<uint32_t>(result);
 }
 
 static void
@@ -429,7 +436,7 @@ inferQuorumAndWrite(Config const &cfg) {
     InferredQuorum iq;
     {
         VirtualClock clock;
-        Application::pointer app = Application::create(clock, cfg);
+        Application::pointer app = Application::create(clock, cfg, false);
         iq = app->getHistoryManager().inferQuorum();
     }
     LOG(INFO) << "Inferred quorum";
@@ -439,7 +446,7 @@ inferQuorumAndWrite(Config const &cfg) {
 static void
 checkQuorumIntersection(Config const &cfg) {
     VirtualClock clock;
-    Application::pointer app = Application::create(clock, cfg);
+    Application::pointer app = Application::create(clock, cfg, false);
     InferredQuorum iq = app->getHistoryManager().inferQuorum();
     iq.checkQuorumIntersection(cfg);
 }
@@ -449,7 +456,7 @@ writeQuorumGraph(Config const &cfg, std::string const &outputFile) {
     InferredQuorum iq;
     {
         VirtualClock clock;
-        Application::pointer app = Application::create(clock, cfg);
+        Application::pointer app = Application::create(clock, cfg, false);
         iq = app->getHistoryManager().inferQuorum();
     }
     std::string filename = outputFile.empty() ? "-" : outputFile;
@@ -492,7 +499,7 @@ initializeHistories(Config &cfg, vector<string> newHistories) {
 }
 
 static int
-startApp(string cfgFile, Config &cfg) {
+startApp(const string &cfgFile, Config &cfg) {
     LOG(INFO) << "Starting vixal-core " << VIXAL_CORE_VERSION;
     LOG(INFO) << "Config from " << cfgFile;
     VirtualClock clock(VirtualClock::REAL_TIME);
@@ -700,14 +707,15 @@ main(int argc, char *const *argv) {
         Logging::setFmt(KeyUtils::toShortString(cfg.NODE_SEED.getPublicKey()));
         Logging::setLogLevel(logLevel, nullptr);
 
-        if (command.size()) {
+        if (!command.empty()) {
             sendCommand(command, rest, cfg.HTTP_PORT);
             return 0;
         }
 
         // don't log to file if just sending a command
-        if (cfg.LOG_FILE_PATH.size())
+        if (!cfg.LOG_FILE_PATH.empty()) {
             Logging::setLoggingToFile(cfg.LOG_FILE_PATH);
+        }
         Logging::setLogLevel(logLevel, nullptr);
 
         cfg.REPORT_METRICS = metrics;
@@ -717,23 +725,39 @@ main(int argc, char *const *argv) {
             doCatchupComplete || doCatchupRecent || doCatchupTo ||
             doReportLastHistoryCheckpoint) {
 
-            Json::Value catchupInfo;
             auto result = 0;
             setNoListen(cfg);
             if ((result == 0) && newDB) {
                 initializeDatabase(cfg);
             }
-            if ((result == 0) && doCatchupAt) {
-                result = catchupAt(cfg, catchupAtTarget, catchupInfo);
-            }
-            if ((result == 0) && doCatchupComplete) {
-                result = catchupComplete(cfg, catchupInfo);
-            }
-            if ((result == 0) && doCatchupRecent) {
-                result = catchupRecent(cfg, catchupRecentCount, catchupInfo);
-            }
-            if ((result == 0) && doCatchupTo) {
-                result = catchupTo(cfg, catchupToTarget, catchupInfo);
+            if ((result == 0) && (doCatchupAt || doCatchupComplete ||
+                                  doCatchupRecent || doCatchupTo)) {
+                Json::Value catchupInfo;
+                VirtualClock clock(VirtualClock::REAL_TIME);
+                auto app = Application::create(clock, cfg, false);
+                // set known cursors before starting maintenance job
+                ExternalQueue ps(*app);
+                ps.setInitialCursors(cfg.KNOWN_CURSORS);
+
+                app->getMaintainer().start();
+                if (doCatchupAt) {
+                    result = catchupAt(cfg, catchupAtTarget, catchupInfo);
+                }
+                if ((result == 0) && doCatchupComplete) {
+                    result = catchupComplete(cfg, catchupInfo);
+                }
+                if ((result == 0) && doCatchupRecent) {
+                    result = catchupRecent(cfg, catchupRecentCount, catchupInfo);
+                }
+                if ((result == 0) && doCatchupTo) {
+                    result = catchupTo(cfg, catchupToTarget, catchupInfo);
+                }
+                app->gracefulStop();
+                while (app->getClock().crank(true))
+                    ;
+                if (!catchupInfo.isNull()) {
+                    writeCatchupInfo(catchupInfo, outputFile);
+                }
             }
             if ((result == 0) && forceSCP) {
                 setForceSCPFlag(cfg, *forceSCP);

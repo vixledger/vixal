@@ -29,14 +29,14 @@
 // use C++17 std::optional if available:
 
 #if defined( __has_include )
-# define optional_HAS_INCLUDE( arg )  __has_include( arg )
+# define optional_HAS_INCLUDE(arg)  __has_include( arg )
 #else
 # define optional_HAS_INCLUDE( arg )  0
 #endif
 
 #define optional_HAVE_STD_OPTIONAL  ( optional_HAS_INCLUDE( <optional> ) && optional_CPP17_OR_GREATER )
 
-#if optional_HAVE_STD_OPTIONAL  
+#if optional_HAVE_STD_OPTIONAL
 
 #include <optional>
 
@@ -86,7 +86,7 @@ namespace nonstd {
 #endif
 
 // half-open range [lo..hi):
-#define optional_BETWEEN( v, lo, hi ) ( lo <= v && v < hi )
+#define optional_BETWEEN(v, lo, hi) ( lo <= v && v < hi )
 
 #if defined(_MSC_VER) && !defined(__clang__)
 # define optional_COMPILER_MSVC_VERSION   (_MSC_VER / 100 - 5 - (_MSC_VER < 1900))
@@ -100,12 +100,12 @@ namespace nonstd {
 # define optional_COMPILER_GNUC_VERSION    0
 #endif
 
-#if optional_BETWEEN(optional_COMPILER_MSVC_VERSION, 7, 14 )
+#if optional_BETWEEN(optional_COMPILER_MSVC_VERSION, 7, 14)
 # pragma warning( push )
 # pragma warning( disable: 4345 )   // initialization behavior changed
 #endif
 
-#if optional_BETWEEN(optional_COMPILER_MSVC_VERSION, 7, 15 )
+#if optional_BETWEEN(optional_COMPILER_MSVC_VERSION, 7, 15)
 # pragma warning( push )
 # pragma warning( disable: 4814 )   // in C++14 'constexpr' will not imply 'const'
 #endif
@@ -222,79 +222,88 @@ namespace nonstd {
 // additional includes:
 
 #if optional_CPP11_OR_GREATER
+
 # include <functional>
+
 #endif
 
 #if optional_HAVE_INITIALIZER_LIST
+
 # include <initializer_list>
+
 #endif
 
 #if optional_HAVE_TYPE_TRAITS
+
 # include <type_traits>
+
 #elif optional_HAVE_TR1_TYPE_TRAITS
 # include <tr1/type_traits>
 #endif
 
 // type traits needed:
 
-namespace nonstd { namespace optional_lite { namespace detail {
+namespace nonstd {
+namespace optional_lite {
+namespace detail {
 
 #if optional_HAVE_CONDITIONAL
-    using std::conditional;
+using std::conditional;
 #else
-    template< bool B, typename T, typename F > struct conditional              { typedef T type; };
-    template<         typename T, typename F > struct conditional<false, T, F> { typedef F type; };
+template< bool B, typename T, typename F > struct conditional              { typedef T type; };
+template<         typename T, typename F > struct conditional<false, T, F> { typedef F type; };
 #endif // optional_HAVE_CONDITIONAL
 
-}}}
+}
+}
+}
 
 //
 // in_place: code duplicated in any-lite, optional-lite, variant-lite:
 //
 
-#if ! nonstd_lite_HAVE_IN_PLACE_TYPES
+#if !nonstd_lite_HAVE_IN_PLACE_TYPES
 
-namespace nonstd { 
-    
+namespace nonstd {
+
 namespace detail {
 
-template< class T >
-struct in_place_type_tag {};
+template<class T>
+struct in_place_type_tag {
+};
 
-template< std::size_t I >
-struct in_place_index_tag {};
+template<std::size_t I>
+struct in_place_index_tag {
+};
 
 } // namespace detail
 
-struct in_place_t {};
+struct in_place_t {
+};
 
-template< class T >
-inline in_place_t in_place( detail::in_place_type_tag<T> = detail::in_place_type_tag<T>() )
-{
+template<class T>
+inline in_place_t in_place(detail::in_place_type_tag<T> = detail::in_place_type_tag<T>()) {
     return in_place_t();
 }
 
-template< std::size_t I >
-inline in_place_t in_place( detail::in_place_index_tag<I> = detail::in_place_index_tag<I>() )
-{
+template<std::size_t I>
+inline in_place_t in_place(detail::in_place_index_tag<I> = detail::in_place_index_tag<I>()) {
     return in_place_t();
 }
 
-template< class T >
-inline in_place_t in_place_type( detail::in_place_type_tag<T> = detail::in_place_type_tag<T>() )
-{
+template<class T>
+inline in_place_t in_place_type(detail::in_place_type_tag<T> = detail::in_place_type_tag<T>()) {
     return in_place_t();
 }
 
-template< std::size_t I >
-inline in_place_t in_place_index( detail::in_place_index_tag<I> = detail::in_place_index_tag<I>() )
-{
+template<std::size_t I>
+inline in_place_t in_place_index(detail::in_place_index_tag<I> = detail::in_place_index_tag<I>()) {
     return in_place_t();
 }
 
 // mimic templated typedef:
 
-#define nonstd_lite_in_place_type_t( T)  nonstd::in_place_t(&)( nonstd::detail::in_place_type_tag<T>  )
+#define nonstd_lite_in_place_type_t(T)  nonstd::in_place_t(&)( nonstd::detail::in_place_type_tag<T>  )
 #define nonstd_lite_in_place_index_t(T)  nonstd::in_place_t(&)( nonstd::detail::in_place_index_tag<I> )
 
 #define nonstd_lite_HAVE_IN_PLACE_TYPES  1
@@ -307,22 +316,23 @@ inline in_place_t in_place_index( detail::in_place_index_tag<I> = detail::in_pla
 // optional:
 //
 
-namespace nonstd { namespace optional_lite {
+namespace nonstd {
+namespace optional_lite {
 
 /// class optional
 
-template< typename T >
+template<typename T>
 class optional;
 
 namespace detail {
 
 // C++11 emulation:
 
-struct nulltype{};
+struct nulltype {
+};
 
-template< typename Head, typename Tail >
-struct typelist
-{
+template<typename Head, typename Tail>
+struct typelist {
     typedef Head head;
     typedef Tail tail;
 };
@@ -391,82 +401,91 @@ union max_align_t
 
 // Determine POD type to use for alignment:
 
-#define optional_ALIGN_AS( to_align ) \
+#define optional_ALIGN_AS(to_align) \
     typename type_of_size< alignment_types, alignment_of< to_align >::value >::type
 
-template <typename T>
+template<typename T>
 struct alignment_of;
 
-template <typename T>
-struct alignment_of_hack
-{
+template<typename T>
+struct alignment_of_hack {
     char c;
     T t;
+
     alignment_of_hack();
 };
 
-template <unsigned A, unsigned S>
-struct alignment_logic
-{
-    enum { value = A < S ? A : S };
+template<unsigned A, unsigned S>
+struct alignment_logic {
+    enum {
+        value = A < S ? A : S
+    };
 };
 
-template< typename T >
-struct alignment_of
-{
-    enum { value = alignment_logic<
-        sizeof( alignment_of_hack<T> ) - sizeof(T), sizeof(T) >::value, };
+template<typename T>
+struct alignment_of {
+    enum {
+        value = alignment_logic<
+                sizeof(alignment_of_hack<T>) - sizeof(T), sizeof(T)>::value,
+    };
 };
 
-template< typename List, size_t N >
-struct type_of_size
-{
+template<typename List, size_t N>
+struct type_of_size {
     typedef typename conditional<
-        N == sizeof( typename List::head ),
+            N == sizeof(typename List::head),
             typename List::head,
-            typename type_of_size<typename List::tail, N >::type >::type type;
+            typename type_of_size<typename List::tail, N>::type>::type type;
 };
 
-template< size_t N >
-struct type_of_size< nulltype, N >
-{
+template<size_t N>
+struct type_of_size<nulltype, N> {
     typedef optional_CONFIG_ALIGN_AS_FALLBACK type;
 };
 
-template< typename T>
-struct struct_t { T _; };
+template<typename T>
+struct struct_t {
+    T _;
+};
 
-#define optional_ALIGN_TYPE( type ) \
+#define optional_ALIGN_TYPE(type) \
     typelist< type , typelist< struct_t< type >
 
 struct Unknown;
 
 typedef
-    optional_ALIGN_TYPE( char ),
-    optional_ALIGN_TYPE( short ),
-    optional_ALIGN_TYPE( int ),
-    optional_ALIGN_TYPE( long ),
-    optional_ALIGN_TYPE( float ),
-    optional_ALIGN_TYPE( double ),
-    optional_ALIGN_TYPE( long double ),
+optional_ALIGN_TYPE(char),
+        optional_ALIGN_TYPE(short),
+                optional_ALIGN_TYPE(int),
+                        optional_ALIGN_TYPE(long),
+                                optional_ALIGN_TYPE(float),
+                                        optional_ALIGN_TYPE(double),
+                                                optional_ALIGN_TYPE(long double),
 
-    optional_ALIGN_TYPE( char *),
-    optional_ALIGN_TYPE( short * ),
-    optional_ALIGN_TYPE( int * ),
-    optional_ALIGN_TYPE( long * ),
-    optional_ALIGN_TYPE( float * ),
-    optional_ALIGN_TYPE( double * ),
-    optional_ALIGN_TYPE( long double * ),
+                                                        optional_ALIGN_TYPE(char *),
+                                                                optional_ALIGN_TYPE(short *),
+                                                                        optional_ALIGN_TYPE(int *),
+                                                                                optional_ALIGN_TYPE(long *),
+                                                                                        optional_ALIGN_TYPE(float *),
+                                                                                                optional_ALIGN_TYPE(
+                                                                                                        double *),
+                                                                                                        optional_ALIGN_TYPE(
+                                                                                                                long double *),
 
-    optional_ALIGN_TYPE( Unknown ( * )( Unknown ) ),
-    optional_ALIGN_TYPE( Unknown * Unknown::*     ),
-    optional_ALIGN_TYPE( Unknown ( Unknown::* )( Unknown ) ),
+                                                                                                                optional_ALIGN_TYPE(
+                                                                                                                        Unknown(*)(
+                                                                                                                                Unknown)),
+                                                                                                                        optional_ALIGN_TYPE(
+                                                                                                                                Unknown * Unknown::*),
+                                                                                                                                optional_ALIGN_TYPE(
+                                                                                                                                        Unknown(Unknown::*)(
+                                                                                                                                                Unknown)),
 
-    nulltype
-    > > > > > > >    > > > > > > >
-    > > > > > > >    > > > > > > >
-    > > > > > >
-    alignment_types;
+                                                                                                                                        nulltype
+                                                                                                                                > > > > > > > > > > > > > >
+                                                                        > > > > > > > > > > > > > >
+                > > > > > >
+        alignment_types;
 
 #undef optional_ALIGN_TYPE
 
@@ -474,9 +493,8 @@ typedef
 
 /// C++03 constructed union to hold value.
 
-template< typename T >
-union storage_t
-{
+template<typename T>
+union storage_t {
 private:
     friend class optional<T>;
 
@@ -484,72 +502,61 @@ private:
 
     storage_t() {}
 
-    storage_t( value_type const & v )
-    {
-        construct_value( v );
+    storage_t(value_type const &v) {
+        construct_value(v);
     }
 
-    void construct_value( value_type const & v )
-    {
-        ::new( value_ptr() ) value_type( v );
+    void construct_value(value_type const &v) {
+        ::new(value_ptr()) value_type(v);
     }
 
 #if optional_CPP11_OR_GREATER
 
-    storage_t( value_type && v )
-    {
-        construct_value( std::move( v ) );
+    storage_t(value_type &&v) {
+        construct_value(std::move(v));
     }
 
-    void construct_value( value_type && v )
-    {
-        ::new( value_ptr() ) value_type( std::move( v ) );
+    void construct_value(value_type &&v) {
+        ::new(value_ptr()) value_type(std::move(v));
     }
 
 #endif
 
-    void destruct_value()
-    {
+    void destruct_value() {
         value_ptr()->~T();
     }
 
-    value_type const * value_ptr() const
-    {
+    value_type const *value_ptr() const {
         return as<value_type>();
     }
 
-    value_type * value_ptr()
-    {
+    value_type *value_ptr() {
         return as<value_type>();
     }
 
-    value_type const & value() const optional_ref_qual
-    {
-        return * value_ptr();
+    value_type const &value() const optional_ref_qual {
+        return *value_ptr();
     }
 
-    value_type & value() optional_ref_qual
-    {
-        return * value_ptr();
+    value_type &value() optional_ref_qual {
+        return *value_ptr();
     }
 
 #if optional_CPP11_OR_GREATER
 
-    value_type const && value() const optional_refref_qual
-    {
-        return * value_ptr();
+    value_type const &&value() const optional_refref_qual {
+        return *value_ptr();
     }
 
-    value_type && value() optional_refref_qual
-    {
-        return * value_ptr();
+    value_type &&value() optional_refref_qual {
+        return *value_ptr();
     }
 
 #endif
 
 #if optional_CPP11_OR_GREATER
 
-    using aligned_storage_t = typename std::aligned_storage< sizeof(value_type), alignof(value_type) >::type;
+    using aligned_storage_t = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
     aligned_storage_t data;
 
 #elif optional_CONFIG_MAX_ALIGN_HACK
@@ -569,26 +576,22 @@ private:
 
 #endif // optional_CONFIG_MAX_ALIGN_HACK
 
-    void * ptr() optional_noexcept
-    {
+    void *ptr() optional_noexcept {
         return &data;
     }
 
-    void const * ptr() const optional_noexcept
-    {
+    void const *ptr() const optional_noexcept {
         return &data;
     }
 
-    template <typename U>
-    U * as()
-    {
-        return reinterpret_cast<U*>( ptr() );
+    template<typename U>
+    U *as() {
+        return reinterpret_cast<U *>( ptr());
     }
 
-    template <typename U>
-    U const * as() const
-    {
-        return reinterpret_cast<U const *>( ptr() );
+    template<typename U>
+    U const *as() const {
+        return reinterpret_cast<U const *>( ptr());
     }
 };
 
@@ -596,14 +599,15 @@ private:
 
 /// disengaged state tag
 
-struct nullopt_t
-{
-    struct init{};
-    optional_constexpr nullopt_t( init ) {}
+struct nullopt_t {
+    struct init {
+    };
+
+    optional_constexpr nullopt_t(init) {}
 };
 
 #if optional_HAVE_CONSTEXPR_11
-constexpr nullopt_t nullopt{ nullopt_t::init{} };
+constexpr nullopt_t nullopt{nullopt_t::init{}};
 #else
 // extra parenthesis to prevent the most vexing parse:
 const nullopt_t nullopt(( nullopt_t::init() ));
@@ -611,18 +615,16 @@ const nullopt_t nullopt(( nullopt_t::init() ));
 
 /// optional access error
 
-class bad_optional_access : public std::logic_error
-{
+class bad_optional_access : public std::logic_error {
 public:
-  explicit bad_optional_access()
-  : logic_error( "bad optional access" ) {}
+    explicit bad_optional_access()
+            : logic_error("bad optional access") {}
 };
 
 /// optional
 
-template< typename T>
-class optional
-{
+template<typename T>
+class optional {
 private:
     typedef void (optional::*safe_bool)() const;
 
@@ -630,175 +632,157 @@ public:
     typedef T value_type;
 
     optional_constexpr optional() optional_noexcept
-    : has_value_( false )
-    , contained()
-    {}
+            : has_value_(false), contained() {}
 
-    optional_constexpr optional( nullopt_t ) optional_noexcept
-    : has_value_( false )
-    , contained()
-    {}
+    optional_constexpr optional(nullopt_t) optional_noexcept
+            : has_value_(false), contained() {}
 
-    optional( optional const & rhs )
-    : has_value_( rhs.has_value() )
-    {
-        if ( rhs.has_value() )
-            contained.construct_value( rhs.contained.value() );
+    optional(optional const &rhs)
+            : has_value_(rhs.has_value()) {
+        if (rhs.has_value())
+            contained.construct_value(rhs.contained.value());
     }
 
 #if optional_CPP11_OR_GREATER
-    optional_constexpr14 optional( optional && rhs ) noexcept( std::is_nothrow_move_constructible<T>::value )
-    : has_value_( rhs.has_value() )
-    {
-        if ( rhs.has_value() )
-            contained.construct_value( std::move( rhs.contained.value() ) );
+
+    optional_constexpr14 optional(optional &&rhs) noexcept(std::is_nothrow_move_constructible<T>::value)
+            : has_value_(rhs.has_value()) {
+        if (rhs.has_value())
+            contained.construct_value(std::move(rhs.contained.value()));
     }
 #endif
 
-    optional_constexpr optional( value_type const & value )
-    : has_value_( true )
-    , contained( value )
-    {}
+    optional_constexpr optional(value_type const &value)
+            : has_value_(true), contained(value) {}
 
 #if optional_CPP11_OR_GREATER
 
-    optional_constexpr optional( value_type && value )
-    : has_value_( true )
-    , contained( std::move( value ) )
-    {}
+    optional_constexpr optional(value_type &&value)
+            : has_value_(true), contained(std::move(value)) {}
 
-    template< class... Args >
-    optional_constexpr explicit optional( nonstd_lite_in_place_type_t(T), Args&&... args )
-    : has_value_( true )
-    , contained( T( std::forward<Args>(args)...) )
-    {}
+    template<class... Args>
+    optional_constexpr explicit optional(nonstd_lite_in_place_type_t(T), Args &&... args)
+            : has_value_(true), contained(T(std::forward<Args>(args)...)) {}
 
-    template< class U, class... Args >
-    optional_constexpr explicit optional( nonstd_lite_in_place_type_t(T), std::initializer_list<U> il, Args&&... args )
-    : has_value_( true )
-    , contained( T( il, std::forward<Args>(args)...) )
-    {}
+    template<class U, class... Args>
+    optional_constexpr explicit optional(nonstd_lite_in_place_type_t(T), std::initializer_list<U> il, Args &&... args)
+            : has_value_(true), contained(T(il, std::forward<Args>(args)...)) {}
 
 #endif // optional_CPP11_OR_GREATER
 
-    ~optional()
-    {
-        if ( has_value() )
+    ~optional() {
+        if (has_value())
             contained.destruct_value();
     }
 
     // assignment
 
-    optional & operator=( nullopt_t ) optional_noexcept
-    {
+    optional &operator=(nullopt_t) optional_noexcept {
         reset();
         return *this;
     }
 
-    optional & operator=( optional const & rhs )
+    optional &operator=(optional const &rhs)
 #if optional_CPP11_OR_GREATER
-        noexcept( std::is_nothrow_move_assignable<T>::value && std::is_nothrow_move_constructible<T>::value )
+    noexcept(std::is_nothrow_move_assignable<T>::value && std::is_nothrow_move_constructible<T>::value)
 #endif
     {
-        if      ( has_value() == true  && rhs.has_value() == false ) reset();
-        else if ( has_value() == false && rhs.has_value() == true  ) initialize( *rhs );
-        else if ( has_value() == true  && rhs.has_value() == true  ) contained.value() = *rhs;
+        if (has_value() == true && rhs.has_value() == false) reset();
+        else if (has_value() == false && rhs.has_value() == true) initialize(*rhs);
+        else if (has_value() == true && rhs.has_value() == true) contained.value() = *rhs;
         return *this;
     }
 
 #if optional_CPP11_OR_GREATER
 
-    optional & operator=( optional && rhs ) noexcept
-    {
-        if      ( has_value() == true  && rhs.has_value() == false ) reset();
-        else if ( has_value() == false && rhs.has_value() == true  ) initialize( std::move( *rhs ) );
-        else if ( has_value() == true  && rhs.has_value() == true  ) contained.value() = std::move( *rhs );
+    optional &operator=(optional &&rhs) noexcept {
+        if (has_value() == true && rhs.has_value() == false) reset();
+        else if (has_value() == false && rhs.has_value() == true) initialize(std::move(*rhs));
+        else if (has_value() == true && rhs.has_value() == true) contained.value() = std::move(*rhs);
         return *this;
     }
 
-    template< class U,
-        typename = typename std::enable_if< std::is_same< typename std::decay<U>::type, T>::value >::type >
-    optional & operator=( U && v )
-    {
-        if ( has_value() ) contained.value() = std::forward<U>( v );
-        else               initialize( T( std::forward<U>( v ) ) );
+    template<class U,
+            typename = typename std::enable_if<std::is_same<typename std::decay<U>::type, T>::value>::type>
+    optional &operator=(U &&v) {
+        if (has_value()) contained.value() = std::forward<U>(v);
+        else initialize(T(std::forward<U>(v)));
         return *this;
     }
 
-    template< class... Args >
-    void emplace( Args&&... args )
-    {
+    template<class... Args>
+    void emplace(Args &&... args) {
         *this = nullopt;
-        initialize( T( std::forward<Args>(args)...) );
+        initialize(T(std::forward<Args>(args)...));
     }
 
-    template< class U, class... Args >
-    void emplace( std::initializer_list<U> il, Args&&... args )
-    {
+    template<class U, class... Args>
+    void emplace(std::initializer_list<U> il, Args &&... args) {
         *this = nullopt;
-        initialize( T( il, std::forward<Args>(args)...) );
+        initialize(T(il, std::forward<Args>(args)...));
     }
 
 #endif // optional_CPP11_OR_GREATER
 
     // swap
 
-    void swap( optional & rhs )
+    void swap(optional &rhs)
 #if optional_CPP11_OR_GREATER
-    noexcept( std::is_nothrow_move_constructible<T>::value && noexcept( std::swap( std::declval<T&>(), std::declval<T&>() ) ) )
+    noexcept(std::is_nothrow_move_constructible<T>::value && noexcept(
+             std::swap(std::declval<T &>(), std::declval<T &>())))
 #endif
     {
         using std::swap;
-        if      ( has_value() == true  && rhs.has_value() == true  ) { swap( **this, *rhs ); }
-        else if ( has_value() == false && rhs.has_value() == true  ) { initialize( *rhs ); rhs.reset(); }
-        else if ( has_value() == true  && rhs.has_value() == false ) { rhs.initialize( **this ); reset(); }
+        if (has_value() == true && rhs.has_value() == true) { swap(**this, *rhs); }
+        else if (has_value() == false && rhs.has_value() == true) {
+            initialize(*rhs);
+            rhs.reset();
+        }
+        else if (has_value() == true && rhs.has_value() == false) {
+            rhs.initialize(**this);
+            reset();
+        }
     }
 
     // observers
 
-    optional_constexpr value_type const * operator ->() const
-    {
-        return assert( has_value() ),
-            contained.value_ptr();
+    optional_constexpr value_type const *operator->() const {
+        return assert(has_value()),
+                contained.value_ptr();
     }
 
-    optional_constexpr14 value_type * operator ->()
-    {
-        return assert( has_value() ),
-            contained.value_ptr();
+    optional_constexpr14 value_type *operator->() {
+        return assert(has_value()),
+                contained.value_ptr();
     }
 
-    optional_constexpr value_type const & operator *() const optional_ref_qual
-    {
-        return assert( has_value() ),
-            contained.value();
+    optional_constexpr value_type const &operator*() const optional_ref_qual {
+        return assert(has_value()),
+                contained.value();
     }
 
-    optional_constexpr14 value_type & operator *() optional_ref_qual
-    {
-        return assert( has_value() ),
-            contained.value();
+    optional_constexpr14 value_type &operator*() optional_ref_qual {
+        return assert(has_value()),
+                contained.value();
     }
 
 #if optional_CPP11_OR_GREATER
 
-    optional_constexpr value_type const && operator *() const optional_refref_qual
-    {
-        return assert( has_value() ),
-            std::move( contained.value() );
+    optional_constexpr value_type const &&operator*() const optional_refref_qual {
+        return assert(has_value()),
+                std::move(contained.value());
     }
 
-    optional_constexpr14 value_type && operator *() optional_refref_qual
-    {
-        return assert( has_value() ),
-            std::move( contained.value() );
+    optional_constexpr14 value_type &&operator*() optional_refref_qual {
+        return assert(has_value()),
+                std::move(contained.value());
     }
 
 #endif
 
 #if optional_CPP11_OR_GREATER
-    optional_constexpr explicit operator bool() const optional_noexcept
-    {
+
+    optional_constexpr explicit operator bool() const optional_noexcept {
         return has_value();
     }
 #else
@@ -808,22 +792,19 @@ public:
     }
 #endif
 
-    optional_constexpr bool has_value() const optional_noexcept
-    {
+    optional_constexpr bool has_value() const optional_noexcept {
         return has_value_;
     }
 
-    optional_constexpr14 value_type const & value() const optional_ref_qual
-    {
-        if ( ! has_value() )
+    optional_constexpr14 value_type const &value() const optional_ref_qual {
+        if (!has_value())
             throw bad_optional_access();
 
         return contained.value();
     }
 
-    optional_constexpr14 value_type & value() optional_ref_qual
-    {
-        if ( ! has_value() )
+    optional_constexpr14 value_type &value() optional_ref_qual {
+        if (!has_value())
             throw bad_optional_access();
 
         return contained.value();
@@ -831,36 +812,32 @@ public:
 
 #if optional_HAVE_REF_QUALIFIER
 
-    optional_constexpr14 value_type const && value() const optional_refref_qual
-    {
-        if ( ! has_value() )
+    optional_constexpr14 value_type const &&value() const optional_refref_qual {
+        if (!has_value())
             throw bad_optional_access();
 
-        return std::move( contained.value() );
+        return std::move(contained.value());
     }
 
-    optional_constexpr14 value_type && value() optional_refref_qual
-    {
-        if ( ! has_value() )
+    optional_constexpr14 value_type &&value() optional_refref_qual {
+        if (!has_value())
             throw bad_optional_access();
 
-        return std::move( contained.value() );
+        return std::move(contained.value());
     }
 
 #endif
 
 #if optional_CPP11_OR_GREATER
 
-    template< class U >
-    optional_constexpr value_type value_or( U && v ) const optional_ref_qual
-    {
-        return has_value() ? contained.value() : static_cast<T>(std::forward<U>( v ) );
+    template<class U>
+    optional_constexpr value_type value_or(U &&v) const optional_ref_qual {
+        return has_value() ? contained.value() : static_cast<T>(std::forward<U>(v));
     }
 
-    template< class U >
-    optional_constexpr value_type value_or( U && v ) const optional_refref_qual
-    {
-        return has_value() ? std::move( contained.value() ) : static_cast<T>(std::forward<U>( v ) );
+    template<class U>
+    optional_constexpr value_type value_or(U &&v) const optional_refref_qual {
+        return has_value() ? std::move(contained.value()) : static_cast<T>(std::forward<U>(v));
     }
 
 #else
@@ -875,9 +852,8 @@ public:
 
     // modifiers
 
-    void reset() optional_noexcept
-    {
-        if ( has_value() )
+    void reset() optional_noexcept {
+        if (has_value())
             contained.destruct_value();
 
         has_value_ = false;
@@ -886,245 +862,212 @@ public:
 private:
     void this_type_does_not_support_comparisons() const {}
 
-    template< typename V >
-    void initialize( V const & value )
-    {
-        assert( ! has_value()  );
-        contained.construct_value( value );
+    template<typename V>
+    void initialize(V const &value) {
+        assert(!has_value());
+        contained.construct_value(value);
         has_value_ = true;
     }
 
 #if optional_CPP11_OR_GREATER
-    template< typename V >
-    void initialize( V && value )
-    {
-        assert( ! has_value()  );
-        contained.construct_value( std::move( value ) );
+
+    template<typename V>
+    void initialize(V &&value) {
+        assert(!has_value());
+        contained.construct_value(std::move(value));
         has_value_ = true;
     }
+
 #endif
 
 private:
     bool has_value_;
-    detail::storage_t< value_type > contained;
+    detail::storage_t<value_type> contained;
 
 };
 
 // Relational operators
 
-template< typename T, typename U >
-inline optional_constexpr bool operator==( optional<T> const & x, optional<U> const & y )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator==(optional<T> const &x, optional<U> const &y) {
     return bool(x) != bool(y) ? false : bool(x) == false ? true : *x == *y;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator!=( optional<T> const & x, optional<U> const & y )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator!=(optional<T> const &x, optional<U> const &y) {
     return !(x == y);
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator<( optional<T> const & x, optional<U> const & y )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator<(optional<T> const &x, optional<U> const &y) {
     return (!y) ? false : (!x) ? true : *x < *y;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator>( optional<T> const & x, optional<U> const & y )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator>(optional<T> const &x, optional<U> const &y) {
     return (y < x);
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator<=( optional<T> const & x, optional<U> const & y )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator<=(optional<T> const &x, optional<U> const &y) {
     return !(y < x);
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator>=( optional<T> const & x, optional<U> const & y )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator>=(optional<T> const &x, optional<U> const &y) {
     return !(x < y);
 }
 
 // Comparison with nullopt
 
-template< typename T >
-inline optional_constexpr bool operator==( optional<T> const & x, nullopt_t ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator==(optional<T> const &x, nullopt_t) optional_noexcept {
     return (!x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator==( nullopt_t, optional<T> const & x ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator==(nullopt_t, optional<T> const &x) optional_noexcept {
     return (!x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator!=( optional<T> const & x, nullopt_t ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator!=(optional<T> const &x, nullopt_t) optional_noexcept {
     return bool(x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator!=( nullopt_t, optional<T> const & x ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator!=(nullopt_t, optional<T> const &x) optional_noexcept {
     return bool(x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator<( optional<T> const &, nullopt_t ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator<(optional<T> const &, nullopt_t) optional_noexcept {
     return false;
 }
 
-template< typename T >
-inline optional_constexpr bool operator<( nullopt_t, optional<T> const & x ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator<(nullopt_t, optional<T> const &x) optional_noexcept {
     return bool(x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator<=( optional<T> const & x, nullopt_t ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator<=(optional<T> const &x, nullopt_t) optional_noexcept {
     return (!x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator<=( nullopt_t, optional<T> const & ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator<=(nullopt_t, optional<T> const &) optional_noexcept {
     return true;
 }
 
-template< typename T >
-inline optional_constexpr bool operator>( optional<T> const & x, nullopt_t ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator>(optional<T> const &x, nullopt_t) optional_noexcept {
     return bool(x);
 }
 
-template< typename T >
-inline optional_constexpr bool operator>( nullopt_t, optional<T> const & ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator>(nullopt_t, optional<T> const &) optional_noexcept {
     return false;
 }
 
-template< typename T >
-inline optional_constexpr bool operator>=( optional<T> const &, nullopt_t ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator>=(optional<T> const &, nullopt_t) optional_noexcept {
     return true;
 }
 
-template< typename T >
-inline optional_constexpr bool operator>=( nullopt_t, optional<T> const & x ) optional_noexcept
-{
+template<typename T>
+inline optional_constexpr bool operator>=(nullopt_t, optional<T> const &x) optional_noexcept {
     return (!x);
 }
 
 // Comparison with T
 
-template< typename T, typename U >
-inline optional_constexpr bool operator==( optional<T> const & x, U const & v )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator==(optional<T> const &x, U const &v) {
     return bool(x) ? *x == v : false;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator==( U const & v, optional<T> const & x )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator==(U const &v, optional<T> const &x) {
     return bool(x) ? v == *x : false;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator!=( optional<T> const & x, U const & v )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator!=(optional<T> const &x, U const &v) {
     return bool(x) ? *x != v : true;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator!=( U const & v, optional<T> const & x )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator!=(U const &v, optional<T> const &x) {
     return bool(x) ? v != *x : true;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator<( optional<T> const & x, U const & v )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator<(optional<T> const &x, U const &v) {
     return bool(x) ? *x < v : true;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator<( U const & v, optional<T> const & x )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator<(U const &v, optional<T> const &x) {
     return bool(x) ? v < *x : false;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator<=( optional<T> const & x, U const & v )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator<=(optional<T> const &x, U const &v) {
     return bool(x) ? *x <= v : true;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator<=( U const & v, optional<T> const & x )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator<=(U const &v, optional<T> const &x) {
     return bool(x) ? v <= *x : false;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator>( optional<T> const & x, U const & v )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator>(optional<T> const &x, U const &v) {
     return bool(x) ? *x > v : false;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator>( U const & v, optional<T> const & x )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator>(U const &v, optional<T> const &x) {
     return bool(x) ? v > *x : true;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator>=( optional<T> const & x, U const & v )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator>=(optional<T> const &x, U const &v) {
     return bool(x) ? *x >= v : false;
 }
 
-template< typename T, typename U >
-inline optional_constexpr bool operator>=( U const & v, optional<T> const & x )
-{
+template<typename T, typename U>
+inline optional_constexpr bool operator>=(U const &v, optional<T> const &x) {
     return bool(x) ? v >= *x : true;
 }
 
 // Specialized algorithms
 
-template< typename T >
-void swap( optional<T> & x, optional<T> & y )
+template<typename T>
+void swap(optional<T> &x, optional<T> &y)
 #if optional_CPP11_OR_GREATER
-    noexcept( noexcept( x.swap(y) ) )
+noexcept(noexcept(x.swap(y)))
 #endif
 {
-    x.swap( y );
+    x.swap(y);
 }
 
 #if optional_CPP11_OR_GREATER
 
-template< class T >
-optional_constexpr optional< typename std::decay<T>::type > make_optional( T && v )
-{
-    return optional< typename std::decay<T>::type >( std::forward<T>( v ) );
+template<class T>
+optional_constexpr optional<typename std::decay<T>::type> make_optional(T &&v) {
+    return optional<typename std::decay<T>::type>(std::forward<T>(v));
 }
 
-template< class T, class...Args >
-optional_constexpr optional<T> make_optional( Args&&... args )
-{
-    return optional<T>( in_place, std::forward<Args>(args)...);
+template<class T, class...Args>
+optional_constexpr optional<T> make_optional(Args &&... args) {
+    return optional<T>(in_place, std::forward<Args>(args)...);
 }
 
-template< class T, class U, class... Args >
-optional_constexpr optional<T> make_optional( std::initializer_list<U> il, Args&&... args )
-{
-    return optional<T>( in_place, il, std::forward<Args>(args)...);
+template<class T, class U, class... Args>
+optional_constexpr optional<T> make_optional(std::initializer_list<U> il, Args &&... args) {
+    return optional<T>(in_place, il, std::forward<Args>(args)...);
 }
 
 #else
@@ -1149,13 +1092,11 @@ using namespace optional_lite;
 
 namespace std {
 
-template< class T >
-struct hash< nonstd::optional<T> >
-{
+template<class T>
+struct hash<nonstd::optional<T> > {
 public:
-    std::size_t operator()( nonstd::optional<T> const & v ) const optional_noexcept
-    {
-        return bool( v ) ? hash<T>()( *v ) : 0;
+    std::size_t operator()(nonstd::optional<T> const &v) const optional_noexcept {
+        return bool(v) ? hash<T>()(*v) : 0;
     }
 };
 

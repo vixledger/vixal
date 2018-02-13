@@ -5,7 +5,6 @@
 #include "crypto/ECDH.h"
 #include "crypto/SHA.h"
 #include "crypto/HashOfHash.h"
-#include <functional>
 #include <sodium.h>
 
 namespace vixal {
@@ -34,11 +33,10 @@ EcdhDeriveSharedKey(Curve25519Secret const &localSecret,
     auto const &publicB = localFirst ? remotePublic : localPublic;
 
     unsigned char q[crypto_scalarmult_BYTES];
-    if (crypto_scalarmult(q, localSecret.key.data(), remotePublic.key.data()) !=
-        0) {
+    if (crypto_scalarmult(q, localSecret.key.data(), remotePublic.key.data()) != 0) {
         throw std::runtime_error("Could not derive shared key (mult)");
     }
-    std::vector <uint8_t> buf(q, q + crypto_scalarmult_BYTES);
+    std::vector<uint8_t> buf(q, q + crypto_scalarmult_BYTES);
     buf.insert(buf.end(), publicA.key.begin(), publicA.key.end());
     buf.insert(buf.end(), publicB.key.begin(), publicB.key.end());
     return hkdfExtract(buf);

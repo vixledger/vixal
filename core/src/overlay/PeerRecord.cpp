@@ -85,8 +85,8 @@ PeerRecord::parseIPPort(string const &ipPort, Application &app,
     }
 
     string ip;
-    for (auto i : result) {
-        asio::ip::tcp::endpoint end = i;
+    for (const auto &i : result) {
+        asio::ip::tcp::endpoint end = i.endpoint();
         if (end.address().is_v4()) {
             ip = end.address().to_v4().to_string();
             break;
@@ -119,7 +119,7 @@ PeerRecord::loadPeerRecord(Database &db, string ip, unsigned short port) {
         return nullopt;
     }
 
-    tm tm;
+    tm tm{};
     // SOCI only support signed short, using intermediate int avoids ending up with negative numbers in the database
     uint32_t numFailures;
     auto prep = db.getPreparedStatement("SELECT nextattempt, numfailures FROM "
@@ -152,7 +152,7 @@ PeerRecord::loadPeerRecords(Database &db, int batchSize,
         do {
             tm nextAttemptMax = VirtualClock::pointToTm(nextAttemptCutoff);
             std::string ip;
-            tm nextAttempt;
+            tm nextAttempt{};
             uint32_t lport;
             uint32_t numFailures;
             auto prep = db.getPreparedStatement(
@@ -242,7 +242,7 @@ PeerRecord::insertIfNew(Database &db) {
                         "(:v1, :v2,  :v3,         :v4)");
         auto &st = prep.statement();
         st.exchange(use(mIP));
-        uint32_t port = uint32_t(mPort);
+        auto port = uint32_t(mPort);
         st.exchange(use(port));
         st.exchange(use(tm));
         st.exchange(use(mNumFailures));
@@ -267,7 +267,7 @@ PeerRecord::storePeerRecord(Database &db) {
         st.exchange(use(tm));
         st.exchange(use(mNumFailures));
         st.exchange(use(mIP));
-        uint32_t port = uint32_t(mPort);
+        auto port = uint32_t(mPort);
         st.exchange(use(port));
         st.define_and_bind();
         {

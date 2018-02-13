@@ -67,6 +67,10 @@ public:
 
     EnvelopeStatus recvSCPEnvelope(SCPEnvelope const &envelope) override;
 
+    EnvelopeStatus recvSCPEnvelope(SCPEnvelope const &envelope,
+                                   const SCPQuorumSet &qset,
+                                   TxSetFrame txset) override;
+
     void sendSCPStateToPeer(uint32 ledgerSeq, PeerPtr peer) override;
 
     bool recvSCPQuorumSet(Hash const &hash, const SCPQuorumSet &qset) override;
@@ -88,7 +92,7 @@ public:
 
     void triggerNextLedger(uint32_t ledgerSeqToTrigger) override;
 
-    void setUpgrades(Upgrades::UpgradeParameters const& upgrades) override;
+    void setUpgrades(Upgrades::UpgradeParameters const &upgrades) override;
 
     std::string getUpgradesJson() override;
 
@@ -156,6 +160,7 @@ private:
 
     // saves upgrade parameters
     void persistUpgrades();
+
     void restoreUpgrades();
 
     // called every time we get ledger externalized

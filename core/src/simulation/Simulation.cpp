@@ -11,6 +11,8 @@
 #include "test/test.h"
 #include <util/format.h>
 
+#include <utility>
+
 namespace vixal {
 
 using namespace std;
@@ -50,7 +52,7 @@ Application::pointer
 Simulation::addNode(SecretKey nodeKey, SCPQuorumSet qSet, Config const *cfg2, bool newDB) {
     auto cfg = cfg2 ? std::make_shared<Config>(*cfg2) : std::make_shared<Config>(newConfig());
     cfg->NODE_SEED = nodeKey;
-    cfg->QUORUM_SET = qSet;
+    cfg->QUORUM_SET = std::move(qSet);
     cfg->RUN_STANDALONE = (mMode == OVER_LOOPBACK);
 
     auto clock = make_shared<VirtualClock>(mVirtualClockMode ? VirtualClock::VIRTUAL_TIME
@@ -137,7 +139,7 @@ Simulation::addConnection(NodeID initiator, NodeID acceptor) {
 void
 Simulation::dropConnection(NodeID initiator, NodeID acceptor) {
     if (mMode == OVER_LOOPBACK) {
-        dropLoopbackConnection(std::move(initiator), acceptor);
+        dropLoopbackConnection(std::move(initiator), std::move(acceptor));
     } else {
         throw runtime_error("Cannot drop a TCP connection");
     }
@@ -512,7 +514,7 @@ Simulation::executeStressTest(size_t nTransactions, int injectionRatePerSec,
                 execute(generatorFn(iTransactions));
             }
 
-            auto t = (chrono::system_clock::now() - tBegin);
+            auto t = chrono::system_clock::now() - tBegin;
             signingTime += t;
         }
 
@@ -604,7 +606,7 @@ Simulation::metricsSummary(string domain) {
     ConsoleReporterWithSum reporter{registry, out};
     for (auto const &kv : metrics) {
         auto metric = kv.first;
-        if (domain == "" || metric.domain() == domain) {
+        if (domain.empty() || metric.domain() == domain) {
             out << "Metric " << metric.domain() << "." << metric.type() << "." << metric.name() << "\n";
             kv.second->process(reporter);
         }

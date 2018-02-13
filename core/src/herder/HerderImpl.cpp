@@ -45,7 +45,7 @@ HerderImpl::SCPMetrics::SCPMetrics(Application &app)
 HerderImpl::HerderImpl(Application &app)
         : mPendingTransactions(4),
           mPendingEnvelopes(app, *this),
-          mHerderSCPDriver(app, *this, mUpgrades,  mPendingEnvelopes),
+          mHerderSCPDriver(app, *this, mUpgrades, mPendingEnvelopes),
           mLastSlotSaved(0), mApp(app), mLedgerManager(app.getLedgerManager()), mSCPMetrics(app),
           mTrackingTimer(app.getClock()), mLastTrigger(app.getClock().now()),
           mTriggerTimer(app.getClock()), mRebroadcastTimer(app.getClock()) {
@@ -346,6 +346,14 @@ HerderImpl::recvSCPEnvelope(SCPEnvelope const &envelope) {
         processSCPQueue();
     }
     return status;
+}
+
+Herder::EnvelopeStatus
+HerderImpl::recvSCPEnvelope(SCPEnvelope const &envelope, const SCPQuorumSet &qset, TxSetFrame txset) {
+    mPendingEnvelopes.addTxSet(txset.getContentsHash(), envelope.statement.slotIndex,
+                               std::make_shared<TxSetFrame>(txset));
+    mPendingEnvelopes.addSCPQuorumSet(sha256(xdr::xdr_to_opaque(qset)), qset);
+    return recvSCPEnvelope(envelope);
 }
 
 void
@@ -651,7 +659,7 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger) {
 }
 
 void
-HerderImpl::setUpgrades(Upgrades::UpgradeParameters const& upgrades) {
+HerderImpl::setUpgrades(Upgrades::UpgradeParameters const &upgrades) {
     mUpgrades.setParameters(upgrades, mApp.getConfig());
     persistUpgrades();
 
@@ -842,7 +850,7 @@ HerderImpl::restoreUpgrades() {
             setUpgrades(p);
         } catch (std::exception e) {
             CLOG(INFO, "Herder") << "Error restoring upgrades '" << e.what()
-                    << "' with upgrades '" << s << "'";
+                                 << "' with upgrades '" << s << "'";
         }
     }
 }

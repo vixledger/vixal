@@ -127,6 +127,9 @@ public:
     //  aren't concerned with byzantine failures.
     bool UNSAFE_QUORUM;
 
+    // Set of cursors added at each startup with value '1'.
+    std::vector<std::string> KNOWN_CURSORS;
+
     uint32_t LEDGER_PROTOCOL_VERSION;
     VirtualClock::time_point TESTING_UPGRADE_DATETIME;
 

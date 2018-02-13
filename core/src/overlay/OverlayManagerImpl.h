@@ -9,10 +9,10 @@
 #include "overlay/PeerAuth.h"
 #include "overlay/PeerDoor.h"
 #include "overlay/PeerRecord.h"
-#include "herder/TxSetFrame.h"
 #include "overlay/Floodgate.h"
 #include "overlay/ItemFetcher.h"
 #include "overlay/OverlayManager.h"
+#include "herder/TxSetFrame.h"
 #include "xdr/xdr.h"
 #include "util/Timer.h"
 #include <set>

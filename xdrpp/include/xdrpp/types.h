@@ -423,8 +423,8 @@ struct xarray
 
     static constexpr const std::size_t container_fixed_nelem = N;
 
-    static constexpr std::size_t
-    size() { return N; }
+//    static constexpr std::size_t
+//    size() { return N; }
 
     static void validate() {}
 

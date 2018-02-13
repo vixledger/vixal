@@ -74,24 +74,27 @@ dumpxdr(std::string const &filename) {
         throw std::runtime_error(std::string(msg) + ": " + xdr_strerror(errno));\
     } while (0)
 
-static std::string
+static std::vector<char>
 readFile(const std::string &filename, bool base64 = false) {
     using namespace std;
     ostringstream input;
-    if (filename == "-" || filename.empty())
+    if (filename == "-" || filename.empty()) {
         input << cin.rdbuf();
-    else {
+    } else {
         ifstream file(filename.c_str());
-        if (!file)
+        if (!file) {
             throw_perror(filename);
+        }
         input << file.rdbuf();
     }
     if (base64) {
-        string ret;
+        std::vector<char> ret;
         bn::decode_b64(input.str(), ret);
         return ret;
-    } else
-        return input.str();
+    } else {
+        const std::string &s = input.str();
+        return std::vector<char>(s.begin(), s.end());
+    }
 }
 
 void

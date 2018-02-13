@@ -70,15 +70,15 @@ public:
     };
 
     enum EnvelopeStatus {
-        // for some reason this envelope was discarded - either is was invalid,
-        // used unsane qset or was coming from node that is not in quorum
+        /// for some reason this envelope was discarded - either is was invalid,
+        /// used unsane qset or was coming from node that is not in quorum
                 ENVELOPE_STATUS_DISCARDED,
-        // envelope data is currently being fetched
+        /// envelope data is currently being fetched
                 ENVELOPE_STATUS_FETCHING,
-        // current call to recvSCPEnvelope() was the first when the envelope
-        // was fully fetched so it is ready for processing
+        /// current call to recvSCPEnvelope() was the first when the envelope
+        /// was fully fetched so it is ready for processing
                 ENVELOPE_STATUS_READY,
-        // envelope was already processed
+        /// envelope was already processed
                 ENVELOPE_STATUS_PROCESSED,
     };
 
@@ -111,6 +111,11 @@ public:
     // We are learning about a new envelope.
     virtual EnvelopeStatus recvSCPEnvelope(SCPEnvelope const &envelope) = 0;
 
+    // We are learning about a new fully-fetched envelope.
+    virtual EnvelopeStatus recvSCPEnvelope(SCPEnvelope const &envelope,
+                                           const SCPQuorumSet &qset,
+                                           TxSetFrame txset) = 0;
+
     // a peer needs our SCP state
     virtual void sendSCPStateToPeer(uint32 ledgerSeq, PeerPtr peer) = 0;
 
@@ -128,7 +133,8 @@ public:
     virtual bool resolveNodeID(std::string const &s, PublicKey &retKey) = 0;
 
     // sets the upgrades that should be applied during consensus
-    virtual void setUpgrades(Upgrades::UpgradeParameters const& upgrades) = 0;
+    virtual void setUpgrades(Upgrades::UpgradeParameters const &upgrades) = 0;
+
     // gets the upgrades that are scheduled by this node
     virtual std::string getUpgradesJson() = 0;
 

@@ -1,8 +1,16 @@
 set(VIXAL_CORE_HEADER_FILES
+        ../include/xdr/ledger-entries.h
+        ../include/xdr/ledger.h
+        ../include/xdr/overlay.h
+        ../include/xdr/scp.h
+        ../include/xdr/types.h
+        ../include/xdr/transaction.h
+        ../include/xdr/xdr.h
         )
 
 set(CATCH2_SOURCE_FILES
-        ../include/catch.hpp)
+        ../include/catch.hpp
+        ../include/clara.hpp)
 
 set(MEDIDA_SOURCE_FILES
         ../include/medida/types.h

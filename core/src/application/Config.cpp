@@ -4,19 +4,26 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "application/Config.h"
+#include "application/ExternalQueue.h"
+
 #include "crypto/Hex.h"
 #include "crypto/KeyUtils.h"
+
+#include "ledger/LedgerManager.h"
+
 #include "history/HistoryArchive.h"
+
 #include "scp/LocalNode.h"
+
 #include "util/Logging.h"
 #include "util/types.h"
-#include <util/TmpDir.h>
+#include "util/TmpDir.h"
+#include "util/format.h"
+
 #include "CoreVersion.h"
 
 #include <functional>
 #include <sstream>
-#include <ledger/LedgerManager.h>
-#include <util/format.h>
 
 namespace vixal {
 using xdr::operator<;
@@ -217,6 +224,13 @@ Config::load(std::string const &filename) {
                 UNSAFE_QUORUM = readBool(item);
             } else if (item.first == "RUN_STANDALONE") {
                 RUN_STANDALONE = readBool(item);
+            } else if (item.first == "KNOWN_CURSORS") {
+                KNOWN_CURSORS = readStringArray(item);
+                for (auto const& c : KNOWN_CURSORS) {
+                    if (!ExternalQueue::validateResourceID(c)) {
+                        throw std::invalid_argument(fmt::format("invalid cursor: \"{}\"", c));
+                    }
+                }
             } else if (item.first == "CATCHUP_COMPLETE") {
                 CATCHUP_COMPLETE = readBool(item);
             } else if (item.first == "CATCHUP_RECENT") {

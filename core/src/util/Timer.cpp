@@ -5,17 +5,17 @@
 #include "util/Timer.h"
 #include "util/GlobalChecks.h"
 #include "util/Logging.h"
+#include "application/Application.h"
 
 #include <cstdio>
 
-
 namespace vixal {
-
-using namespace std;
 
 static const uint32_t RECENT_CRANK_WINDOW = 1024;
 
-VirtualClock::VirtualClock(Mode mode) : timer(io_context_), mMode(mode) {
+VirtualClock::VirtualClock(Mode mode) :
+        work_(asio::make_work_guard(io_context_)),
+        timer(io_context_), mMode(mode) {
 
     resetIdleCrankPercent();
     if (mMode == REAL_TIME) {
@@ -50,7 +50,7 @@ VirtualClock::maybeSetRealtimer() {
 }
 
 bool
-VirtualClockEventCompare::operator()(shared_ptr<VirtualClockEvent> a, shared_ptr<VirtualClockEvent> b) {
+VirtualClockEventCompare::operator()(std::shared_ptr<VirtualClockEvent> a, std::shared_ptr<VirtualClockEvent> b) {
     return *a < *b;
 }
 
@@ -112,10 +112,9 @@ VirtualClock::tmToPoint(tm t) {
 
 std::tm
 VirtualClock::isoStringToTm(std::string const &iso) {
-    std::tm res;
+    std::tm res{};
     int y, M, d, h, m, s;
-    if (std::sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%dZ", &y, &M, &d, &h, &m,
-                    &s) != 6) {
+    if (std::sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%dZ", &y, &M, &d, &h, &m, &s) != 6) {
         throw std::invalid_argument("Could not parse iso date");
     }
     res.tm_year = y - 1900;
@@ -145,7 +144,7 @@ VirtualClock::pointToISOString(time_point point) {
 }
 
 void
-VirtualClock::enqueue(shared_ptr<VirtualClockEvent> ve) {
+VirtualClock::enqueue(std::shared_ptr<VirtualClockEvent> ve) {
     if (mDestructing) {
         return;
     }
@@ -172,7 +171,7 @@ VirtualClock::flushCancelledEvents() {
     assertThreadIsMain();
     // LOG(DEBUG) << "VirtualClock::cancelAllEventsFrom";
 
-    auto toKeep = vector<shared_ptr<VirtualClockEvent>>();
+    auto toKeep = std::vector<std::shared_ptr<VirtualClockEvent >>();
     toKeep.reserve(mEvents.size());
 
     while (!mEvents.empty()) {
@@ -328,7 +327,7 @@ VirtualClock::advanceTo(time_point n) {
     // LOG(DEBUG) << "VirtualClock::advanceTo("
     //            << n.time_since_epoch().count() << ")";
     mNow = n;
-    vector<shared_ptr<VirtualClockEvent>> toDispatch;
+    std::vector<std::shared_ptr<VirtualClockEvent>> toDispatch;
     while (!mEvents.empty()) {
         if (mEvents.top()->mWhen > mNow)
             break;
@@ -390,7 +389,7 @@ VirtualClockEvent::cancel() {
     if (!mTriggered) {
         mTriggered = true;
         try {
-            mCallback(asio::error_code(asio::error::operation_aborted));
+            mCallback(asio::error::make_error_code(asio::error::operation_aborted));
         } catch (...) {
 
         }
@@ -405,6 +404,9 @@ VirtualClockEvent::operator<(VirtualClockEvent const &other) const {
     // events were enqueued) we add an event-sequence number as well, such that a higher sequence number makes an
     // event "less than" another.
     return mWhen > other.mWhen || (mWhen == other.mWhen && mSeq > other.mSeq);
+}
+
+VirtualTimer::VirtualTimer(Application &app) : VirtualTimer(app.getClock()) {
 }
 
 VirtualTimer::VirtualTimer(VirtualClock &clock)
@@ -453,10 +455,10 @@ VirtualTimer::expires_after(VirtualClock::duration d) {
 }
 
 void
-VirtualTimer::async_wait(function<void(asio::error_code)> const &fn) {
+VirtualTimer::async_wait(std::function<void(asio::error_code const &)> const &fn) {
     if (!mCancelled) {
         assert(!mDeleting);
-        auto ve = make_shared<VirtualClockEvent>(mExpiryTime, seq(), fn);
+        auto ve = std::make_shared<VirtualClockEvent>(mExpiryTime, seq(), fn);
         mClock.enqueue(ve);
         mEvents.push_back(ve);
     }
@@ -464,11 +466,11 @@ VirtualTimer::async_wait(function<void(asio::error_code)> const &fn) {
 
 void
 VirtualTimer::async_wait(std::function<void()> const &onSuccess,
-                         std::function<void(asio::error_code)> const &onFailure) {
+                         std::function<void(asio::error_code const &)> const &onFailure) {
     if (!mCancelled) {
         assert(!mDeleting);
-        auto ve = make_shared<VirtualClockEvent>(
-                mExpiryTime, seq(), [onSuccess, onFailure](asio::error_code error) {
+        auto ve = std::make_shared<VirtualClockEvent>(
+                mExpiryTime, seq(), [onSuccess, onFailure](asio::error_code const &error) {
                     if (error) {
                         onFailure(error);
                     } else {

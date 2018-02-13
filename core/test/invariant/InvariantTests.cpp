@@ -31,6 +31,13 @@ public:
         return mShouldFail ? "TestInvariant(Fail)" : "TestInvariant(Succeed)";
     }
 
+    virtual std::string
+    checkOnBucketApply(std::shared_ptr<Bucket const> bucket,
+                       uint32_t oldestLedger, uint32_t newestLedger) override {
+        return mShouldFail ? "fail" : "";
+    }
+
+
     std::string
     checkOnOperationApply(Operation const &operation,
                           OperationResult const &result,

@@ -222,9 +222,8 @@ TEST_CASE("Flooding", "[flood][overlay]") {
                     xdr::xdr_to_opaque(inApp->getNetworkID(), ENVELOPE_TYPE_SCP, st));
 
             // inject the message
-            REQUIRE(herder.recvSCPEnvelope(envelope) == Herder::ENVELOPE_STATUS_FETCHING);
-            REQUIRE(herder.recvTxSet(txSet.getContentsHash(), txSet));
-            REQUIRE(herder.recvSCPQuorumSet(qSetHash, qset));
+            REQUIRE(herder.recvSCPEnvelope(envelope, qset, txSet) ==
+                    Herder::ENVELOPE_STATUS_READY);
 
         };
 
@@ -264,12 +263,13 @@ TEST_CASE("Flooding", "[flood][overlay]") {
 
         SECTION("outer nodes") {
             SECTION("loopback") {
-                simulation = Topologies::hierarchicalQuorumSimplified(5, 10, Simulation::OVER_LOOPBACK, networkID,
-                                                                      cfgGen);
+                simulation = Topologies::hierarchicalQuorumSimplified(
+                        5, 10, Simulation::OVER_LOOPBACK, networkID, cfgGen);
                 test(injectSCP, ackedSCP);
             }
             SECTION("tcp") {
-                simulation = Topologies::hierarchicalQuorumSimplified(5, 10, Simulation::OVER_TCP, networkID, cfgGen);
+                simulation = Topologies::hierarchicalQuorumSimplified(
+                        5, 10, Simulation::OVER_TCP, networkID, cfgGen);
                 test(injectSCP, ackedSCP);
             }
         }

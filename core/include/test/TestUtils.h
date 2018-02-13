@@ -18,10 +18,12 @@ class LoopbackPeerConnection;
 namespace testutil {
 
 void setCurrentLedgerVersion(LedgerManager &lm, uint32_t currentLedgerVersion);
-void crankSome(VirtualClock& clock);
-void injectSendPeersAndReschedule(VirtualClock::time_point& end,
-                                  VirtualClock& clock, VirtualTimer& timer,
-                                  LoopbackPeerConnection& connection);
+
+void crankSome(VirtualClock &clock);
+
+void injectSendPeersAndReschedule(VirtualClock::time_point &end,
+                                  VirtualClock &clock, VirtualTimer &timer,
+                                  LoopbackPeerConnection &connection);
 
 class BucketListDepthModifier {
     uint32_t const mPrevDepth;
@@ -52,7 +54,9 @@ private:
 };
 
 
-template<typename T = ApplicationImpl>
+template<typename T = TestApplication,
+        typename = typename std::enable_if<
+                std::is_base_of<TestApplication, T>::value>::type>
 std::shared_ptr<T>
 createTestApplication(VirtualClock &clock, Config const &cfg) {
     Config c2(cfg);

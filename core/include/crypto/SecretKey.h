@@ -14,6 +14,7 @@
 namespace vixal {
 
 using xdr::operator==;
+using xdr::operator<;
 
 class ByteSlice;
 
@@ -21,6 +22,7 @@ struct SecretValue;
 struct SignerKey;
 
 class SecretKey {
+
     using uint512 = xdr::opaque_array<64>;
     PublicKeyType mKeyType;
     uint512 mSecretKey;

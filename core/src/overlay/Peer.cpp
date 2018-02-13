@@ -413,8 +413,7 @@ Peer::sendMessage(VixalMessage const &msg) {
     amsg.v0().message = msg;
     if (msg.type() != HELLO && msg.type() != ERROR_MSG) {
         amsg.v0().sequence = mSendMacSeq;
-        amsg.v0().mac =
-                hmacSha256(mSendMacKey, xdr::xdr_to_opaque(mSendMacSeq, msg));
+        amsg.v0().mac = hmacSha256(mSendMacKey, xdr::xdr_to_opaque(mSendMacSeq, msg));
         ++mSendMacSeq;
     }
     xdr::msg_ptr xdrBytes(xdr::xdr_to_msg(amsg));
@@ -473,9 +472,7 @@ Peer::recvMessage(AuthenticatedMessage const &msg) {
             return;
         }
 
-        if (!hmacSha256Verify(
-                msg.v0().mac, mRecvMacKey,
-                xdr::xdr_to_opaque(msg.v0().sequence, msg.v0().message))) {
+        if (!hmacSha256Verify(msg.v0().mac, mRecvMacKey, xdr::xdr_to_opaque(msg.v0().sequence, msg.v0().message))) {
             CLOG(ERROR, "Overlay") << "Message-auth check failed";
             mDropInRecvMessageMacMeter.mark();
             ++mRecvMacSeq;
@@ -495,16 +492,12 @@ Peer::recvMessage(VixalMessage const &vixalMsg) {
 
     if (Logging::logTrace("Overlay"))
         CLOG(TRACE, "Overlay")
-                << "("
-                << mApp.getConfig().toShortString(
-                        mApp.getConfig().NODE_SEED.getPublicKey())
-                << ") recv: " << msgSummary(vixalMsg)
-                << " from:" << mApp.getConfig().toShortString(mPeerID);
+                << "(" << mApp.getConfig().toShortString(mApp.getConfig().NODE_SEED.getPublicKey()) << ") recv: "
+                << msgSummary(vixalMsg) << " from:" << mApp.getConfig().toShortString(mPeerID);
 
     if (!isAuthenticated() && (vixalMsg.type() != HELLO) &&
         (vixalMsg.type() != AUTH) && (vixalMsg.type() != ERROR_MSG)) {
-        CLOG(WARNING, "Overlay") << "recv: " << vixalMsg.type()
-                                 << " before completed handshake";
+        CLOG(WARNING, "Overlay") << "recv: " << vixalMsg.type() << " before completed handshake";
         mDropInRecvMessageUnauthMeter.mark();
         drop();
         return;
@@ -596,8 +589,7 @@ Peer::recvMessage(VixalMessage const &vixalMsg) {
 
 void
 Peer::recvDontHave(VixalMessage const &msg) {
-    mApp.getHerder().peerDoesntHave(msg.dontHave().type, msg.dontHave().reqHash,
-                                    shared_from_this());
+    mApp.getHerder().peerDoesntHave(msg.dontHave().type, msg.dontHave().reqHash, shared_from_this());
 }
 
 void

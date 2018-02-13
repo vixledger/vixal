@@ -65,7 +65,7 @@ task_wrapped<T> make_task_wrapped(const T &task_unwrapped) {
 
 class tasks_processor : private noncopyable {
 protected:
-    static asio::io_context &get_ioc() {
+    static asio::io_context &get_io_context() {
         static asio::io_context ioc;
         static auto work = asio::make_work_guard(ioc);
 
@@ -75,23 +75,22 @@ protected:
 public:
     template<typename T>
     static void push_task(const T &task_unwrapped) {
-        asio::post(get_ioc(), detail::make_task_wrapped(task_unwrapped));
+        asio::post(get_io_context(), detail::make_task_wrapped(task_unwrapped));
     }
 
     static void start() {
-        get_ioc().run();
+        get_io_context().run();
     }
 
     static void stop() {
-        get_ioc().stop();
+        get_io_context().stop();
     }
 
     template<typename Time, typename Func>
     static void run_delayed(Time duration_or_time, const Func &f) {
 
-        auto time_ptr = std::make_unique<detail::timer>(get_ioc(), duration_or_time);
-        auto &timer_ref = *time_ptr;
-        timer_ref.async_wait(detail::timer_task<Func>(std::move(time_ptr), f));
+        auto time_ptr = std::make_unique<detail::timer>(get_io_context(), duration_or_time);
+        time_ptr->async_wait(detail::timer_task<Func>(std::move(time_ptr), f));
     }
 
 };

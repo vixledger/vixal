@@ -7,8 +7,7 @@
 #include "xdr/types.h"
 #include <functional>
 
-namespace vixal
-{
+namespace vixal {
 
 // This module contains functions for doing ECDH on Curve25519. Despite the
 // equivalence between this curve and Ed25519 (used in signatures, see
@@ -27,7 +26,7 @@ namespace vixal
 Curve25519Secret EcdhRandomSecret();
 
 // Calculate a public Curve25519 point from a private scalar.
-Curve25519Public EcdhDerivePublic(Curve25519Secret const& sec);
+Curve25519Public EcdhDerivePublic(Curve25519Secret const &sec);
 
 // Calculate HKDF_extract(localSecret * remotePublic || publicA || publicB)
 //
@@ -35,16 +34,15 @@ Curve25519Public EcdhDerivePublic(Curve25519Secret const& sec);
 //   publicA = localFirst ? localPublic : remotePublic
 //   publicB = localFirst ? remotePublic : localPublic
 
-HmacSha256Key EcdhDeriveSharedKey(Curve25519Secret const& localSecret,
-                                  Curve25519Public const& localPublic,
-                                  Curve25519Public const& remotePublic,
+HmacSha256Key EcdhDeriveSharedKey(Curve25519Secret const &localSecret,
+                                  Curve25519Public const &localPublic,
+                                  Curve25519Public const &remotePublic,
                                   bool localFirst);
 }
 
-namespace std
-{
-template <> struct hash<vixal::Curve25519Public>
-{
-    size_t operator()(vixal::Curve25519Public const& x) const noexcept;
+namespace std {
+template<>
+struct hash<vixal::Curve25519Public> {
+    size_t operator()(vixal::Curve25519Public const &x) const noexcept;
 };
 }

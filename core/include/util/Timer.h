@@ -40,6 +40,8 @@ namespace vixal {
 
 class VirtualTimer;
 
+class Application;
+
 class VirtualClockEvent;
 
 struct VirtualClockEventCompare {
@@ -89,7 +91,12 @@ public:
     };
 
 private:
+    typedef asio::executor_work_guard<asio::io_context::executor_type> io_context_work;
+
     asio::io_context io_context_;
+
+    io_context_work work_;
+
     asio::basic_waitable_timer<std::chrono::system_clock> timer;
     Mode mMode;
 
@@ -182,6 +189,8 @@ class VirtualTimer : private nonmovableorcopyable {
     bool mDeleting;
 
 public:
+    explicit VirtualTimer(Application &app);
+
     explicit VirtualTimer(VirtualClock &clock);
 
     ~VirtualTimer();
@@ -200,9 +209,10 @@ public:
         expires_after(std::chrono::duration_cast<VirtualClock::duration>(d));
     }
 
-    void async_wait(std::function<void(asio::error_code)> const &fn);
+    void async_wait(std::function<void(asio::error_code const &)> const &fn);
 
-    void async_wait(std::function<void()> const &onSuccess, std::function<void(asio::error_code)> const &onFailure);
+    void
+    async_wait(std::function<void()> const &onSuccess, std::function<void(asio::error_code const &)> const &onFailure);
 
     void cancel();
 
