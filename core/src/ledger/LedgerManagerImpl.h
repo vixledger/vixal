@@ -72,7 +72,7 @@ class LedgerManagerImpl : public LedgerManager {
     State mState;
 
 public:
-    LedgerManagerImpl(Application &app);
+    explicit LedgerManagerImpl(Application &app);
 
     void setState(State s) override;
 
@@ -118,7 +118,7 @@ public:
     void startCatchUp(CatchupConfiguration configuration,
                       bool manualCatchup) override;
 
-    HistoryManager::VerifyHashStatus
+    HistoryManager::LedgerVerificationStatus
     verifyCatchupCandidate(LedgerHeaderHistoryEntry const&, bool manualCatchup) const override;
 
     void closeLedger(LedgerCloseData const &ledgerData) override;
