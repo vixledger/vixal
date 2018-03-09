@@ -33,7 +33,7 @@ class HistoryManagerImpl : public HistoryManager {
     medida::Meter &mPublishSuccess;
     medida::Meter &mPublishFailure;
 
-    std::vector<std::string> loadBucketsReferencedByPublishQueue();
+    PublishQueueBuckets::BucketCount loadBucketsReferencedByPublishQueue();
 
 public:
     HistoryManagerImpl(Application &app);

@@ -43,7 +43,7 @@ using namespace std;
 
 bool Database::gDriversRegistered = false;
 
-static unsigned long const SCHEMA_VERSION = 5;
+static unsigned long const SCHEMA_VERSION = 6;
 
 static void
 setSerializable(soci::session &sess) {
@@ -111,6 +111,10 @@ Database::applySchemaUpgrade(unsigned long vers) {
                     throw;
                 }
             }
+            break;
+
+        case 6:
+            mSession << "ALTER TABLE peers ADD flags INT NOT NULL DEFAULT 0";
             break;
 
         default:
@@ -371,6 +375,10 @@ Database::recentIdleDbPercent() {
 
     std::chrono::nanoseconds total = mApp.getClock().now() - mLastIdleTotalTime;
     total -= mExcludedTotalTime;
+
+    if (total == std::chrono::nanoseconds::zero()) {
+        return 100;
+    }
 
     auto queryPercent =
             static_cast<uint32_t>((100 * query.count()) / total.count());

@@ -57,7 +57,7 @@ public:
 
     LoopbackPeer(Application &app, PeerRole role);
 
-    void drop() override;
+    void drop(bool force = true) override;
 
     std::string getIP() override;
 

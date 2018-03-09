@@ -14,9 +14,11 @@ Maintainer::Maintainer(Application &app) : mApp{app}, mTimer{mApp.getClock()} {
 
 void
 Maintainer::start() {
-    if (mApp.getConfig().AUTOMATIC_MAINTENANCE_PERIOD.count() > 0 &&
-        mApp.getConfig().AUTOMATIC_MAINTENANCE_COUNT > 0)
+    auto& c = mApp.getConfig();
+    if (c.AUTOMATIC_MAINTENANCE_PERIOD.count() > 0 &&
+            c.AUTOMATIC_MAINTENANCE_COUNT > 0) {
         scheduleMaintenance();
+    }
 }
 
 void

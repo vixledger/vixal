@@ -7,6 +7,11 @@
 namespace vixal {
 
 void
+PublishQueueBuckets::setBuckets(BucketCount const &buckets) {
+    mBucketUsage = buckets;
+}
+
+void
 PublishQueueBuckets::addBuckets(std::vector<std::string> const &buckets) {
     for (auto const &bucket : buckets) {
         addBucket(bucket);

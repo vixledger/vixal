@@ -6,6 +6,7 @@
 namespace vixal {
 using nonstd::optional;
 using nonstd::make_optional;
+using nonstd::nullopt;
 }
 
 namespace cereal {

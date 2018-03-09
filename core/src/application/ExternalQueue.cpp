@@ -19,7 +19,6 @@ string const ExternalQueue::kSQLCreateStatement{
         "CREATE TABLE IF NOT EXISTS pubsub (resid CHARACTER(32) PRIMARY KEY, lastread INTEGER ); "};
 
 ExternalQueue::ExternalQueue(Application &app) : mApp(app) {
-    mApp.getDatabase().getSession() << kSQLCreateStatement;
 }
 
 void

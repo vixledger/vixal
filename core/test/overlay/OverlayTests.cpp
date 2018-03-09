@@ -11,6 +11,9 @@
 #include "../../src/overlay/OverlayManagerImpl.h"
 #include "test/test.h"
 #include "test/TestUtils.h"
+#include "simulation/Simulation.h"
+#include "util/format.h"
+#include <numeric>
 
 using namespace vixal;
 
@@ -349,3 +352,126 @@ TEST_CASE("reject peers with the same nodeid", "[overlay]") {
                     .count() != 0);
 }
 
+
+TEST_CASE("connecting to saturated nodes", "[overlay]") {
+    auto networkID = sha256(getTestConfig().NETWORK_PASSPHRASE);
+    auto simulation =
+            std::make_shared<Simulation>(Simulation::OVER_TCP, networkID);
+
+    auto getConfiguration = [](int id, unsigned short peerConnections) {
+        auto cfg = getTestConfig(id);
+        cfg.MAX_PEER_CONNECTIONS = peerConnections;
+        cfg.TARGET_PEER_CONNECTIONS = peerConnections;
+        cfg.MAX_ADDITIONAL_PEER_CONNECTIONS = 0;
+        return cfg;
+    };
+
+    auto numberOfAppConnections = [](Application &app) {
+        return app.getOverlayManager().getAuthenticatedPeersCount();
+    };
+
+    auto numberOfSimulationConnections = [&]() {
+        auto nodes = simulation->getNodes();
+        return std::accumulate(std::begin(nodes), std::end(nodes), 0,
+                               [&](int x, Application::pointer app) {
+                                   return x + numberOfAppConnections(*app);
+                               });
+    };
+
+    auto headCfg = getConfiguration(1, 1);
+    auto node1Cfg = getConfiguration(2, 2);
+    auto node2Cfg = getConfiguration(3, 2);
+    auto node3Cfg = getConfiguration(4, 2);
+
+    SIMULATION_CREATE_NODE(Head);
+    SIMULATION_CREATE_NODE(Node1);
+    SIMULATION_CREATE_NODE(Node2);
+    SIMULATION_CREATE_NODE(Node3);
+
+    SCPQuorumSet qSet;
+    qSet.threshold = 2;
+    qSet.validators.push_back(vHeadNodeID);
+    qSet.validators.push_back(vNode1NodeID);
+    qSet.validators.push_back(vNode2NodeID);
+    qSet.validators.push_back(vNode3NodeID);
+
+    simulation->addNode(vHeadSecretKey, qSet, &headCfg);
+    simulation->addNode(vNode1SecretKey, qSet, &node1Cfg);
+    simulation->addNode(vNode2SecretKey, qSet, &node2Cfg);
+    simulation->addNode(vNode3SecretKey, qSet, &node3Cfg);
+
+    simulation->addPendingConnection(vNode1NodeID, vHeadNodeID);
+    simulation->addPendingConnection(vNode2NodeID, vHeadNodeID);
+    simulation->addPendingConnection(vNode3NodeID, vHeadNodeID);
+
+    simulation->startAllNodes();
+    simulation->crankForAtLeast(std::chrono::seconds{30}, false);
+    // all three (two-way) connections are made
+    REQUIRE(numberOfSimulationConnections() == 6);
+    simulation->crankForAtLeast(std::chrono::seconds{1}, true);
+}
+
+
+TEST_CASE("preferred peers always connect", "[overlay]") {
+    auto networkID = sha256(getTestConfig().NETWORK_PASSPHRASE);
+    auto simulation =
+            std::make_shared<Simulation>(Simulation::OVER_TCP, networkID);
+
+    auto getConfiguration = [](int id, unsigned short targetConnections,
+                               unsigned short peerConnections) {
+        auto cfg = getTestConfig(id);
+        cfg.MAX_PEER_CONNECTIONS = peerConnections;
+        cfg.TARGET_PEER_CONNECTIONS = targetConnections;
+        cfg.MAX_ADDITIONAL_PEER_CONNECTIONS = 0;
+        return cfg;
+    };
+
+    auto numberOfAppConnections = [](Application &app) {
+        return app.getOverlayManager().getAuthenticatedPeersCount();
+    };
+
+    Config configs[3];
+    for (int i = 0; i < 3; i++) {
+        configs[i] = getConfiguration(i + 1, i == 0 ? 1 : 0, 2);
+    }
+
+    SIMULATION_CREATE_NODE(Node1);
+    SIMULATION_CREATE_NODE(Node2);
+    SIMULATION_CREATE_NODE(Node3);
+
+    SCPQuorumSet qSet;
+    qSet.threshold = 2;
+    qSet.validators.push_back(vNode1NodeID);
+    qSet.validators.push_back(vNode2NodeID);
+    qSet.validators.push_back(vNode3NodeID);
+
+    // node1 has node2 as preferred peer
+    configs[0].PREFERRED_PEERS.emplace_back(
+            fmt::format("localhost:{}", configs[1].PEER_PORT));
+
+    simulation->addNode(vNode1SecretKey, qSet, &configs[0]);
+    simulation->addNode(vNode2SecretKey, qSet, &configs[1]);
+    simulation->addNode(vNode3SecretKey, qSet, &configs[2]);
+
+    simulation->startAllNodes();
+    simulation->crankForAtLeast(std::chrono::seconds{3}, false);
+    // node1 connected to node2 (counted from both apps)
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode1NodeID)) == 1);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode2NodeID)) == 1);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode3NodeID)) == 0);
+
+    // disconnect node1 and node2
+    simulation->dropConnection(vNode1NodeID, vNode2NodeID);
+    // and connect node 3 to node1 (to take the slot)
+    simulation->addConnection(vNode3NodeID, vNode1NodeID);
+    simulation->crankForAtLeast(std::chrono::seconds{1}, false);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode1NodeID)) == 1);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode2NodeID)) == 0);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode3NodeID)) == 1);
+
+    // wait a bit more, node1 connects to its preferred peer
+    simulation->crankForAtLeast(std::chrono::seconds{3}, true);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode1NodeID)) == 2);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode2NodeID)) == 1);
+    REQUIRE(numberOfAppConnections(*simulation->getNode(vNode3NodeID)) == 1);
+}

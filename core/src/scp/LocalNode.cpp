@@ -21,12 +21,9 @@ namespace vixal {
 using xdr::operator==;
 using xdr::operator<;
 
-LocalNode::LocalNode(SecretKey const &secretKey, bool isValidator, SCPQuorumSet const &qSet, SCP *scp)
-        : mNodeID(secretKey.getPublicKey()),
-          mSecretKey(secretKey),
-          mIsValidator(isValidator),
-          mQSet(qSet),
-          mSCP(scp) {
+LocalNode::LocalNode(NodeID const &nodeID, bool isValidator,
+                     SCPQuorumSet const &qSet, SCP *scp)
+        : mNodeID(nodeID), mIsValidator(isValidator), mQSet(qSet), mSCP(scp) {
 
     normalizeQSet(mQSet);
     mQSetHash = sha256(xdr::xdr_to_opaque(mQSet));
@@ -61,11 +58,6 @@ LocalNode::getQuorumSet() {
 Hash const &
 LocalNode::getQuorumSetHash() {
     return mQSetHash;
-}
-
-SecretKey const &
-LocalNode::getSecretKey() {
-    return mSecretKey;
 }
 
 SCPQuorumSetPtr

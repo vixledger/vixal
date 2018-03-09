@@ -128,26 +128,18 @@ public:
     /// Running state of an application; different values inhibit or enable certain subsystem responses to
     /// IO events, timers etc.
     enum State {
+        APP_BOOTING_STATE, // Loading state from database, not yet active. SCP is inhibited.
 
-        /// Loading state from database, not yet active. SCP is inhibited.
-                APP_BOOTING_STATE,
+        APP_ACQUIRING_CONSENSUS_STATE, // Out of sync with SCP peers
 
-        /// Out of sync with SCP peers
-                APP_ACQUIRING_CONSENSUS_STATE,
+        APP_CONNECTED_STANDBY_STATE, // Connected to other SCP peers in sync with network but ledger subsystem still booting up
 
-        /// Connected to other SCP peers in sync with network but ledger subsystem still booting up
-                APP_CONNECTED_STANDBY_STATE,
+        APP_CATCHING_UP_STATE, // some work required to catchup to the consensus ledger ie:
+                               // downloading from history, applying buckets and replaying transactions
 
-        /// some work required to catchup to the consensus ledger
-        /// ie: downloading from history, applying buckets and replaying
-        /// transactions
-                APP_CATCHING_UP_STATE,
+        APP_SYNCED_STATE, // In sync with SCP peers, applying transactions. SCP is active,
 
-        /// In sync with SCP peers, applying transactions. SCP is active,
-                APP_SYNCED_STATE,
-
-        /// application is shutting down
-                APP_STOPPING_STATE,
+        APP_STOPPING_STATE, // application is shutting down
 
         APP_NUM_STATE
     };
@@ -197,7 +189,7 @@ public:
 
     virtual HistoryManager &getHistoryManager() = 0;
 
-    virtual Maintainer& getMaintainer() = 0;
+    virtual Maintainer &getMaintainer() = 0;
 
     virtual ProcessManager &getProcessManager() = 0;
 

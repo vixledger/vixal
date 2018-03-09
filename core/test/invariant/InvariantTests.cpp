@@ -15,7 +15,6 @@
 #include "application/Application.h"
 #include "test/test.h"
 #include "test/TestUtils.h"
-#include "util/Timer.h"
 
 using namespace vixal;
 

@@ -32,6 +32,9 @@ private:
 
     std::queue<std::shared_ptr<xdr::msg_ptr>> mWriteQueue;
     bool mWriting{false};
+    bool mDelayedShutdown{false};
+    bool mShutdownScheduled{false};
+
 
     void recvMessage();
 
@@ -41,7 +44,7 @@ private:
 
     int getIncomingMsgLength();
 
-    virtual void connected() override;
+    void connected() override;
 
     void startRead();
 
@@ -50,6 +53,8 @@ private:
     void readHeaderHandler(asio::error_code const &error, std::size_t bytes_transferred) override;
 
     void readBodyHandler(asio::error_code const &error, std::size_t bytes_transferred) override;
+
+    void shutdown();
 
 public:
     typedef std::shared_ptr<TCPPeer> pointer;
@@ -61,10 +66,10 @@ public:
 
     static pointer accept(Application &app, std::shared_ptr<SocketType> socket);
 
-    virtual ~TCPPeer();
+    ~TCPPeer() override;
 
-    virtual void drop() override;
+    void drop(bool force) override;
 
-    virtual std::string getIP() override;
+    std::string getIP() override;
 };
 }

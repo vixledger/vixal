@@ -30,8 +30,9 @@ connection_manager::stop(connection_ptr c) {
 
 void
 connection_manager::stop_all() {
-    for (auto c : connections_)
+    for (auto c : connections_) {
         c->stop();
+    }
     connections_.clear();
 }
 

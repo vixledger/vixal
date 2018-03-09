@@ -74,7 +74,7 @@ dumpxdr(std::string const &filename) {
         throw std::runtime_error(std::string(msg) + ": " + xdr_strerror(errno));\
     } while (0)
 
-static std::vector<char>
+static xdr::opaque_vec<>
 readFile(const std::string &filename, bool base64 = false) {
     using namespace std;
     ostringstream input;
@@ -87,14 +87,13 @@ readFile(const std::string &filename, bool base64 = false) {
         }
         input << file.rdbuf();
     }
+    string ret;
     if (base64) {
-        std::vector<char> ret;
         bn::decode_b64(input.str(), ret);
-        return ret;
     } else {
-        const std::string &s = input.str();
-        return std::vector<char>(s.begin(), s.end());
+        ret = input.str();
     }
+    return {ret.begin(), ret.end()};
 }
 
 void

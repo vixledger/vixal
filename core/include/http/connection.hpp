@@ -20,6 +20,7 @@
 #include "reply.hpp"
 #include "request.hpp"
 #include "request_parser.hpp"
+#include "request_handler.h"
 
 namespace http {
 namespace server {
@@ -36,7 +37,7 @@ public:
 
   /// Construct a connection with the given socket.
   explicit connection(asio::ip::tcp::socket socket,
-      connection_manager& manager, server& handler);
+      connection_manager& manager, request_handler& handler);
 
   /// Start the first asynchronous operation for the connection.
   void start();
@@ -58,7 +59,7 @@ private:
   connection_manager& connection_manager_;
 
   /// The handler used to process the incoming request.
-  server& request_handler_;
+  request_handler& request_handler_;
 
   /// Buffer for incoming data.
   std::array<char, 8192> buffer_;

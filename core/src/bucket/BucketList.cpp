@@ -266,8 +266,13 @@ BucketList::levelShouldSpill(uint32_t ledger, uint32_t level) {
             ledger == mask(ledger, levelSize(level)));
 }
 
-BucketLevel &
+BucketLevel&
 BucketList::getLevel(uint32_t i) {
+    return mLevels.at(i);
+}
+
+BucketLevel const &
+BucketList::getLevel(uint32_t i) const {
     return mLevels.at(i);
 }
 
@@ -365,8 +370,8 @@ BucketList::addBatch(Application &app, uint32_t currLedger,
 void
 BucketList::restartMerges(Application &app) {
     for (auto i = 0; i < mLevels.size(); i++) {
-        auto& level = mLevels[i];
-        auto& next = level.getNext();
+        auto &level = mLevels[i];
+        auto &next = level.getNext();
         if (next.hasHashes() && !next.isLive()) {
             next.makeLive(app, keepDeadEntries(i));
             if (next.isMerging()) {

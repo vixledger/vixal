@@ -57,7 +57,7 @@ protected:
 
     VirtualTimer mTimer;
 
-    void storePeerList(std::vector<std::string> const& list, bool resetBackOff,  bool preferred);
+    void storePeerList(std::vector<std::string> const &list, bool resetBackOff, bool preferred);
 
     void storeConfigPeers();
 
@@ -86,21 +86,21 @@ public:
 
     bool acceptAuthenticatedPeer(Peer::pointer peer) override;
 
-    bool isPreferred(Peer* peer) override;
+    bool isPreferred(Peer *peer) override;
 
     std::vector<Peer::pointer> const &getPendingPeers() const override;
 
-    size_t getPendingPeersCount() const override;
+    int getPendingPeersCount() const override;
 
     std::map<NodeID, Peer::pointer> const &getAuthenticatedPeers() const override;
 
-    size_t getAuthenticatedPeersCount() const override;
+    int getAuthenticatedPeersCount() const override;
 
     // returns NULL if the passed peer isn't found
     Peer::pointer getConnectedPeer(std::string const &ip,
                                    unsigned short port) override;
 
-    void connectToMorePeers(std::uint32_t max);
+    void connectToMorePeers(vector<PeerRecord> &peers);
 
     std::vector<Peer::pointer> getRandomAuthenticatedPeers() override;
 
@@ -117,8 +117,14 @@ public:
     bool isShuttingDown() const override;
 
 private:
+    std::vector<PeerRecord> getPreferredPeersFromConfig();
+
+    std::vector<PeerRecord> getPeersToConnectTo(int maxNum);
+
     void orderByPreferredPeers(vector<PeerRecord> &peers);
+
     bool moveToAuthenticated(Peer::pointer peer);
+
     void updateSizeCounters();
 };
 }

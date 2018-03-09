@@ -61,7 +61,7 @@ LoopbackPeer::getIP() {
 }
 
 void
-LoopbackPeer::drop() {
+LoopbackPeer::drop(bool) {
     if (mState == CLOSING) {
         return;
     }

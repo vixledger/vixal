@@ -100,7 +100,7 @@ LoadManager::maybeShedExcessLoad(Application &app) {
 
             app.getMetrics().newMeter({"overlay", "drop", "load-shed"}, "drop").mark();
 
-            victim->drop();
+            victim->drop(true);
 
             app.getClock().resetIdleCrankPercent();
         }

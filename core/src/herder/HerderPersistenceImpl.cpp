@@ -3,13 +3,14 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "HerderPersistenceImpl.h"
+#include "application/Application.h"
 #include "crypto/Hex.h"
 #include "database/Database.h"
+#include "database/DatabaseUtils.h"
 #include "herder/Herder.h"
-#include "application/Application.h"
 #include "scp/Slot.h"
 #include "util/XDRStream.h"
-#include <util/basen.h>
+#include "util/basen.h"
 
 namespace vixal {
 
@@ -249,5 +250,9 @@ HerderPersistence::deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t c
     db.getSession() << "DELETE FROM scpquorums WHERE lastledgerseq IN (SELECT "
             "lastledgerseq FROM scpquorums WHERE lastledgerseq <= "
                     << ledgerSeq << " LIMIT " << count << ")";
+    DatabaseUtils::deleteOldEntriesHelper(db.getSession(), ledgerSeq, count,
+                                          "scphistory", "ledgerseq");
+    DatabaseUtils::deleteOldEntriesHelper(db.getSession(), ledgerSeq, count,
+                                          "scpquorums", "lastledgerseq");
 }
 }

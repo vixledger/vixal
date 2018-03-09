@@ -168,7 +168,6 @@ private:
     // indeterminate mode
     void trackingHeartBeat();
 
-    VirtualClock::time_point mLastTrigger;
     VirtualTimer mTriggerTimer;
 
     VirtualTimer mRebroadcastTimer;

@@ -19,10 +19,11 @@ class PeerRecord {
 private:
     std::string mIP;
     unsigned short mPort;
+    bool mIsPreferred;
 
 public:
     VirtualClock::time_point mNextAttempt;
-    uint32_t mNumFailures;
+    int mNumFailures;
 
     /**
      * Create new PeerRecord object. If preconditions are not met - exception is thrown.
@@ -31,7 +32,7 @@ public:
      * @pre: port > 0
      */
     PeerRecord(string const &ip, unsigned short port,
-               VirtualClock::time_point nextAttempt, uint32_t fails = 0);
+               VirtualClock::time_point nextAttempt, int fails = 0);
 
     bool
     operator==(PeerRecord const &other) const {
@@ -51,9 +52,10 @@ public:
      */
     static optional<PeerRecord> loadPeerRecord(Database &db, std::string ip, unsigned short port);
 
+    // pred returns false if we should stop processing entries
     static void loadPeerRecords(Database &db, int batchSize,
                                 VirtualClock::time_point nextAttemptCutoff,
-                                std::function<bool(PeerRecord const& pr)> p);
+                                std::function<bool(PeerRecord const &pr)> pred);
 
     const std::string &
     ip() const {
@@ -71,6 +73,10 @@ public:
 
     bool isLocalhost() const;
 
+    void setPreferred(bool p);
+
+    bool isPreferred() const;
+
     /**
      * insert record in database if it's a new record
      * returns true if inserted
@@ -82,7 +88,7 @@ public:
      */
     void storePeerRecord(Database &db);
 
-    void resetBackOff(VirtualClock& clock, bool preferred);
+    void resetBackOff(VirtualClock &clock);
 
     void backOff(VirtualClock &clock);
 
@@ -93,6 +99,11 @@ public:
     std::string toString();
 
 private:
+    // peerRecordProcessor returns false if we should stop processing entries
+    static void
+    loadPeerRecords(Database &db, StatementContext &prep,
+                    std::function<bool(PeerRecord const &)> peerRecordProcessor);
+
     std::chrono::seconds computeBackoff(VirtualClock &clock);
 
     static void ipToXdr(std::string ip, xdr::opaque_array<4U> &ret);

@@ -14,9 +14,9 @@
 namespace vixal {
 using xdr::operator==;
 
-SCP::SCP(SCPDriver &driver, SecretKey const &secretKey, bool isValidator, SCPQuorumSet const &qSetLocal)
+SCP::SCP(SCPDriver &driver, NodeID const &nodeID, bool isValidator, SCPQuorumSet const &qSetLocal)
         : mDriver(driver) {
-    mLocalNode = std::make_shared<LocalNode>(secretKey, isValidator, qSetLocal, this);
+    mLocalNode = std::make_shared<LocalNode>(nodeID, isValidator, qSetLocal, this);
 }
 
 SCP::EnvelopeState
@@ -114,11 +114,6 @@ SCP::dumpQuorumInfo(Json::Value &ret, NodeID const &id, bool summary,
             s->dumpQuorumInfo(ret, id, summary);
         }
     }
-}
-
-SecretKey const &
-SCP::getSecretKey() {
-    return mLocalNode->getSecretKey();
 }
 
 bool

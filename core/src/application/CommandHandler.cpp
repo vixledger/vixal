@@ -5,18 +5,11 @@
 #include "application/CommandHandler.h"
 #include "application/Maintainer.h"
 #include "application/Application.h"
-#include "application/Config.h"
 #include "application/ExternalQueue.h"
 
-#include "CoreVersion.h"
-
 #include "crypto/Hex.h"
-#include "crypto/KeyUtils.h"
 
 #include "herder/Herder.h"
-#include "ledger/LedgerManager.h"
-#include "http/server.hpp"
-#include "json/json.h"
 
 #include "overlay/BanManager.h"
 #include "overlay/OverlayManager.h"
@@ -32,11 +25,9 @@
 #include "medida/reporting/json_reporter.h"
 
 #include "xdrpp/marshal.h"
-#include "xdrpp/printer.h"
 
 
 #include <regex>
-#include "util/optional.h"
 
 using namespace vixal::txtest;
 
@@ -109,10 +100,10 @@ CommandHandler::safeRouter(CommandHandler::HandlerRoute route,
         route(this, params, retStr);
     } catch (std::exception &e) {
         retStr =
-                (fmt::MemoryWriter() << "{\"exception\": \"" << e.what() << "\"}")
+                (fmt::MemoryWriter() << R"({"exception": ")" << e.what() << "\"}")
                         .str();
     } catch (...) {
-        retStr = "{\"exception\": \"generic\"}";
+        retStr = R"({"exception": "generic"})";
     }
 }
 
@@ -325,38 +316,35 @@ CommandHandler::manualClose(std::string const &params, std::string &retStr) {
     }
 }
 
-enum class Requirement {
-    OPTIONAL_REQ,
-    REQUIRED_REQ
-};
-
 template<typename T>
-bool
-parseNumParam(std::map<std::string, std::string> const &map,
-              std::string const &key, T &val, std::string &retStr,
-              Requirement requirement, bool &valueUpdated) {
-    valueUpdated = false;
+optional<T>
+maybeParseNumParam(std::map<std::string, std::string> const &map,
+                   std::string const &key, T &defaultVal) {
     auto i = map.find(key);
     if (i != map.end()) {
         std::stringstream str(i->second);
-        str >> val;
-        if (val == 0) {
-            retStr = fmt::format("Failed to parse '{}' argument", key);
-            return false;
+        str >> defaultVal;
+        // Throw an error if not all bytes were loaded into `val`
+        if (str.fail() || !str.eof()) {
+            std::string errorMsg = fmt::format("Failed to parse '{}' argument", key);
+            throw std::runtime_error(errorMsg);
         }
-        valueUpdated = true;
-        return true;
+        return make_optional<T>(defaultVal);
     }
-    return requirement == Requirement::OPTIONAL_REQ;
+    return nullopt;
 }
 
 template<typename T>
-bool
+T
 parseNumParam(std::map<std::string, std::string> const &map,
-              std::string const &key, T &val, std::string &retStr,
-              Requirement requirement) {
-    bool valueUpdated;
-    return parseNumParam(map, key, val, retStr, requirement, valueUpdated);
+              std::string const &key) {
+    T val;
+    auto res = maybeParseNumParam(map, key, val);
+    if (!res) {
+        std::string errorMsg = fmt::format("'{}' argument is required!", key);
+        throw std::runtime_error(errorMsg);
+    }
+    return val;
 }
 
 void
@@ -373,20 +361,15 @@ CommandHandler::generateLoad(std::string const &params, std::string &retStr) {
         std::map<std::string, std::string> map;
         http::server::server::parseParams(params, map);
 
-        if (!parseNumParam(map, "accounts", nAccounts, retStr, Requirement::OPTIONAL_REQ)) {
-            return;
-        }
-
-        if (!parseNumParam(map, "txs", nTxs, retStr, Requirement::OPTIONAL_REQ)) {
-            return;
-        }
+        maybeParseNumParam(map, "accounts", nAccounts);
+        maybeParseNumParam(map, "txs", nTxs);
 
         {
             auto i = map.find("txrate");
             if (i != map.end() && i->second == std::string("auto")) {
                 autoRate = true;
-            } else if (!parseNumParam(map, "txrate", txRate, retStr, Requirement::OPTIONAL_REQ)) {
-                return;
+            } else {
+                maybeParseNumParam(map, "txrate", txRate);
             }
         }
 
@@ -468,19 +451,7 @@ CommandHandler::catchup(std::string const &params, std::string &retStr) {
     std::map<std::string, std::string> retMap;
     http::server::server::parseParams(params, retMap);
 
-    uint32_t ledger = 0;
-    auto ledgerP = retMap.find("ledger");
-    if (ledgerP == retMap.end()) {
-        retStr = "Missing required parameter 'ledger=NNN'";
-        return;
-    } else {
-        std::stringstream str(ledgerP->second);
-        str >> ledger;
-        if (ledger == 0) {
-            retStr = "Failed to parse ledger number";
-            return;
-        }
-    }
+    uint32_t ledger = parseNumParam<uint32_t>(retMap, "ledger");
 
     auto modeP = retMap.find("mode");
     if (modeP != retMap.end()) {
@@ -627,27 +598,14 @@ CommandHandler::upgrades(std::string const &params, std::string &retStr) {
         }
         p.mUpgradeTime = VirtualClock::tmToPoint(tm);
 
-        auto addParam = [&](std::string const &name, vixal::optional<uint32> &f) {
-            uint32 v;
-            bool updated;
-            if (!parseNumParam(retMap, name, v, retStr,
-                               Requirement::OPTIONAL_REQ, updated)) {
-                retStr = (fmt::MemoryWriter()
-                        << fmt::format("could not parse {}: '{}'\n", name,
-                                       retMap[name])
-                        << retStr)
-                        .str();
-            } else if (updated) {
-                f = vixal::make_optional<uint32>(v);
-            } else {
-                f.reset();
-            }
-        };
-
-        addParam("basefee", p.mBaseFee);
-        addParam("basereserve", p.mBaseReserve);
-        addParam("maxtxsize", p.mMaxTxSize);
-        addParam("protocolversion", p.mProtocolVersion);
+        uint32 baseFee;
+        uint32 baseReserve;
+        uint32 maxTxSize;
+        uint32 protocolVersion;
+        p.mBaseFee = maybeParseNumParam(retMap, "basefee", baseFee);
+        p.mBaseReserve = maybeParseNumParam(retMap, "basereserve", baseReserve);
+        p.mMaxTxSize = maybeParseNumParam(retMap, "maxtxsize", maxTxSize);
+        p.mProtocolVersion = maybeParseNumParam(retMap, "protocolversion", protocolVersion);
         mApp.getHerder().setUpgrades(p);
     } else if (s == "clear") {
         Upgrades::UpgradeParameters p;
@@ -688,13 +646,7 @@ CommandHandler::scpInfo(std::string const &params, std::string &retStr) {
     http::server::server::parseParams(params, retMap);
 
     size_t lim = 2;
-    std::string limStr = retMap["limit"];
-    if (!limStr.empty()) {
-        size_t n = strtoul(limStr.c_str(), NULL, 0);
-        if (n != 0) {
-            lim = n;
-        }
-    }
+    maybeParseNumParam(retMap, "limit", lim);
 
     mApp.getHerder().dumpInfo(root, lim);
 
@@ -810,13 +762,8 @@ CommandHandler::setcursor(std::string const &params, std::string &retStr) {
     http::server::server::parseParams(params, map);
     std::string const &id = map["id"];
 
-    uint32 cursor;
+    uint32 cursor = parseNumParam<uint32>(map, "cursor");
 
-    if (!parseNumParam(map, "cursor", cursor, retStr,
-                       Requirement::REQUIRED_REQ)) {
-        retStr = "Invalid cursor";
-        return;
-    }
 
     if (!ExternalQueue::validateResourceID(id)) {
         retStr = "Invalid resource id";
@@ -857,11 +804,11 @@ void
 CommandHandler::maintenance(std::string const &params, std::string &retStr) {
     std::map<std::string, std::string> map;
     http::server::server::parseParams(params, map);
+
     if (map["queue"] == "true") {
         uint32_t count = 50000;
-        if (!parseNumParam(map, "count", count, retStr, Requirement::OPTIONAL_REQ)) {
-            return;
-        }
+        maybeParseNumParam(map, "count", count);
+
         mApp.getMaintainer().performMaintenance(count);
         retStr = "Done";
     } else {

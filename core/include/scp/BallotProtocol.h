@@ -267,5 +267,9 @@ private:
     bool federatedRatify(StatementPredicate voted);
 
     void startBallotProtocolTimer();
+
+    void stopBallotProtocolTimer();
+
+    void checkHeardFromQuorum();
 };
 }

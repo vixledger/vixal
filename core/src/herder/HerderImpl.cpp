@@ -46,9 +46,12 @@ HerderImpl::HerderImpl(Application &app)
         : mPendingTransactions(4),
           mPendingEnvelopes(app, *this),
           mHerderSCPDriver(app, *this, mUpgrades, mPendingEnvelopes),
-          mLastSlotSaved(0), mApp(app), mLedgerManager(app.getLedgerManager()), mSCPMetrics(app),
-          mTrackingTimer(app.getClock()), mLastTrigger(app.getClock().now()),
-          mTriggerTimer(app.getClock()), mRebroadcastTimer(app.getClock()) {
+          mLastSlotSaved(0),
+          mApp(app),
+          mLedgerManager(app.getLedgerManager()), mSCPMetrics(app),
+          mTrackingTimer(app.getClock()),
+          mTriggerTimer(app.getClock()),
+          mRebroadcastTimer(app.getClock()) {
     Hash hash = getSCP().getLocalNode()->getQuorumSetHash();
     mPendingEnvelopes.addSCPQuorumSet(hash, getSCP().getLocalNode()->getQuorumSet());
 }
@@ -87,7 +90,7 @@ HerderImpl::bootstrap() {
     mLedgerManager.setState(LedgerManager::LM_SYNCED_STATE);
     mHerderSCPDriver.bootstrap();
 
-    mLastTrigger = mApp.getClock().now() - Herder::EXP_LEDGER_TIMESPAN_SECONDS;
+    mTriggerTimer.expires_at(mApp.getClock().now() - Herder::EXP_LEDGER_TIMESPAN_SECONDS);
     ledgerClosed();
 }
 
@@ -473,10 +476,18 @@ HerderImpl::ledgerClosed() {
     }
 
     auto now = mApp.getClock().now();
-    if ((now - mLastTrigger) < seconds) {
-        auto timeout = seconds - (now - mLastTrigger);
+    auto lastScheduledTrigger = mTriggerTimer.expiry_time();
+    if (now <= lastScheduledTrigger) {
+        // we externalized before triggering
+        mTriggerTimer.expires_after(seconds);
+    } else if ((now - lastScheduledTrigger) < seconds) {
+        // we closed faster than the target round time, so schedule a trigger
+        // such that we stay on course
+        auto timeout = seconds - (now - lastScheduledTrigger);
         mTriggerTimer.expires_after(timeout);
+
     } else {
+        // round took a long time to close
         mTriggerTimer.expires_after(std::chrono::nanoseconds(0));
     }
 
@@ -627,13 +638,10 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger) {
         return;
     }
 
-    // We store at which time we triggered consensus
-    mLastTrigger = mApp.getClock().now();
-
     // We pick as next close time the current time unless it's before the last
     // close time. We don't know how much time it will take to reach consensus
     // so this is the most appropriate value to use as closeTime.
-    uint64_t nextCloseTime = static_cast<uint64_t>(VirtualClock::to_time_t(mLastTrigger));
+    uint64_t nextCloseTime = static_cast<uint64_t>(VirtualClock::to_time_t(mApp.getClock().now()));
     if (nextCloseTime <= lcl.header.scpValue.closeTime) {
         nextCloseTime = lcl.header.scpValue.closeTime + 1;
     }
@@ -714,7 +722,7 @@ HerderImpl::resolveNodeID(std::string const &s, PublicKey &retKey) {
 void
 HerderImpl::dumpInfo(Json::Value &ret, size_t limit) {
     ret["you"] =
-            mApp.getConfig().toStrKey(getSCP().getSecretKey().getPublicKey());
+            mApp.getConfig().toStrKey(mApp.getConfig().NODE_SEED.getPublicKey());
 
     getSCP().dumpInfo(ret, limit);
 

@@ -12,6 +12,10 @@ namespace vixal {
 
 class PublishQueueBuckets {
 public:
+    using BucketCount = std::map<std::string, int>;
+
+    void setBuckets(BucketCount const &buckets);
+
     void addBuckets(std::vector<std::string> const &buckets);
 
     void addBucket(std::string const &bucket);
@@ -20,12 +24,12 @@ public:
 
     void removeBucket(std::string const &bucket);
 
-    std::map<std::string, int> const &
+    BucketCount const &
     map() const {
         return mBucketUsage;
     }
 
 private:
-    std::map<std::string, int> mBucketUsage;
+    BucketCount mBucketUsage;
 };
 }

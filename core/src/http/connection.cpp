@@ -18,7 +18,7 @@ namespace http {
 namespace server {
 
 connection::connection(asio::ip::tcp::socket socket,
-                       connection_manager &manager, server &handler)
+                       connection_manager &manager, request_handler &handler)
         : socket_(std::move(socket)), connection_manager_(manager), request_handler_(handler) {
 }
 
@@ -72,8 +72,8 @@ connection::do_write() {
                           if (ec != asio::error::operation_aborted) {
                               connection_manager_.stop(shared_from_this());
                           }
-                          asio::error_code closeEc;
-                          socket_.close(closeEc);
+//                          asio::error_code closeEc;
+//                          socket_.close(closeEc);
                       });
 }
 

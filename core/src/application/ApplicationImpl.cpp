@@ -63,7 +63,8 @@ ApplicationImpl::ApplicationImpl(VirtualClock &clock, Config const &cfg)
           mMetrics(std::make_unique<medida::MetricsRegistry>()),
           mAppStateCurrent(mMetrics->newCounter({"app", "state", "current"})),
           mAppStateChanges(mMetrics->newTimer({"app", "state", "changes"})),
-          mLastStateChange(clock.now()) {
+          mLastStateChange(clock.now()),
+          mStartedOn(clock.now()) {
 #ifdef SIGQUIT
     mStopSignals.add(SIGQUIT);
 #endif
@@ -204,6 +205,7 @@ ApplicationImpl::getJsonInfo() {
     info["build"] = VIXAL_CORE_VERSION;
     info["protocol_version"] = getConfig().LEDGER_PROTOCOL_VERSION;
     info["state"] = getStateHuman();
+    info["startedOn"] = VirtualClock::pointToISOString(mStartedOn);
     info["ledger"]["num"] = (int) lm.getLedgerNum();
     auto const &lcl = lm.getLastClosedLedgerHeader();
     info["ledger"]["hash"] = binToHex(lcl.hash);
@@ -212,6 +214,8 @@ ApplicationImpl::getJsonInfo() {
     info["ledger"]["baseFee"] = lcl.header.baseFee;
     info["ledger"]["baseReserve"] = lcl.header.baseReserve;
     info["ledger"]["age"] = (int) lm.secondsSinceLastLedgerClose();
+    info["peers"]["pending_count"] = getOverlayManager().getPendingPeersCount();
+    info["peers"]["authenticated_count"] = getOverlayManager().getAuthenticatedPeersCount();
     info["pending_peers_count"] = (int) getOverlayManager().getPendingPeersCount();
     info["authenticated_peers_count"] = (int) getOverlayManager().getAuthenticatedPeersCount();
     info["network"] = getConfig().NETWORK_PASSPHRASE;
@@ -362,9 +366,8 @@ ApplicationImpl::gracefulStop() {
 
     mStoppingTimer.expires_after(std::chrono::seconds(SHUTDOWN_DELAY_SECONDS));
 
-    mStoppingTimer.async_wait(
-            std::bind(&ApplicationImpl::shutdown, this),
-            VirtualTimer::onFailureNoop);
+    mStoppingTimer.async_wait(std::bind(&ApplicationImpl::shutdown, this),
+                              VirtualTimer::onFailureNoop);
 }
 
 void
@@ -484,8 +487,8 @@ ApplicationImpl::getMetrics() {
 
 void
 ApplicationImpl::syncOwnMetrics() {
-    int64_t c = mAppStateCurrent.count();
-    int64_t n = static_cast<int64_t>(getState());
+    size_t c = mAppStateCurrent.count();
+    auto n = static_cast<size_t>(getState());
     if (c != n) {
         mAppStateCurrent.set_count(n);
         auto now = mVirtualClock.now();

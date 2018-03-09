@@ -74,7 +74,7 @@ set(HTTP_SOURCE_FILES
         http/reply.cpp
         http/request_parser.cpp
         http/server.cpp
-        )
+        http/request_handler.cpp ../include/http/request_handler.h)
 
 add_library(http SHARED ${HTTP_SOURCE_FILES})
 target_link_libraries(http util)
@@ -273,7 +273,7 @@ set(DATABASE_SOURCE_FILES
         ../include/database/Database.h
         database/Database.cpp
         database/DatabaseConnectionString.cpp
-        )
+        database/DatabaseUtils.cpp ../include/database/DatabaseUtils.h)
 
 add_library(database SHARED ${DATABASE_SOURCE_FILES})
 target_link_libraries(database util medida soci_core soci_sqlite3 soci_postgresql)
@@ -505,7 +505,7 @@ set(APP_SOURCE_FILES
         application/Config.cpp
         application/PersistentState.cpp
         application/NtpSynchronizationChecker.cpp
-        application/Maintainer.cpp ../include/application/Maintainer.h)
+        application/Maintainer.cpp ../include/application/Maintainer.h ../include/database/DatabaseUtils.h)
 add_library(application SHARED ${APP_SOURCE_FILES})
 target_link_libraries(application
         soci_core util medida jsoncpp

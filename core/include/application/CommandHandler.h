@@ -16,9 +16,7 @@ class Application;
 
 class CommandHandler {
 
-    typedef std::function<void(CommandHandler *, std::string const &,
-                               std::string &)>
-            HandlerRoute;
+    typedef std::function<void(CommandHandler *, std::string const &, std::string &)> HandlerRoute;
 
     Application &mApp;
     std::unique_ptr<http::server::server> mServer;

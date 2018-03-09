@@ -147,6 +147,9 @@ Peer::getIOTimeoutSeconds() const {
 
 void
 Peer::receivedBytes(size_t byteCount, bool gotFullMessage) {
+    if (shouldAbort()) {
+        return;
+    }
     LoadManager::PeerContext loadCtx(mApp, mPeerID);
     mLastRead = mApp.getClock().now();
     if (gotFullMessage)
@@ -175,7 +178,7 @@ Peer::idleTimerExpired(asio::error_code const &error) {
         if (((now - mLastRead) >= timeout) && ((now - mLastWrite) >= timeout)) {
             CLOG(WARNING, "Overlay") << "idle timeout";
             mTimeoutIdle.mark();
-            drop();
+            drop(true);
         } else {
             startIdleTimer();
         }
@@ -205,8 +208,9 @@ Peer::drop(ErrorCode err, std::string const &msg) {
     sendMessage(m);
     // note: this used to be a post which caused delays in stopping
     // to process read messages.
-    // this has no effect wrt the sending queue.
-    drop();
+    // this will try to send all data from send queue if the error is ERR_LOAD
+    // - it sends list of peers
+    drop(err != ERR_LOAD);
 }
 
 void
@@ -215,7 +219,7 @@ Peer::connectHandler(asio::error_code const &error) {
         CLOG(WARNING, "Overlay") << " connectHandler error: "
                                  << error.message();
         mDropInConnectHandlerMeter.mark();
-        drop();
+        drop(true);
     } else {
         CLOG(DEBUG, "Overlay") << "connected " << toString();
         connected();
@@ -437,7 +441,7 @@ Peer::recvMessage(xdr::msg_ptr const &msg) {
     catch (xdr::xdr_runtime_error &e) {
         CLOG(ERROR, "Overlay") << "received corrupt xdr::msg_ptr " << e.what();
         mDropInRecvMessageDecodeMeter.mark();
-        drop();
+        drop(true);
         return;
     }
 }
@@ -499,7 +503,7 @@ Peer::recvMessage(VixalMessage const &vixalMsg) {
         (vixalMsg.type() != AUTH) && (vixalMsg.type() != ERROR_MSG)) {
         CLOG(WARNING, "Overlay") << "recv: " << vixalMsg.type() << " before completed handshake";
         mDropInRecvMessageUnauthMeter.mark();
-        drop();
+        drop(true);
         return;
     }
 
@@ -709,7 +713,7 @@ Peer::recvError(VixalMessage const &msg) {
     CLOG(WARNING, "Overlay") << "Received error (" << codeStr
                              << "): " << msg.error().msg;
     mDropInRecvErrorMeter.mark();
-    drop();
+    drop(true);
 }
 
 void
@@ -718,14 +722,15 @@ Peer::noteHandshakeSuccessInPeerRecord() {
         CLOG(ERROR, "Overlay") << "unable to handshake with " << getIP() << ":"
                                << getRemoteListeningPort();
         mDropInRecvAuthInvalidPeerMeter.mark();
-        drop();
+        drop(true);
         return;
     }
 
     auto pr = PeerRecord::loadPeerRecord(mApp.getDatabase(), getIP(),
                                          getRemoteListeningPort());
     if (pr) {
-        pr->resetBackOff(mApp.getClock(), mApp.getOverlayManager().isPreferred(this));
+        pr->setPreferred(mApp.getOverlayManager().isPreferred(this));
+        pr->resetBackOff(mApp.getClock());
     } else {
         pr = make_optional<PeerRecord>(getIP(), mRemoteListeningPort,
                                        mApp.getClock().now());
@@ -743,7 +748,7 @@ Peer::recvHello(Hello const &elo) {
     if (mState >= GOT_HELLO) {
         CLOG(ERROR, "Overlay") << "received unexpected HELLO";
         mDropInRecvHelloUnexpectedMeter.mark();
-        drop();
+        drop(true);
         return;
     }
 
@@ -751,14 +756,14 @@ Peer::recvHello(Hello const &elo) {
     if (!peerAuth.verifyRemoteAuthCert(elo.peerID, elo.cert)) {
         CLOG(ERROR, "Overlay") << "failed to verify remote peer auth cert";
         mDropInRecvHelloCertMeter.mark();
-        drop();
+        drop(true);
         return;
     }
 
     if (mApp.getBanManager().isBanned(elo.peerID)) {
         CLOG(ERROR, "Overlay") << "Node is banned";
         mDropInRecvHelloBanMeter.mark();
-        drop();
+        drop(true);
         return;
     }
 
@@ -879,6 +884,11 @@ Peer::recvAuth(VixalMessage const &msg) {
 
     auto self = shared_from_this();
 
+    if (mRole == REMOTE_CALLED_US) {
+        sendAuth();
+        sendPeers();
+    }
+
     if (!mApp.getOverlayManager().acceptAuthenticatedPeer(self)) {
         CLOG(WARNING, "Overlay") << "New peer rejected, all slots taken";
         mDropInRecvAuthRejectMeter.mark();
@@ -887,11 +897,6 @@ Peer::recvAuth(VixalMessage const &msg) {
     }
 
     noteHandshakeSuccessInPeerRecord();
-
-    if (mRole == REMOTE_CALLED_US) {
-        sendAuth();
-        sendPeers();
-    }
 
     // send SCP State
     // remove when all known peers implements the next line

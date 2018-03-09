@@ -4,15 +4,12 @@
 #include "util/asio.h"
 
 #include <iostream>
-#include <istream>
-#include <ostream>
-#include <string>
 #include "util/Logging.h"
 
 using asio::ip::tcp;
 
 int
-http_request(std::string domain, std::string path, unsigned short port, std::string &ret) {
+http_request(const std::string &domain, const std::string &path, unsigned short port, std::string &ret) {
     try {
         std::ostringstream retSS;
         asio::io_context io_context;

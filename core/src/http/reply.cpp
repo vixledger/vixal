@@ -87,15 +87,14 @@ std::vector<asio::const_buffer>
 reply::to_buffers() {
     std::vector<asio::const_buffer> buffers;
     buffers.push_back(status_strings::to_buffer(status));
-    for (std::size_t i = 0; i < headers.size(); ++i) {
-        header &h = headers[i];
-        buffers.push_back(asio::buffer(h.name));
+    for (auto &h : headers) {
+        buffers.emplace_back(asio::buffer(h.name));
         buffers.push_back(asio::buffer(misc_strings::name_value_separator));
-        buffers.push_back(asio::buffer(h.value));
+        buffers.emplace_back(asio::buffer(h.value));
         buffers.push_back(asio::buffer(misc_strings::crlf));
     }
     buffers.push_back(asio::buffer(misc_strings::crlf));
-    buffers.push_back(asio::buffer(content));
+    buffers.emplace_back(asio::buffer(content));
     return buffers;
 }
 

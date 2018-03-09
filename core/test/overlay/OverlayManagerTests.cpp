@@ -32,17 +32,13 @@ public:
     PeerStub(Application &app, short port) : Peer(app, WE_CALLED_REMOTE) {
         mPeerID = SecretKey::random().getPublicKey();
         mState = GOT_AUTH;
-        mRemoteListeningPort = port;
+        mRemoteListeningPort = static_cast<unsigned short>(port);
     }
 
-    virtual
-
-    void
-    drop() override {
+    virtual void drop(bool) override {
     }
 
-    virtual string
-    getIP() override {
+    virtual string getIP() override {
         return "127.0.0.1";
     }
 
@@ -101,9 +97,11 @@ protected:
     vector<string> threePeers;
 
     OverlayManagerTests()
-            : app(createTestApplication<ApplicationStub>(clock, getTestConfig())),
-              fourPeers(vector<string>{"127.0.0.1:2011", "127.0.0.1:2012", "127.0.0.1:2013", "127.0.0.1:2014"}),
-              threePeers(vector<string> {"127.0.0.1:201", "127.0.0.1:202", "127.0.0.1:203", "127.0.0.1:204"}) {
+            : fourPeers(vector<string>{"127.0.0.1:2011", "127.0.0.1:2012", "127.0.0.1:2013", "127.0.0.1:2014"}),
+              threePeers(vector<string> {"127.0.0.1:64000", "127.0.0.1:64001", "127.0.0.1:64002"}) {
+        auto cfg = getTestConfig();
+        cfg.TARGET_PEER_CONNECTIONS = 5;
+        app = createTestApplication<ApplicationStub>(clock, cfg);
     }
 
     void
@@ -113,7 +111,7 @@ protected:
         pm.storePeerList(fourPeers, false, false);
 
         rowset<row> rs = app->getDatabase().getSession().prepare
-                << "SELECT ip,port FROM peers";
+                << "SELECT ip,port FROM peers ORDER BY nextattempt";
         vector<string> actual;
         for (auto it = rs.begin(); it != rs.end(); ++it)
             actual.push_back(it->get<string>(0) + ":" +
@@ -137,7 +135,8 @@ protected:
 
         pm.storePeerList(fourPeers, false, false);
         pm.storePeerList(threePeers, false, false);
-        pm.connectToMorePeers(5);
+        // connect to peers, respecting TARGET_PEER_CONNECTIONS
+        pm.tick();
         REQUIRE(pm.mAuthenticatedPeers.size() == 5);
         auto a = TestAccount{*app, getAccount("a")};
         auto b = TestAccount{*app, getAccount("b")};

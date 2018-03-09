@@ -38,7 +38,8 @@ HerderSCPDriver::HerderSCPDriver(Application &app, HerderImpl &herder,
           mLedgerManager{mApp.getLedgerManager()},
           mUpgrades{upgrades},
           mPendingEnvelopes{pendingEnvelopes},
-          mSCP(*this, mApp.getConfig().NODE_SEED, mApp.getConfig().NODE_IS_VALIDATOR, mApp.getConfig().QUORUM_SET),
+          mSCP(*this, mApp.getConfig().NODE_SEED.getPublicKey(),
+               mApp.getConfig().NODE_IS_VALIDATOR, mApp.getConfig().QUORUM_SET),
           mSCPMetrics{mApp},
           mLastStateChange{mApp.getClock().now()} {
 }
@@ -92,7 +93,7 @@ HerderSCPDriver::restoreSCPState(uint64_t index, VixalValue const &value) {
 void
 HerderSCPDriver::signEnvelope(SCPEnvelope &envelope) {
     mSCPMetrics.mEnvelopeSign.mark();
-    envelope.signature = mSCP.getSecretKey().sign(xdr::xdr_to_opaque(
+    envelope.signature = mApp.getConfig().NODE_SEED.sign(xdr::xdr_to_opaque(
             mApp.getNetworkID(), ENVELOPE_TYPE_SCP, envelope.statement));
 }
 
@@ -327,8 +328,10 @@ HerderSCPDriver::setupTimer(uint64_t slotIndex, int timerID,
     }
     auto &timer = *it->second;
     timer.cancel();
-    timer.expires_after(timeout);
-    timer.async_wait(cb, &VirtualTimer::onFailureNoop);
+    if (cb) {
+        timer.expires_after(timeout);
+        timer.async_wait(cb, &VirtualTimer::onFailureNoop);
+    }
 }
 
 // core SCP

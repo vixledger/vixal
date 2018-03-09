@@ -306,7 +306,10 @@ public:
     // Return level `i` of the BucketList.
     BucketLevel& getLevel(uint32_t i);
 
-    // Return a cumulative hash of the entire bucketlist; this is the hash of
+    // Return level `i` of the BucketList.
+    BucketLevel const& getLevel(uint32_t i) const;
+
+    // Return a cumulative hash of the entire BucketList; this is the hash of
     // the concatenation of each level's hash, each of which in turn is the hash
     // of the concatenation of the hashes of the `curr` and `snap` buckets.
     Hash getHash() const;

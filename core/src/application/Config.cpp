@@ -38,7 +38,7 @@ Config::Config() : NODE_SEED(SecretKey::random()) {
     LEDGER_PROTOCOL_VERSION = CURRENT_LEDGER_PROTOCOL_VERSION;
 
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
-    OVERLAY_PROTOCOL_VERSION = 5;
+    OVERLAY_PROTOCOL_VERSION = 6;
 
     VERSION_STR = VIXAL_CORE_VERSION;
 
@@ -47,7 +47,7 @@ Config::Config() : NODE_SEED(SecretKey::random()) {
     MANUAL_CLOSE = false;
     CATCHUP_COMPLETE = false;
     CATCHUP_RECENT = 0;
-    AUTOMATIC_MAINTENANCE_PERIOD = std::chrono::seconds{3600};
+    AUTOMATIC_MAINTENANCE_PERIOD = std::chrono::seconds{14400};
     AUTOMATIC_MAINTENANCE_COUNT = 50000;
     ARTIFICIALLY_GENERATE_LOAD_FOR_TESTING = false;
     ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = false;
@@ -226,7 +226,7 @@ Config::load(std::string const &filename) {
                 RUN_STANDALONE = readBool(item);
             } else if (item.first == "KNOWN_CURSORS") {
                 KNOWN_CURSORS = readStringArray(item);
-                for (auto const& c : KNOWN_CURSORS) {
+                for (auto const &c : KNOWN_CURSORS) {
                     if (!ExternalQueue::validateResourceID(c)) {
                         throw std::invalid_argument(fmt::format("invalid cursor: \"{}\"", c));
                     }
@@ -293,7 +293,7 @@ Config::load(std::string const &filename) {
             } else if (item.first == "COMMANDS") {
                 COMMANDS = readStringArray(item);
             } else if (item.first == "MAX_CONCURRENT_SUBPROCESSES") {
-                MAX_CONCURRENT_SUBPROCESSES = readInt<size_t>(item, 1);
+                MAX_CONCURRENT_SUBPROCESSES = static_cast<size_t>(readInt<int>(item, 1));
             } else if (item.first == "MINIMUM_IDLE_PERCENT") {
                 MINIMUM_IDLE_PERCENT = readInt<uint32_t>(item, 0, 100);
             } else if (item.first == "HISTORY") {

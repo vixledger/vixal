@@ -18,7 +18,6 @@ namespace vixal {
 class LocalNode {
 protected:
     const NodeID mNodeID;
-    const SecretKey mSecretKey;
     const bool mIsValidator;
     SCPQuorumSet mQSet;
     Hash mQSetHash;
@@ -30,7 +29,7 @@ protected:
     SCP *mSCP;
 
 public:
-    LocalNode(SecretKey const &secretKey, bool isValidator, SCPQuorumSet const &qSet, SCP *scp);
+    LocalNode(NodeID const& nodeID, bool isValidator, SCPQuorumSet const& qSet, SCP *scp);
 
     NodeID const &getNodeID();
 
@@ -39,8 +38,6 @@ public:
     SCPQuorumSet const &getQuorumSet();
 
     Hash const &getQuorumSetHash();
-
-    SecretKey const &getSecretKey();
 
     bool isValidator();
 
