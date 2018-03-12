@@ -311,7 +311,7 @@ BallotProtocol::bumpState(Value const &value, uint32 n) {
     return updated;
 }
 
-// updates the local state based to the specificed ballot
+// updates the local state based to the specified ballot
 // (that could be a prepared ballot) enforcing invariants
 bool
 BallotProtocol::updateCurrentValue(SCPBallot const &ballot) {
@@ -1504,13 +1504,7 @@ BallotProtocol::advanceSlot(SCPStatement const &hint) {
             didWork = didBump || didWork;
         } while (didBump);
 
-        // Check if we should call `ballotDidHearFromQuorum` and set/reset the
-        // timer, we only do it if didWork is true (ie: when we changed state)
-        // this is to avoid being arbitrary delayed by messages that we
-        // don't care about
-        if (didWork) {
-            checkHeardFromQuorum();
-        }
+        checkHeardFromQuorum();
     }
 
     if (Logging::logDebug("SCP"))
@@ -1712,6 +1706,12 @@ BallotProtocol::federatedRatify(StatementPredicate voted) {
 
 void
 BallotProtocol::checkHeardFromQuorum() {
+    // this method is safe to call regardless of the transitions of the other
+    // nodes on the network:
+    // we guarantee that other nodes can only transition to higher counters
+    // (messages are ignored upstream)
+    // therefore the local node will not flip flop between "seen" and "not seen"
+    // for a given counter on the local node
     if (mCurrentBallot) {
         if (LocalNode::isQuorum(
                 getLocalNode()->getQuorumSet(), mLatestEnvelopes,
