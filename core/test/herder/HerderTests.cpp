@@ -2,14 +2,14 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "../../src/herder/HerderImpl.h"
+#include "../src//herder/HerderImpl.h"
 #include "application/Application.h"
 #include "application/Config.h"
 #include "scp/SCP.h"
 #include "simulation/Simulation.h"
 #include "test/TestAccount.h"
-#include "test/test.h"
 #include "test/TestUtils.h"
+#include "test/test.h"
 
 #include "crypto/SHA.h"
 #include "database/Database.h"
@@ -26,8 +26,7 @@
 using namespace vixal;
 using namespace vixal::txtest;
 
-using xdr::operator==;
-
+typedef std::unique_ptr<Application> appPtr;
 
 TEST_CASE("standalone", "[herder]") {
     SIMULATION_CREATE_NODE(0);
@@ -49,43 +48,110 @@ TEST_CASE("standalone", "[herder]") {
     auto root = TestAccount::createRoot(*app);
     auto a1 = TestAccount{*app, getAccount("A")};
     auto b1 = TestAccount{*app, getAccount("B")};
+    auto c1 = TestAccount{*app, getAccount("C")};
 
-    const int64_t paymentAmount = app->getLedgerManager().getMinBalance(0);
+    auto txfee = app->getLedgerManager().getTxFee();
+    const int64_t minBalance = app->getLedgerManager().getMinBalance(0);
+    const int64_t paymentAmount = 100;
+    const int64_t startingBalance = minBalance + (paymentAmount + txfee) * 3;
 
     SECTION("basic ledger close on valid txs") {
-        bool stop = false;
-        VirtualTimer setupTimer(app->getClock());
-        VirtualTimer checkTimer(app->getClock());
+        VirtualTimer setupTimer(*app);
 
-        auto check = [&](asio::error_code const &error) {
-            stop = true;
+        auto feedTx = [&](TransactionFramePtr &tx) {
+            REQUIRE(app->getHerder().recvTransaction(tx) ==
+                    Herder::TX_STATUS_PENDING);
+        };
 
-            REQUIRE(app->getLedgerManager().getLastClosedLedgerNum() > 2);
+        auto waitForExternalize = [&]() {
+            VirtualTimer checkTimer(*app);
+            bool stop = false;
+            auto prev = app->getLedgerManager().getLastClosedLedgerNum();
 
-            AccountFrame::pointer a1Account, b1Account;
-            a1Account = loadAccount(a1.getPublicKey(), *app);
-            b1Account = loadAccount(b1.getPublicKey(), *app);
-            REQUIRE(a1Account->getBalance() == paymentAmount);
-            REQUIRE(b1Account->getBalance() == paymentAmount);
+            auto check = [&](asio::error_code const &error) {
+                REQUIRE(app->getLedgerManager().getLastClosedLedgerNum() >
+                        prev);
+                stop = true;
+            };
+
+            checkTimer.expires_after(Herder::EXP_LEDGER_TIMESPAN_SECONDS +
+                                        std::chrono::seconds(1));
+            checkTimer.async_wait(check);
+            while (!stop) {
+                app->getClock().crank(true);
+            }
         };
 
         auto setup = [&](asio::error_code const &error) {
             // create accounts
-            auto txFrameA1 = root.tx({createAccount(a1, paymentAmount)});
-            auto txFrameA2 = root.tx({createAccount(b1, paymentAmount)});
+            auto txFrameA = root.tx({createAccount(a1, startingBalance)});
+            auto txFrameB = root.tx({createAccount(b1, startingBalance)});
+            auto txFrameC = root.tx({createAccount(c1, startingBalance)});
 
-            REQUIRE(app->getHerder().recvTransaction(txFrameA1) == Herder::TX_STATUS_PENDING);
-            REQUIRE(app->getHerder().recvTransaction(txFrameA2) == Herder::TX_STATUS_PENDING);
+            feedTx(txFrameA);
+            feedTx(txFrameB);
+            feedTx(txFrameC);
         };
 
         setupTimer.expires_after(std::chrono::seconds(0));
         setupTimer.async_wait(setup);
 
-        checkTimer.expires_after(Herder::EXP_LEDGER_TIMESPAN_SECONDS + std::chrono::seconds(1));
-        checkTimer.async_wait(check);
+        waitForExternalize();
+        auto a1OldSeqNum = a1.getLastSequenceNumber();
 
-        while (!stop) {
-            app->getClock().crank(true);
+        REQUIRE(a1.getBalance() == startingBalance);
+        REQUIRE(b1.getBalance() == startingBalance);
+        REQUIRE(c1.getBalance() == startingBalance);
+
+        SECTION("txset with valid txs - but failing later") {
+            std::vector<TransactionFramePtr> txAs, txBs, txCs;
+            txAs.emplace_back(a1.tx({payment(root, paymentAmount)}));
+            txAs.emplace_back(a1.tx({payment(root, paymentAmount)}));
+            txAs.emplace_back(a1.tx({payment(root, paymentAmount)}));
+
+            txBs.emplace_back(b1.tx({payment(root, paymentAmount)}));
+            txBs.emplace_back(b1.tx({accountMerge(root)}));
+            txBs.emplace_back(b1.tx({payment(a1, paymentAmount)}));
+
+            auto expectedC1Seq = c1.getLastSequenceNumber() + 10;
+            txCs.emplace_back(c1.tx({payment(root, paymentAmount)}));
+            txCs.emplace_back(c1.tx({bumpSequence(expectedC1Seq)}));
+            txCs.emplace_back(c1.tx({payment(root, paymentAmount)}));
+
+            for_all_versions(*app, [&]() {
+                for (auto a : txAs) {
+                    feedTx(a);
+                }
+                for (auto b : txBs) {
+                    feedTx(b);
+                }
+
+                bool hasC =
+                        app->getLedgerManager().getCurrentLedgerVersion() >= 10;
+                if (hasC) {
+                    for (auto c : txCs) {
+                        feedTx(c);
+                    }
+                }
+
+                waitForExternalize();
+
+                // all of a1's transactions went through
+                // b1's last transaction failed due to account non existant
+                int64 expectedBalance =
+                        startingBalance - 3 * paymentAmount - 3 * txfee;
+                REQUIRE(a1.getBalance() == expectedBalance);
+                REQUIRE(a1.loadSequenceNumber() == a1OldSeqNum + 3);
+                REQUIRE(!b1.exists());
+
+                if (hasC) {
+                    // c1's last transaction failed due to wrong sequence number
+                    int64 expectedCBalance =
+                            startingBalance - paymentAmount - 3 * txfee;
+                    REQUIRE(c1.getBalance() == expectedCBalance);
+                    REQUIRE(c1.loadSequenceNumber() == expectedC1Seq);
+                }
+            });
         }
 
         SECTION("Queue processing test") {
@@ -160,8 +226,9 @@ TEST_CASE("txset", "[herder]") {
 
     const int64_t paymentAmount = app->getLedgerManager().getMinBalance(0);
 
-    int64_t amountPop = nbAccounts * nbTransactions * app->getLedgerManager().getTxFee() +
-                        paymentAmount;
+    int64_t amountPop =
+            nbAccounts * nbTransactions * app->getLedgerManager().getTxFee() +
+            paymentAmount;
 
     auto sourceAccount = root.create("source", amountPop);
 
@@ -223,7 +290,8 @@ TEST_CASE("txset", "[herder]") {
         }
         SECTION("sequence gap") {
             SECTION("gap after") {
-                auto tx = sourceAccount.tx({payment(accounts[0], paymentAmount)});
+                auto tx =
+                        sourceAccount.tx({payment(accounts[0], paymentAmount)});
                 tx->getEnvelope().tx.seqNum += 5;
                 txSet->add(tx);
                 txSet->sortForHash();
@@ -252,7 +320,7 @@ TEST_CASE("txset", "[herder]") {
                 REQUIRE(txSet->checkValid(*app));
             }
         }
-        SECTION("insufficient balance") {
+        SECTION("insuficient balance") {
             // extra transaction would push the account below the reserve
             txSet->add(sourceAccount.tx({payment(accounts[0], paymentAmount)}));
             txSet->sortForHash();
@@ -390,7 +458,8 @@ TEST_CASE("SCP Driver", "[herder]") {
     using TxPair = std::pair<Value, TxSetFramePtr>;
     auto makeTxPair = [](TxSetFramePtr txSet, uint64_t closeTime) {
         txSet->sortForHash();
-        auto sv = VixalValue{txSet->getContentsHash(), closeTime, emptyUpgradeSteps, 0};
+        auto sv = VixalValue{txSet->getContentsHash(), closeTime,
+                               emptyUpgradeSteps, 0};
         auto v = xdr::xdr_to_opaque(sv);
 
         return TxPair{v, txSet};
@@ -408,13 +477,13 @@ TEST_CASE("SCP Driver", "[herder]") {
                 root.getSecretKey().sign(xdr::xdr_to_opaque(envelope.statement));
         return envelope;
     };
-    auto addTransactions = [&](TxSetFramePtr txSet, unsigned long n) {
+    auto addTransactions = [&](TxSetFramePtr txSet, int n) {
         txSet->mTransactions.resize(n);
         std::generate(std::begin(txSet->mTransactions),
                       std::end(txSet->mTransactions),
                       [&]() { return root.tx({createAccount(a1, 10000000)}); });
     };
-    auto makeTransactions = [&](Hash hash, unsigned long n) {
+    auto makeTransactions = [&](Hash hash, int n) {
         auto result = std::make_shared<TxSetFrame>(hash);
         addTransactions(result, n);
         return result;

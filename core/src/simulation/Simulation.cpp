@@ -10,6 +10,7 @@
 
 #include "test/test.h"
 #include <util/format.h>
+#include <chrono>
 
 #include <utility>
 
@@ -18,10 +19,10 @@ namespace vixal {
 using namespace std;
 
 Simulation::Simulation(Mode mode, Hash const &networkID,
-                       std::function<Config()> confGen)
+                       ConfigGen confGen)
         : LoadGenerator(networkID),
           mVirtualClockMode(mode != OVER_TCP),
-          mClock(mVirtualClockMode ? VirtualClock::VIRTUAL_TIME: VirtualClock::REAL_TIME),
+          mClock(mVirtualClockMode ? VirtualClock::VIRTUAL_TIME : VirtualClock::REAL_TIME),
           mMode(mode),
           mConfigCount(0),
           mConfigGen(std::move(confGen)) {
@@ -52,7 +53,7 @@ Application::pointer
 Simulation::addNode(SecretKey nodeKey, SCPQuorumSet qSet, Config const *cfg2, bool newDB) {
     auto cfg = cfg2 ? std::make_shared<Config>(*cfg2) : std::make_shared<Config>(newConfig());
     cfg->NODE_SEED = nodeKey;
-    cfg->QUORUM_SET = std::move(qSet);
+    cfg->QUORUM_SET = qSet;
     cfg->RUN_STANDALONE = (mMode == OVER_LOOPBACK);
 
     auto clock = make_shared<VirtualClock>(mVirtualClockMode ? VirtualClock::VIRTUAL_TIME
@@ -69,7 +70,7 @@ Simulation::addNode(SecretKey nodeKey, SCPQuorumSet qSet, Config const *cfg2, bo
 }
 
 Application::pointer
-Simulation::getNode(NodeID nodeID) {
+Simulation::getNode(NodeID const &nodeID) {
     return mNodes[nodeID].mApp;
 }
 
@@ -128,7 +129,7 @@ Simulation::addPendingConnection(NodeID const &initiator,
 }
 
 void
-Simulation::addConnection(NodeID initiator, NodeID acceptor) {
+Simulation::addConnection(NodeID const &initiator, NodeID const &acceptor) {
     if (mMode == OVER_LOOPBACK) {
         addLoopbackConnection(initiator, acceptor);
     } else {
@@ -137,15 +138,15 @@ Simulation::addConnection(NodeID initiator, NodeID acceptor) {
 }
 
 void
-Simulation::dropConnection(NodeID initiator, NodeID acceptor) {
+Simulation::dropConnection(NodeID const &initiator, NodeID const &acceptor) {
     if (mMode == OVER_LOOPBACK) {
-        dropLoopbackConnection(std::move(initiator), std::move(acceptor));
+        dropLoopbackConnection(initiator, acceptor);
     } else {
         auto iApp = mNodes[initiator].mApp;
         if (iApp) {
-            auto& cAcceptor = mNodes[acceptor].mApp->getConfig();
+            auto &cAcceptor = mNodes[acceptor].mApp->getConfig();
             auto peer = iApp->getOverlayManager().getConnectedPeer(
-                    "127.0.0.1", cAcceptor.PEER_PORT);
+                    PeerBareAddress{"127.0.0.1", cAcceptor.PEER_PORT});
             if (peer) {
                 peer->drop(true);
             }
@@ -154,7 +155,7 @@ Simulation::dropConnection(NodeID initiator, NodeID acceptor) {
 }
 
 void
-Simulation::addLoopbackConnection(NodeID initiator, NodeID acceptor) {
+Simulation::addLoopbackConnection(NodeID const &initiator, NodeID const &acceptor) {
     if (mNodes[initiator].mApp && mNodes[acceptor].mApp) {
         auto conn = std::make_shared<LoopbackPeerConnection>(*getNode(initiator), *getNode(acceptor));
         mLoopbackConnections.push_back(conn);
@@ -162,7 +163,7 @@ Simulation::addLoopbackConnection(NodeID initiator, NodeID acceptor) {
 }
 
 void
-Simulation::dropLoopbackConnection(NodeID initiator, NodeID acceptor) {
+Simulation::dropLoopbackConnection(NodeID const &initiator, NodeID const &acceptor) {
     auto it = std::find_if(
             std::begin(mLoopbackConnections), std::end(mLoopbackConnections),
             [&](std::shared_ptr<LoopbackPeerConnection> const &conn) {
@@ -175,17 +176,17 @@ Simulation::dropLoopbackConnection(NodeID initiator, NodeID acceptor) {
 }
 
 void
-Simulation::addTCPConnection(NodeID initiator, NodeID acceptor) {
+Simulation::addTCPConnection(NodeID const &initiator, NodeID const &acceptor) {
     if (mMode != OVER_TCP) {
         throw runtime_error("Cannot add a TCP connection");
     }
-    auto from = getNode(std::move(initiator));
-    auto to = getNode(std::move(acceptor));
+    auto from = getNode(initiator);
+    auto to = getNode(acceptor);
     if (to->getConfig().PEER_PORT == 0) {
         throw runtime_error("PEER_PORT cannot be set to 0");
     }
-    PeerRecord pr{"127.0.0.1", to->getConfig().PEER_PORT, from->getClock().now()};
-    from->getOverlayManager().connectTo(pr);
+    auto address = PeerBareAddress{"127.0.0.1", to->getConfig().PEER_PORT};
+    from->getOverlayManager().connectTo(address);
 }
 
 void
@@ -218,11 +219,11 @@ Simulation::crankNode(NodeID const &id, VirtualClock::time_point timeout) {
     auto clock = p.mClock;
     auto app = p.mApp;
     size_t quantumClicks = 0;
-    VirtualTimer quantumTimer(app->getClock());
+    VirtualTimer quantumTimer(*app);
 
     bool doneWithQuantum = false;
     if (mVirtualClockMode) {
-        // in virtual mode we give at most a timeslice
+        // in virtual mode we give at most a time slice
         // of quantum for execution
         auto tp = clock->now() + quantum;
         if (tp > timeout) {
@@ -251,7 +252,7 @@ Simulation::crankAllNodes(int nbTicks) {
 
     std::size_t count = 0;
 
-    VirtualTimer mainQuantumTimer(mIdleApp->getClock());
+    VirtualTimer mainQuantumTimer(*mIdleApp);
 
     int i = 0;
     do {
@@ -328,8 +329,8 @@ Simulation::crankAllNodes(int nbTicks) {
 bool
 Simulation::haveAllExternalized(uint32 num, uint32 maxSpread) {
     uint32_t min = UINT32_MAX, max = 0;
-    for (auto it = mNodes.begin(); it != mNodes.end(); ++it) {
-        auto app = it->second.mApp;
+    for (auto &node : mNodes) {
+        auto app = node.second.mApp;
         auto n = app->getLedgerManager().getLastClosedLedgerNum();
         LOG(DEBUG) << app->getConfig().PEER_PORT << " @ ledger#: " << n;
 
@@ -355,7 +356,7 @@ Simulation::crankForAtMost(VirtualClock::duration seconds, bool finalCrank) {
             stop = true;
     };
 
-    VirtualTimer checkTimer(mIdleApp->getClock());
+    VirtualTimer checkTimer(*mIdleApp);
 
     checkTimer.expires_after(seconds);
     checkTimer.async_wait(stopIt);
@@ -381,7 +382,7 @@ Simulation::crankForAtLeast(VirtualClock::duration seconds, bool finalCrank) {
             stop = true;
     };
 
-    VirtualTimer checkTimer(mIdleApp->getClock());
+    VirtualTimer checkTimer(*mIdleApp);
 
     checkTimer.expires_after(seconds);
     checkTimer.async_wait(stopIt);
@@ -408,12 +409,12 @@ Simulation::crankUntilSync(VirtualClock::duration timeout, bool finalCrank) {
 void
 Simulation::crankUntil(function<bool()> const &predicate, VirtualClock::duration timeout, bool finalCrank) {
     bool timedOut = false;
-    VirtualTimer timeoutTimer(mIdleApp->getClock());
+    VirtualTimer timeoutTimer(*mIdleApp);
     timeoutTimer.expires_after(timeout);
 
     bool done = false;
 
-    VirtualTimer checkTimer(mIdleApp->getClock());
+    VirtualTimer checkTimer(*mIdleApp);
     function<void()> checkDone = [&]() {
         if (predicate()) {
             done = true;
@@ -462,7 +463,7 @@ Simulation::crankUntil(VirtualClock::time_point timePoint, bool finalCrank) {
         }
     };
 
-    VirtualTimer checkTimer(mIdleApp->getClock());
+    VirtualTimer checkTimer(*mIdleApp);
 
     checkTimer.expires_at(timePoint);
     checkTimer.async_wait(stopIt);
@@ -522,7 +523,7 @@ Simulation::executeStressTest(size_t nTransactions, int injectionRatePerSec,
                 execute(generatorFn(iTransactions));
             }
 
-            auto t = chrono::system_clock::now() - tBegin;
+            auto t = (chrono::system_clock::now() - tBegin);
             signingTime += t;
         }
 
@@ -576,9 +577,9 @@ Simulation::loadAccount(AccountInfo &account) {
 Config
 Simulation::newConfig() {
     if (mConfigGen) {
-        return mConfigGen();
+        return mConfigGen(mConfigCount++);
     } else {
-        Config res = getTestConfig(static_cast<unsigned int>(mConfigCount++));
+        Config res = getTestConfig(mConfigCount++);
         res.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = true;
         return res;
     }

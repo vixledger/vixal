@@ -2,6 +2,7 @@
 
 #include "crypto/ECDH.h"
 #include "overlay/Peer.h"
+#include "overlay/PeerSharedKeyId.h"
 #include "util/lrucache.hpp"
 #include "xdr/xdr.h"
 
@@ -25,7 +26,8 @@ class PeerAuth {
     Curve25519Public mECDHPublicKey;
     AuthCert mCert;
 
-    cache::lru_cache<Curve25519Public, HmacSha256Key> mSharedKeyCache;
+    cache::lru_cache<PeerSharedKeyId, HmacSha256Key> mSharedKeyCache;
+
 
     HmacSha256Key getSharedKey(Curve25519Public const &remotePublic, Peer::PeerRole role);
 

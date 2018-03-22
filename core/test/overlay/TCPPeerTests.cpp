@@ -39,10 +39,10 @@ TEST_CASE("TCPPeer can communicate", "[overlay]") {
     s->crankForAtLeast(std::chrono::seconds(1), false);
 
     auto p0 = n0->getOverlayManager().getConnectedPeer(
-            "127.0.0.1", n1->getConfig().PEER_PORT);
+            PeerBareAddress{"127.0.0.1", n1->getConfig().PEER_PORT});
 
     auto p1 = n1->getOverlayManager().getConnectedPeer(
-            "127.0.0.1", n0->getConfig().PEER_PORT);
+            PeerBareAddress{"127.0.0.1", n0->getConfig().PEER_PORT});
 
     REQUIRE(p0);
     REQUIRE(p1);

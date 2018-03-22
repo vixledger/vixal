@@ -1,9 +1,9 @@
 // -*- C++ -*-
-// Automatically generated from transaction.x.
+// Automatically generated from /Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/core/src/xdr/transaction.x.
 // DO NOT EDIT or your changes may be overwritten
 
-#ifndef __XDR_STELLAR_TRANSACTION_H_INCLUDED__
-#define __XDR_STELLAR_TRANSACTION_H_INCLUDED__ 1
+#ifndef __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TRANSACTION_H_INCLUDED__
+#define __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TRANSACTION_H_INCLUDED__ 1
 
 #include <xdrpp/types.h>
 
@@ -64,6 +64,7 @@ enum OperationType : std::int32_t {
   ACCOUNT_MERGE = 8,
   INFLATION = 9,
   MANAGE_DATA = 10,
+  BUMP_SEQUENCE = 11,
 };
 } 
 namespace xdr {
@@ -96,6 +97,8 @@ template<> struct xdr_traits<::vixal::OperationType>
       return "INFLATION";
     case ::vixal::MANAGE_DATA:
       return "MANAGE_DATA";
+    case ::vixal::BUMP_SEQUENCE:
+      return "BUMP_SEQUENCE";
     default:
       return nullptr;
     }
@@ -112,7 +115,8 @@ template<> struct xdr_traits<::vixal::OperationType>
       ::vixal::ALLOW_TRUST,
       ::vixal::ACCOUNT_MERGE,
       ::vixal::INFLATION,
-      ::vixal::MANAGE_DATA
+      ::vixal::MANAGE_DATA,
+      ::vixal::BUMP_SEQUENCE
     };
     return _xdr_enum_vec;
   }
@@ -820,6 +824,36 @@ template<> struct xdr_traits<::vixal::ManageDataOp>
 }
 namespace vixal {
 
+struct BumpSequenceOp {
+  SequenceNumber bumpTo{};
+
+  BumpSequenceOp() = default;
+  template<typename _bumpTo_T,
+           typename = typename
+           std::enable_if<std::is_constructible<SequenceNumber, _bumpTo_T>::value
+                         >::type>
+  explicit BumpSequenceOp(_bumpTo_T &&_bumpTo)
+    : bumpTo(std::forward<_bumpTo_T>(_bumpTo)) {}
+};
+} 
+namespace xdr {
+template<> struct xdr_traits<::vixal::BumpSequenceOp>
+  : xdr_struct_base<field_ptr<::vixal::BumpSequenceOp,
+                              decltype(::vixal::BumpSequenceOp::bumpTo),
+                              &::vixal::BumpSequenceOp::bumpTo>> {
+  template<typename Archive> static void
+  save(Archive &ar, const ::vixal::BumpSequenceOp &obj) {
+    archive(ar, obj.bumpTo, "bumpTo");
+  }
+  template<typename Archive> static void
+  load(Archive &ar, ::vixal::BumpSequenceOp &obj) {
+    archive(ar, obj.bumpTo, "bumpTo");
+    xdr::validate(obj);
+  }
+};
+}
+namespace vixal {
+
 struct Operation {
   struct _body_t {
     using _xdr_case_type = xdr::xdr_traits<OperationType>::case_type;
@@ -836,6 +870,7 @@ struct Operation {
       AllowTrustOp allowTrustOp_;
       AccountID destination_;
       ManageDataOp manageDataOp_;
+      BumpSequenceOp bumpSequenceOp_;
     };
 
   public:
@@ -852,7 +887,8 @@ struct Operation {
         ALLOW_TRUST,
         ACCOUNT_MERGE,
         INFLATION,
-        MANAGE_DATA
+        MANAGE_DATA,
+        BUMP_SEQUENCE
       };
       return _xdr_disc_vec;
     }
@@ -868,6 +904,7 @@ struct Operation {
         : which == ACCOUNT_MERGE ? 9
         : which == INFLATION ? 0
         : which == MANAGE_DATA ? 10
+        : which == BUMP_SEQUENCE ? 11
         : -1;
     }
     template<typename _F, typename..._A> static bool
@@ -904,6 +941,9 @@ struct Operation {
         return true;
       case MANAGE_DATA:
         _f(&_body_t::manageDataOp_, std::forward<_A>(_a)...);
+        return true;
+      case BUMP_SEQUENCE:
+        _f(&_body_t::bumpSequenceOp_, std::forward<_A>(_a)...);
         return true;
       }
       return false;
@@ -1066,6 +1106,16 @@ struct Operation {
         return manageDataOp_;
       throw xdr::xdr_wrong_union("_body_t: manageDataOp accessed when not selected");
     }
+    BumpSequenceOp &bumpSequenceOp() {
+      if (_xdr_field_number(type_) == 11)
+        return bumpSequenceOp_;
+      throw xdr::xdr_wrong_union("_body_t: bumpSequenceOp accessed when not selected");
+    }
+    const BumpSequenceOp &bumpSequenceOp() const {
+      if (_xdr_field_number(type_) == 11)
+        return bumpSequenceOp_;
+      throw xdr::xdr_wrong_union("_body_t: bumpSequenceOp accessed when not selected");
+    }
   };
 
   xdr::pointer<AccountID> sourceAccount{};
@@ -1116,6 +1166,8 @@ template<> struct xdr_traits<::vixal::Operation::_body_t> : xdr_traits_base {
       return "destination";
     case 10:
       return "manageDataOp";
+    case 11:
+      return "bumpSequenceOp";
     }
     return nullptr;
   }
@@ -3668,6 +3720,7 @@ enum AccountMergeResultCode : std::int32_t {
   ACCOUNT_MERGE_NO_ACCOUNT = -2,
   ACCOUNT_MERGE_IMMUTABLE_SET = -3,
   ACCOUNT_MERGE_HAS_SUB_ENTRIES = -4,
+  ACCOUNT_MERGE_SEQNUM_TOO_FAR = -5,
 };
 } 
 namespace xdr {
@@ -3688,6 +3741,8 @@ template<> struct xdr_traits<::vixal::AccountMergeResultCode>
       return "ACCOUNT_MERGE_IMMUTABLE_SET";
     case ::vixal::ACCOUNT_MERGE_HAS_SUB_ENTRIES:
       return "ACCOUNT_MERGE_HAS_SUB_ENTRIES";
+    case ::vixal::ACCOUNT_MERGE_SEQNUM_TOO_FAR:
+      return "ACCOUNT_MERGE_SEQNUM_TOO_FAR";
     default:
       return nullptr;
     }
@@ -3698,7 +3753,8 @@ template<> struct xdr_traits<::vixal::AccountMergeResultCode>
       ::vixal::ACCOUNT_MERGE_MALFORMED,
       ::vixal::ACCOUNT_MERGE_NO_ACCOUNT,
       ::vixal::ACCOUNT_MERGE_IMMUTABLE_SET,
-      ::vixal::ACCOUNT_MERGE_HAS_SUB_ENTRIES
+      ::vixal::ACCOUNT_MERGE_HAS_SUB_ENTRIES,
+      ::vixal::ACCOUNT_MERGE_SEQNUM_TOO_FAR
     };
     return _xdr_enum_vec;
   }
@@ -4243,10 +4299,174 @@ template<> struct xdr_traits<::vixal::ManageDataResult> : xdr_traits_base {
 }
 namespace vixal {
 
+enum BumpSequenceResultCode : std::int32_t {
+  BUMP_SEQUENCE_SUCCESS = 0,
+  BUMP_SEQUENCE_BAD_SEQ = -1,
+};
+} 
+namespace xdr {
+template<> struct xdr_traits<::vixal::BumpSequenceResultCode>
+  : xdr_integral_base<::vixal::BumpSequenceResultCode, std::uint32_t> {
+  using case_type = std::int32_t;
+  static constexpr const bool is_enum = true;
+  static constexpr const bool is_numeric = false;
+  static const char *enum_name(::vixal::BumpSequenceResultCode val) {
+    switch (val) {
+    case ::vixal::BUMP_SEQUENCE_SUCCESS:
+      return "BUMP_SEQUENCE_SUCCESS";
+    case ::vixal::BUMP_SEQUENCE_BAD_SEQ:
+      return "BUMP_SEQUENCE_BAD_SEQ";
+    default:
+      return nullptr;
+    }
+  }
+  static const std::vector<int32_t> &enum_values() {
+    static const std::vector<int32_t> _xdr_enum_vec = {
+      ::vixal::BUMP_SEQUENCE_SUCCESS,
+      ::vixal::BUMP_SEQUENCE_BAD_SEQ
+    };
+    return _xdr_enum_vec;
+  }
+};
+}
+namespace vixal {
+
+struct BumpSequenceResult {
+  using _xdr_case_type = xdr::xdr_traits<BumpSequenceResultCode>::case_type;
+private:
+  _xdr_case_type code_;
+  union {
+  };
+
+public:
+  static constexpr const bool _xdr_has_default_case = true;
+  static const std::vector<BumpSequenceResultCode> &_xdr_case_values() {
+    static const std::vector<BumpSequenceResultCode> _xdr_disc_vec {};
+    return _xdr_disc_vec;
+  }
+  static constexpr int _xdr_field_number(_xdr_case_type which) {
+    return which == BUMP_SEQUENCE_SUCCESS ? 0
+      : 0;
+  }
+  template<typename _F, typename..._A> static bool
+  _xdr_with_mem_ptr(_F &_f, _xdr_case_type _which, _A&&..._a) {
+    switch (_which) {
+    case BUMP_SEQUENCE_SUCCESS:
+      return true;
+    default:
+      return true;
+    }
+  }
+
+  _xdr_case_type _xdr_discriminant() const { return code_; }
+  void _xdr_discriminant(_xdr_case_type which, bool validate = true) {
+    int fnum = _xdr_field_number(which);
+    if (fnum < 0 && validate)
+      throw xdr::xdr_bad_discriminant("bad value of code in BumpSequenceResult");
+    if (fnum != _xdr_field_number(code_)) {
+      this->~BumpSequenceResult();
+      code_ = which;
+      _xdr_with_mem_ptr(xdr::field_constructor, code_, *this);
+    }
+    else
+      code_ = which;
+  }
+  explicit BumpSequenceResult(BumpSequenceResultCode which = BumpSequenceResultCode{}) : code_(which) {
+    _xdr_with_mem_ptr(xdr::field_constructor, code_, *this);
+  }
+  BumpSequenceResult(const BumpSequenceResult &source) : code_(source.code_) {
+    _xdr_with_mem_ptr(xdr::field_constructor, code_, *this, source);
+  }
+  BumpSequenceResult(BumpSequenceResult &&source) : code_(source.code_) {
+    _xdr_with_mem_ptr(xdr::field_constructor, code_, *this,
+                      std::move(source));
+  }
+  ~BumpSequenceResult() { _xdr_with_mem_ptr(xdr::field_destructor, code_, *this); }
+  BumpSequenceResult &operator=(const BumpSequenceResult &source) {
+    if (_xdr_field_number(code_)
+        == _xdr_field_number(source.code_))
+      _xdr_with_mem_ptr(xdr::field_assigner, code_, *this, source);
+    else {
+      this->~BumpSequenceResult();
+      code_ = std::numeric_limits<_xdr_case_type>::max();
+      _xdr_with_mem_ptr(xdr::field_constructor, source.code_, *this, source);
+    }
+    code_ = source.code_;
+    return *this;
+  }
+  BumpSequenceResult &operator=(BumpSequenceResult &&source) {
+    if (_xdr_field_number(code_)
+         == _xdr_field_number(source.code_))
+      _xdr_with_mem_ptr(xdr::field_assigner, code_, *this,
+                        std::move(source));
+    else {
+      this->~BumpSequenceResult();
+      code_ = std::numeric_limits<_xdr_case_type>::max();
+      _xdr_with_mem_ptr(xdr::field_constructor, source.code_, *this,
+                        std::move(source));
+    }
+    code_ = source.code_;
+    return *this;
+  }
+
+  BumpSequenceResultCode code() const { return BumpSequenceResultCode(code_); }
+  BumpSequenceResult &code(BumpSequenceResultCode _xdr_d, bool _xdr_validate = true) {
+    _xdr_discriminant(_xdr_d, _xdr_validate);
+    return *this;
+  }
+
+};
+} 
+namespace xdr {
+template<> struct xdr_traits<::vixal::BumpSequenceResult> : xdr_traits_base {
+  static constexpr const bool is_class = true;
+  static constexpr const bool is_union = true;
+  static constexpr const bool has_fixed_size = false;
+
+  using union_type = ::vixal::BumpSequenceResult;
+  using case_type = ::vixal::BumpSequenceResult::_xdr_case_type;
+  using discriminant_type = decltype(std::declval<union_type>().code());
+
+  static const char *union_field_name(case_type which) {
+    switch (union_type::_xdr_field_number(which)) {
+    }
+    return nullptr;
+  }
+  static const char *union_field_name(const union_type &u) {
+    return union_field_name(u._xdr_discriminant());
+  }
+
+  static std::size_t serial_size(const ::vixal::BumpSequenceResult &obj) {
+    std::size_t size = 0;
+    if (!obj._xdr_with_mem_ptr(field_size, obj._xdr_discriminant(), obj, size))
+      throw xdr_bad_discriminant("bad value of code in BumpSequenceResult");
+    return size + 4;
+  }
+  template<typename Archive> static void
+  save(Archive &ar, const ::vixal::BumpSequenceResult &obj) {
+    xdr::archive(ar, obj.code(), "code");
+    if (!obj._xdr_with_mem_ptr(field_archiver, obj.code(), ar, obj,
+                               union_field_name(obj)))
+      throw xdr_bad_discriminant("bad value of code in BumpSequenceResult");
+  }
+  template<typename Archive> static void
+  load(Archive &ar, ::vixal::BumpSequenceResult &obj) {
+    discriminant_type which;
+    xdr::archive(ar, which, "code");
+    obj.code(which);
+    obj._xdr_with_mem_ptr(field_archiver, obj.code(), ar, obj,
+                          union_field_name(which));
+    xdr::validate(obj);
+  }
+};
+}
+namespace vixal {
+
 enum OperationResultCode : std::int32_t {
   opINNER = 0,
   opBAD_AUTH = -1,
   opNO_ACCOUNT = -2,
+  opNOT_SUPPORTED = -3,
 };
 } 
 namespace xdr {
@@ -4263,6 +4483,8 @@ template<> struct xdr_traits<::vixal::OperationResultCode>
       return "opBAD_AUTH";
     case ::vixal::opNO_ACCOUNT:
       return "opNO_ACCOUNT";
+    case ::vixal::opNOT_SUPPORTED:
+      return "opNOT_SUPPORTED";
     default:
       return nullptr;
     }
@@ -4271,7 +4493,8 @@ template<> struct xdr_traits<::vixal::OperationResultCode>
     static const std::vector<int32_t> _xdr_enum_vec = {
       ::vixal::opINNER,
       ::vixal::opBAD_AUTH,
-      ::vixal::opNO_ACCOUNT
+      ::vixal::opNO_ACCOUNT,
+      ::vixal::opNOT_SUPPORTED
     };
     return _xdr_enum_vec;
   }
@@ -4296,6 +4519,7 @@ struct OperationResult {
       AccountMergeResult accountMergeResult_;
       InflationResult inflationResult_;
       ManageDataResult manageDataResult_;
+      BumpSequenceResult bumpSeqResult_;
     };
 
   public:
@@ -4312,7 +4536,8 @@ struct OperationResult {
         ALLOW_TRUST,
         ACCOUNT_MERGE,
         INFLATION,
-        MANAGE_DATA
+        MANAGE_DATA,
+        BUMP_SEQUENCE
       };
       return _xdr_disc_vec;
     }
@@ -4328,6 +4553,7 @@ struct OperationResult {
         : which == ACCOUNT_MERGE ? 9
         : which == INFLATION ? 10
         : which == MANAGE_DATA ? 11
+        : which == BUMP_SEQUENCE ? 12
         : -1;
     }
     template<typename _F, typename..._A> static bool
@@ -4365,6 +4591,9 @@ struct OperationResult {
         return true;
       case MANAGE_DATA:
         _f(&_tr_t::manageDataResult_, std::forward<_A>(_a)...);
+        return true;
+      case BUMP_SEQUENCE:
+        _f(&_tr_t::bumpSeqResult_, std::forward<_A>(_a)...);
         return true;
       }
       return false;
@@ -4537,6 +4766,16 @@ struct OperationResult {
         return manageDataResult_;
       throw xdr::xdr_wrong_union("_tr_t: manageDataResult accessed when not selected");
     }
+    BumpSequenceResult &bumpSeqResult() {
+      if (_xdr_field_number(type_) == 12)
+        return bumpSeqResult_;
+      throw xdr::xdr_wrong_union("_tr_t: bumpSeqResult accessed when not selected");
+    }
+    const BumpSequenceResult &bumpSeqResult() const {
+      if (_xdr_field_number(type_) == 12)
+        return bumpSeqResult_;
+      throw xdr::xdr_wrong_union("_tr_t: bumpSeqResult accessed when not selected");
+    }
   };
 
   using _xdr_case_type = xdr::xdr_traits<OperationResultCode>::case_type;
@@ -4670,6 +4909,8 @@ template<> struct xdr_traits<::vixal::OperationResult::_tr_t> : xdr_traits_base 
       return "inflationResult";
     case 11:
       return "manageDataResult";
+    case 12:
+      return "bumpSeqResult";
     }
     return nullptr;
   }
@@ -5139,4 +5380,4 @@ namespace vixal {
 
 }
 
-#endif // !__XDR_STELLAR_TRANSACTION_H_INCLUDED__
+#endif // !__XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TRANSACTION_H_INCLUDED__

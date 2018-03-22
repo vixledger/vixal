@@ -1,9 +1,9 @@
 // -*- C++ -*-
-// Automatically generated from ledger.x.
+// Automatically generated from /Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/core/src/xdr/ledger.x.
 // DO NOT EDIT or your changes may be overwritten
 
-#ifndef __XDR_LEDGER_H_INCLUDED__
-#define __XDR_LEDGER_H_INCLUDED__ 1
+#ifndef __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_LEDGER_H_INCLUDED__
+#define __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_LEDGER_H_INCLUDED__ 1
 
 #include <xdrpp/types.h>
 
@@ -120,9 +120,9 @@ struct VixalValue {
                           && std::is_constructible<_ext_t, _ext_T>::value
                          >::type>
   explicit VixalValue(_txSetHash_T &&_txSetHash,
-                        _closeTime_T &&_closeTime,
-                        _upgrades_T &&_upgrades,
-                        _ext_T &&_ext)
+                      _closeTime_T &&_closeTime,
+                      _upgrades_T &&_upgrades,
+                      _ext_T &&_ext)
     : txSetHash(std::forward<_txSetHash_T>(_txSetHash)),
       closeTime(std::forward<_closeTime_T>(_closeTime)),
       upgrades(std::forward<_upgrades_T>(_upgrades)),
@@ -2410,24 +2410,67 @@ template<> struct xdr_traits<::vixal::OperationMeta>
 }
 namespace vixal {
 
+struct TransactionMetaV1 {
+  LedgerEntryChanges txChanges{};
+  xdr::xvector<OperationMeta> operations{};
+
+  TransactionMetaV1() = default;
+  template<typename _txChanges_T,
+           typename _operations_T,
+           typename = typename
+           std::enable_if<std::is_constructible<LedgerEntryChanges, _txChanges_T>::value
+                          && std::is_constructible<xdr::xvector<OperationMeta>, _operations_T>::value
+                         >::type>
+  explicit TransactionMetaV1(_txChanges_T &&_txChanges,
+                             _operations_T &&_operations)
+    : txChanges(std::forward<_txChanges_T>(_txChanges)),
+      operations(std::forward<_operations_T>(_operations)) {}
+};
+} 
+namespace xdr {
+template<> struct xdr_traits<::vixal::TransactionMetaV1>
+  : xdr_struct_base<field_ptr<::vixal::TransactionMetaV1,
+                              decltype(::vixal::TransactionMetaV1::txChanges),
+                              &::vixal::TransactionMetaV1::txChanges>,
+                    field_ptr<::vixal::TransactionMetaV1,
+                              decltype(::vixal::TransactionMetaV1::operations),
+                              &::vixal::TransactionMetaV1::operations>> {
+  template<typename Archive> static void
+  save(Archive &ar, const ::vixal::TransactionMetaV1 &obj) {
+    archive(ar, obj.txChanges, "txChanges");
+    archive(ar, obj.operations, "operations");
+  }
+  template<typename Archive> static void
+  load(Archive &ar, ::vixal::TransactionMetaV1 &obj) {
+    archive(ar, obj.txChanges, "txChanges");
+    archive(ar, obj.operations, "operations");
+    xdr::validate(obj);
+  }
+};
+}
+namespace vixal {
+
 struct TransactionMeta {
   using _xdr_case_type = xdr::xdr_traits<int>::case_type;
 private:
   _xdr_case_type v_;
   union {
     xdr::xvector<OperationMeta> operations_;
+    TransactionMetaV1 v1_;
   };
 
 public:
   static constexpr const bool _xdr_has_default_case = false;
   static const std::vector<int> &_xdr_case_values() {
     static const std::vector<int> _xdr_disc_vec {
-      0
+      0,
+      1
     };
     return _xdr_disc_vec;
   }
   static constexpr int _xdr_field_number(_xdr_case_type which) {
     return which == 0 ? 1
+      : which == 1 ? 2
       : -1;
   }
   template<typename _F, typename..._A> static bool
@@ -2435,6 +2478,9 @@ public:
     switch (_which) {
     case 0:
       _f(&TransactionMeta::operations_, std::forward<_A>(_a)...);
+      return true;
+    case 1:
+      _f(&TransactionMeta::v1_, std::forward<_A>(_a)...);
       return true;
     }
     return false;
@@ -2507,6 +2553,16 @@ public:
       return operations_;
     throw xdr::xdr_wrong_union("TransactionMeta: operations accessed when not selected");
   }
+  TransactionMetaV1 &v1() {
+    if (_xdr_field_number(v_) == 2)
+      return v1_;
+    throw xdr::xdr_wrong_union("TransactionMeta: v1 accessed when not selected");
+  }
+  const TransactionMetaV1 &v1() const {
+    if (_xdr_field_number(v_) == 2)
+      return v1_;
+    throw xdr::xdr_wrong_union("TransactionMeta: v1 accessed when not selected");
+  }
 };
 } 
 namespace xdr {
@@ -2523,6 +2579,8 @@ template<> struct xdr_traits<::vixal::TransactionMeta> : xdr_traits_base {
     switch (union_type::_xdr_field_number(which)) {
     case 1:
       return "operations";
+    case 2:
+      return "v1";
     }
     return nullptr;
   }
@@ -2558,4 +2616,4 @@ namespace vixal {
 
 }
 
-#endif // !__XDR_LEDGER_H_INCLUDED__
+#endif // !__XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_LEDGER_H_INCLUDED__

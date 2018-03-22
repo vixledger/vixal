@@ -32,10 +32,10 @@ public:
         OVER_LOOPBACK
     };
 
-    typedef std::shared_ptr<Simulation> pointer;
+    using pointer = std::shared_ptr<Simulation>;
+    using ConfigGen = std::function<Config(int i)>;
 
-    Simulation(Mode mode, Hash const &networkID,
-               std::function<Config()> confGen = nullptr);
+    Simulation(Mode mode, Hash const &networkID, ConfigGen = nullptr);
 
     ~Simulation() override;
 
@@ -46,7 +46,7 @@ public:
                                  Config const *cfg = nullptr,
                                  bool newDB = true);
 
-    Application::pointer getNode(NodeID nodeID);
+    Application::pointer getNode(NodeID const &nodeID);
 
     std::vector<Application::pointer> getNodes();
 
@@ -94,19 +94,19 @@ public:
 
     std::string metricsSummary(std::string domain = "");
 
-    void addConnection(NodeID initiator, NodeID acceptor);
+    void addConnection(NodeID const &initiator, NodeID const &acceptor);
 
-    void dropConnection(NodeID initiator, NodeID acceptor);
+    void dropConnection(NodeID const &initiator, NodeID const &acceptor);
 
 
     Config newConfig(); // generates a new config
 
 private:
-    void addLoopbackConnection(NodeID initiator, NodeID acceptor);
+    void addLoopbackConnection(NodeID const &initiator, NodeID const &acceptor);
 
-    void dropLoopbackConnection(NodeID initiator, NodeID acceptor);
+    void dropLoopbackConnection(NodeID const &initiator, NodeID const &acceptor);
 
-    void addTCPConnection(NodeID initiator, NodeID acception);
+    void addTCPConnection(NodeID const &initiator, NodeID const &acception);
 
     void dropAllConnections(NodeID const &id);
 
@@ -125,12 +125,13 @@ private:
             mApp.reset();
         }
     };
+
     std::map<NodeID, Node> mNodes;
 
     std::vector<std::pair<NodeID, NodeID>> mPendingConnections;
     std::vector<std::shared_ptr<LoopbackPeerConnection>> mLoopbackConnections;
 
-    std::function<Config()> mConfigGen; // config generator
+    ConfigGen mConfigGen; // config generator
 
     std::chrono::milliseconds const quantum = std::chrono::milliseconds(100);
 };

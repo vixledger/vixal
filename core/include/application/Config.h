@@ -13,7 +13,7 @@
 #include <memory>
 #include <string>
 
-constexpr static unsigned short const DEFAULT_PEER_PORT = 11625;
+constexpr static unsigned short const DEFAULT_PEER_PORT = 11616;
 
 
 namespace vixal {

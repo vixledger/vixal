@@ -1,9 +1,9 @@
 // -*- C++ -*-
-// Automatically generated from overlay.x.
+// Automatically generated from /Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/core/src/xdr/overlay.x.
 // DO NOT EDIT or your changes may be overwritten
 
-#ifndef __XDR_STELLAR_OVERLAY_H_INCLUDED__
-#define __XDR_STELLAR_OVERLAY_H_INCLUDED__ 1
+#ifndef __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_OVERLAY_H_INCLUDED__
+#define __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_OVERLAY_H_INCLUDED__ 1
 
 #include <xdrpp/types.h>
 
@@ -653,7 +653,7 @@ private:
     Hello hello_;
     Auth auth_;
     DontHave dontHave_;
-    xdr::xvector<PeerAddress> peers_;
+    xdr::xvector<PeerAddress,100> peers_;
     uint256 txSetHash_;
     TransactionSet txSet_;
     TransactionEnvelope transaction_;
@@ -841,12 +841,12 @@ public:
       return dontHave_;
     throw xdr::xdr_wrong_union("VixalMessage: dontHave accessed when not selected");
   }
-  xdr::xvector<PeerAddress> &peers() {
+  xdr::xvector<PeerAddress,100> &peers() {
     if (_xdr_field_number(type_) == 5)
       return peers_;
     throw xdr::xdr_wrong_union("VixalMessage: peers accessed when not selected");
   }
-  const xdr::xvector<PeerAddress> &peers() const {
+  const xdr::xvector<PeerAddress,100> &peers() const {
     if (_xdr_field_number(type_) == 5)
       return peers_;
     throw xdr::xdr_wrong_union("VixalMessage: peers accessed when not selected");
@@ -1186,4 +1186,4 @@ namespace vixal {
 
 }
 
-#endif // !__XDR_STELLAR_OVERLAY_H_INCLUDED__
+#endif // !__XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_OVERLAY_H_INCLUDED__

@@ -32,7 +32,7 @@ StateSnapshot::StateSnapshot(Application &app, HistoryArchiveState const &state)
 
 void
 StateSnapshot::makeLive() {
-    for (auto i = 0; i < mLocalState.currentBuckets.size(); i++) {
+    for (uint32_t i = 0; i < static_cast<uint32>(mLocalState.currentBuckets.size()); i++) {
         auto& hb = mLocalState.currentBuckets[i];
         if (hb.next.hasHashes() && !hb.next.isLive()) {
             hb.next.makeLive(mApp, BucketList::keepDeadEntries(i));

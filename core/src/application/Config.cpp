@@ -15,6 +15,7 @@
 
 #include "scp/LocalNode.h"
 
+#include "util/Fs.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include "util/TmpDir.h"
@@ -28,7 +29,7 @@
 namespace vixal {
 using xdr::operator<;
 
-const uint32_t Config::CURRENT_LEDGER_PROTOCOL_VERSION = 9;
+const uint32_t Config::CURRENT_LEDGER_PROTOCOL_VERSION = 10;
 
 Config::Config() : NODE_SEED(SecretKey::random()) {
     // fill in defaults
@@ -71,7 +72,7 @@ Config::Config() : NODE_SEED(SecretKey::random()) {
     TARGET_PEER_CONNECTIONS = 8;
     MAX_ADDITIONAL_PEER_CONNECTIONS = -1;
     MAX_PEER_CONNECTIONS = 12;
-    MAX_PENDING_CONNECTIONS = 5000;
+    MAX_PENDING_CONNECTIONS = 500;
     PEER_AUTHENTICATION_TIMEOUT = 2;
     PEER_TIMEOUT = 30;
     PREFERRED_PEERS_ONLY = false;
@@ -371,6 +372,18 @@ Config::load(std::string const &filename) {
         MAX_PEER_CONNECTIONS = std::max(MAX_PEER_CONNECTIONS,
                                         static_cast<unsigned short>(MAX_ADDITIONAL_PEER_CONNECTIONS +
                                                                     TARGET_PEER_CONNECTIONS));
+
+        // ensure that max pending connections is not above what the system
+        // supports
+        MAX_PENDING_CONNECTIONS = static_cast<unsigned short>(
+                std::min<int>(MAX_PENDING_CONNECTIONS, fs::getMaxConnections()));
+
+        // enforce TARGET_PEER_CONNECTIONS <= MAX_PEER_CONNECTIONS <=
+        // MAX_PENDING_CONNECTIONS
+        MAX_PEER_CONNECTIONS =
+                std::min(MAX_PEER_CONNECTIONS, MAX_PENDING_CONNECTIONS);
+        TARGET_PEER_CONNECTIONS =
+                std::min(TARGET_PEER_CONNECTIONS, MAX_PEER_CONNECTIONS);
 
         validateConfig();
     }

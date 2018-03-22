@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     // global setup...
     Logging::init();
     Logging::setFmt("<test>");
-    Logging::setLogLevel(el::Level::Fatal, nullptr);
+    Logging::setLogLevel(el::Level::Error, nullptr);
     if (sodium_init() != 0) {
         LOG(FATAL) << "Could not initialize crypto";
         return 1;

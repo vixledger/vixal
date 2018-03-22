@@ -32,15 +32,17 @@ TCPPeer::TCPPeer(Application &app, Peer::PeerRole role,
 }
 
 TCPPeer::pointer
-TCPPeer::initiate(Application &app, std::string const &ip, unsigned short port) {
-    CLOG(DEBUG, "Overlay") << "TCPPeer:initiate" << " to " << ip << ":" << port;
+TCPPeer::initiate(Application &app, PeerBareAddress const &address) {
+    assert(address.getType() == PeerBareAddress::Type::IPv4);
+
+    CLOG(DEBUG, "Overlay") << "TCPPeer:initiate"
+                           << " to " << address.toString();
     assertThreadIsMain();
     auto socket = make_shared<SocketType>(app.getClock().io_context());
     auto result = make_shared<TCPPeer>(app, WE_CALLED_REMOTE, socket);
-    result->mIP = ip;
-    result->mRemoteListeningPort = port;
+    result->mAddress = address;
     result->startIdleTimer();
-    asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip), port);
+    asio::ip::tcp::endpoint endpoint(asio::ip::make_address(address.getIP()), address.getPort());
     socket->next_layer().async_connect(
             endpoint, [result](asio::error_code const &error) {
                 asio::error_code ec;
@@ -61,17 +63,14 @@ TCPPeer::accept(Application &app, shared_ptr<TCPPeer::SocketType> socket) {
     assertThreadIsMain();
     shared_ptr<TCPPeer> result;
     asio::error_code ec;
-    auto ep = socket->next_layer().remote_endpoint(ec);
-    if (!ec) {
-        asio::ip::tcp::no_delay nodelay(true);
-        socket->next_layer().set_option(nodelay, ec);
-    }
+
+    asio::ip::tcp::no_delay nodelay(true);
+    socket->next_layer().set_option(nodelay, ec);
 
     if (!ec) {
         CLOG(DEBUG, "Overlay") << "TCPPeer:accept"
                                << "@" << app.getConfig().PEER_PORT;
         result = make_shared<TCPPeer>(app, REMOTE_CALLED_US, socket);
-        result->mIP = ep.address().to_string();
         result->startIdleTimer();
         result->startRead();
     } else {
@@ -100,9 +99,17 @@ TCPPeer::~TCPPeer() {
     }
 }
 
-std::string
-TCPPeer::getIP() {
-    return mIP;
+PeerBareAddress
+TCPPeer::makeAddress(int remoteListeningPort) const {
+    asio::error_code ec;
+    auto ep = mSocket->next_layer().remote_endpoint(ec);
+    if (ec || remoteListeningPort <= 0 || remoteListeningPort > UINT16_MAX) {
+        return PeerBareAddress{};
+    } else {
+        return PeerBareAddress{
+                ep.address().to_string(),
+                static_cast<unsigned short>(remoteListeningPort)};
+    }
 }
 
 void
@@ -403,7 +410,7 @@ TCPPeer::drop(bool force) {
     // if write queue is not empty, messageSender will take care of shutdown
     if (force || !mWriting) {
         self->shutdown();
-    }  else {
+    } else {
         self->mDelayedShutdown = true;
     }
 

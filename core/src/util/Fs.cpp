@@ -15,8 +15,11 @@
 #include <direct.h>
 #include <filesystem>
 #else
+
 #include <dirent.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
+
 #endif
 
 #include <cstdio>
@@ -244,8 +247,8 @@ deltree(std::string const &d) {
 }
 
 std::vector<std::string>
-findfiles(std::string const& path,
-          std::function<bool(std::string const& name)> predicate) {
+findfiles(std::string const &path,
+          std::function<bool(std::string const &name)> predicate) {
     auto dir = opendir(path.c_str());
     auto result = std::vector<std::string>{};
     if (!dir) {
@@ -364,5 +367,27 @@ checkNoGzipSuffix(std::string const &filename) {
         throw std::runtime_error("filename ends in .gz");
     }
 }
+
+#ifdef _WIN32
+int
+getMaxConnections() {
+    // on Windows, there is no limit on handles
+    // only limits based on ephemeral ports, etc
+     return 32000;
+}
+
+#else
+
+int
+getMaxConnections() {
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
+        // leave some buffer
+        return static_cast<int>((rl.rlim_cur * 3) / 4);
+    }
+    // could not query the limit, default to a value that should work
+    return 64;
+}
+#endif
 }
 }

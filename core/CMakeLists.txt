@@ -52,10 +52,12 @@ find_package(sodium REQUIRED)
 add_dependent_subproject(XDRPP)
 add_dependent_subproject(SOCI)
 
+set(VIXAL_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
+
 include_directories(
         ${sodium_INCLUDE_DIR}
-        ../asio/include
-        ${PROJECT_SOURCE_DIR}/include
+        ${ASIO_INCLUDE_DIR}
+        ${VIXAL_INCLUDE_DIR}
         ${PROJECT_BINARY_DIR}/include   # add the binary tree to the search path so that we will find Version.h
 )
 
@@ -68,7 +70,7 @@ boost_report_value(LIB_SUFFIX)
 boost_report_value(COMPILE_DEFINITIONS)
 
 enable_testing()
-add_subdirectory(include)
+add_subdirectory(include/xdr)
 add_subdirectory(src)
 # add_subdirectory(doc)
 add_subdirectory(test)

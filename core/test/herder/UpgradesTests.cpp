@@ -55,6 +55,7 @@ simulateUpgrade(std::vector<LedgerUpgradeNode> const &nodes,
 
         // disable upgrade from config
         configs.back().TESTING_UPGRADE_DATETIME = VirtualClock::time_point();
+        configs.back().USE_CONFIG_FOR_GENESIS = false;
         // first node can write to history, all can read
         configurator.configure(configs.back(), i == 0);
     }
@@ -400,6 +401,7 @@ TEST_CASE("validate upgrades at upgrade time", "[upgrades]") {
 TEST_CASE("Ledger Manager applies upgrades properly", "[upgrades]") {
     VirtualClock clock;
     auto cfg = getTestConfig(0);
+    cfg.USE_CONFIG_FOR_GENESIS = false;
     auto app = Application::create(clock, cfg);
     app->start();
 

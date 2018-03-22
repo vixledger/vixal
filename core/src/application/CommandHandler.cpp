@@ -391,8 +391,7 @@ CommandHandler::peers(std::string const &, std::string &retStr) {
     root["pending_peers"];
     int counter = 0;
     for (auto peer : mApp.getOverlayManager().getPendingPeers()) {
-        root["pending_peers"][counter]["ip"] = peer->getIP();
-        root["pending_peers"][counter]["port"] = (int) peer->getRemoteListeningPort();
+        root["pending_peers"][counter]["address"] = peer->toString();
 
         counter++;
     }
@@ -400,9 +399,8 @@ CommandHandler::peers(std::string const &, std::string &retStr) {
     root["authenticated_peers"];
     counter = 0;
     for (auto peer : mApp.getOverlayManager().getAuthenticatedPeers()) {
-        root["authenticated_peers"][counter]["ip"] = peer.second->getIP();
-        root["authenticated_peers"][counter]["port"] =
-                (int) peer.second->getRemoteListeningPort();
+        root["authenticated_peers"][counter]["address"] =
+                peer.second->toString();
         root["authenticated_peers"][counter]["ver"] =
                 peer.second->getRemoteVersion();
         root["authenticated_peers"][counter]["olver"] =

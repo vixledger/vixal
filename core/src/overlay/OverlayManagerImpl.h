@@ -78,7 +78,10 @@ public:
 
     void connectTo(std::string const &addr) override;
 
-    void connectTo(PeerRecord &pr) override;
+    void connectTo(PeerRecord& pr) override;
+
+    void connectTo(PeerBareAddress const& address) override;
+
 
     void addPendingPeer(Peer::pointer peer) override;
 
@@ -96,9 +99,8 @@ public:
 
     int getAuthenticatedPeersCount() const override;
 
-    // returns NULL if the passed peer isn't found
-    Peer::pointer getConnectedPeer(std::string const &ip,
-                                   unsigned short port) override;
+    // returns nullptr if the passed peer isn't found
+    Peer::pointer getConnectedPeer(PeerBareAddress const& address) override;
 
     void connectToMorePeers(vector<PeerRecord> &peers);
 

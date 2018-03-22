@@ -37,7 +37,7 @@ generateRandomSubEntry(LedgerEntry const &acc) {
                            autocheck::generator<AccountID>());
     static auto validDataNameGenerator = autocheck::map(
             [](string64 &&dn, size_t s) {
-                LedgerTestUtils::replaceControlCharacters(dn, 1);
+                LedgerTestUtils::replaceControlCharacters(dn, 64);
                 return dn;
             },
             autocheck::generator<string64>());

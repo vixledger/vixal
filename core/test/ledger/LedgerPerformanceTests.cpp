@@ -156,7 +156,7 @@ TEST_CASE("Auto-calibrated single node load test 1"
 TEST_CASE("ledger performance test", "[performance][hide]") {
 
 
-    auto nAccounts = 100000;
+    uint64_t nAccounts = 10000000;
     auto nLedgers = 1 /* weeks */ * 1 * 24 * 60 * 60 / 500 /* seconds between ledgers */;
     auto nTransactionsPerLedger = 3u;
 

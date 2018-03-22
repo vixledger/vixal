@@ -1,6 +1,6 @@
-#line 2 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.cc"
+#line 2 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.cc"
 
-#line 4 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.cc"
+#line 4 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.cc"
 
 #define  YY_INT_ALIGNED short int
 
@@ -607,9 +607,9 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 1 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 /* -*-fundamental-*- */
-#line 4 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 4 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 #include "xdrc/xdrc_internal.h"
 #include "parse.hh"
 #define YY_NO_INPUT
@@ -625,7 +625,7 @@ msg_yytext(const char *msg)
   return string(msg) + " '" + yytext + "'";
 }
 
-#line 629 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.cc"
+#line 629 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.cc"
 
 #define INITIAL 0
 #define GFILE 1
@@ -810,9 +810,9 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 29 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 29 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 
-#line 816 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.cc"
+#line 816 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.cc"
 
 	if ( !(yy_init) )
 		{
@@ -899,202 +899,202 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 30 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 30 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 ++lineno;
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 31 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 31 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 /* discard */;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 32 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 32 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 litq.emplace_back (yytext + 1);
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 34 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 34 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { BEGIN (GNL); }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 35 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 35 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { lineno = atoi (yytext + 1); BEGIN (GFILE); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 36 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 36 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { filename.assign(yytext+1, yyleng-2); BEGIN (GNL); }
 	YY_BREAK
 case 7:
 /* rule 7 can match eol */
 YY_RULE_SETUP
-#line 37 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 37 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { filename = "(stdin)"; BEGIN (GNL); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 38 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 38 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 /* discard */;
 	YY_BREAK
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 39 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 39 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 BEGIN (0);
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 41 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 41 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_CONST;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 42 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 42 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_STRUCT;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 43 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 43 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_UNION;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 44 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 44 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_ENUM;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 45 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 45 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_TYPEDEF;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 46 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 46 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_PROGRAM;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 47 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 47 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_NAMESPACE;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 49 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 49 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_BOOL;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 50 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 50 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_UNSIGNED;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 51 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 51 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_INT;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 52 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 52 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_HYPER;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 53 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 53 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_FLOAT;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 54 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 54 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_DOUBLE;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 55 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 55 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_QUADRUPLE;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 56 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 56 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yylval.str = yytext; return T_VOID; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 58 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 58 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_VERSION;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 59 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 59 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_SWITCH;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 60 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 60 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_CASE;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 61 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 61 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return T_DEFAULT;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 63 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 63 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yylval.str = yytext; return T_OPAQUE; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 64 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 64 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yylval.str = yytext; return T_STRING; }
 	YY_BREAK
 case 31:
-#line 67 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 67 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 case 32:
-#line 68 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 68 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 case 33:
-#line 69 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 69 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 case 34:
 YY_RULE_SETUP
-#line 69 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 69 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yyerror(msg_yytext("illegal use of reserved word")); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 71 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 71 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yylval.str = yytext; return T_ID; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 72 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 72 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yylval.str = yytext; return T_QID; }
 	YY_BREAK
 case 37:
-#line 74 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 74 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 case 38:
 YY_RULE_SETUP
-#line 74 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 74 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yylval.str = yytext; return T_NUM; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 76 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 76 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 return yytext[0];
 	YY_BREAK
 case 40:
-#line 79 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 79 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 case 41:
 YY_RULE_SETUP
-#line 79 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 79 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 { yyerror(msg_yytext("syntax error at")); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 80 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 80 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 ECHO;
 	YY_BREAK
-#line 1098 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.cc"
+#line 1098 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.cc"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(GFILE):
 case YY_STATE_EOF(GNL):
@@ -2059,7 +2059,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 80 "/Users/liuwei/works/cplusplus/blockchain/vixal/xdrpp/src/xdrc/scan.ll"
+#line 80 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/scan.ll"
 
 
 

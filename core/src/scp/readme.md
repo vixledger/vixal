@@ -15,7 +15,7 @@ The central [SCP class](SCP.h) should be subclassed by any module wishing to
 implement consensus using the SCP protocol, implementing the necessary abstract
 methods for handling SCP-generated events, and calling SCP base-class methods to
 receive incoming messages. The messages making up the protocol are defined in
-XDR, in the file [SCP.x](../xdr/scp.x)
+XDR, in the file [SCP.x](../../include/xdr/scp.x)
 
 The `vixal-core` program has a single subclass of SCP called
 [Herder](../herder), which gives a specific interpretation to "slot" and

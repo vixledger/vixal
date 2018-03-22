@@ -89,13 +89,12 @@ LedgerEntryIsValid::checkIsValid(AccountEntry const &ae) const {
     if (ae.balance < 0) {
         return fmt::format("Account balance ({}) is negative", ae.balance);
     }
-    if (ae.seqNum > INT64_MAX) {
-        return fmt::format("Account seqNum ({}) exceeds limit ({})", ae.seqNum,
-                           INT64_MAX);
+    if (ae.seqNum < 0) {
+        return fmt::format("Account seqNum ({}) is negative", ae.seqNum);
     }
     if (ae.numSubEntries > INT32_MAX) {
         return fmt::format("Account numSubEntries ({}) exceeds limit ({})",
-                           ae.seqNum, INT32_MAX);
+                           ae.numSubEntries, INT32_MAX);
     }
     if ((ae.flags & ~MASK_ACCOUNT_FLAGS) != 0) {
         return "Account flags are invalid";

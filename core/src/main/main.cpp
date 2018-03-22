@@ -260,8 +260,9 @@ catchup(Config const &cfg, uint32_t to, uint32_t count, Json::Value &catchupInfo
                 break;
             }
             case LedgerManager::LM_CATCHING_UP_STATE:
-            case LedgerManager::LM_NUM_STATE:
                 break;
+            case LedgerManager::LM_NUM_STATE:
+                abort();
         }
     }
 

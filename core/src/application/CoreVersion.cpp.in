@@ -1,0 +1,3 @@
+#include "CoreVersion.h"
+
+const std::string VIXAL_CORE_VERSION = "@VERSION@";

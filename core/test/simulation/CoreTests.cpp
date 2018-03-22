@@ -194,10 +194,9 @@ TEST_CASE("resilience tests", "[resilience][simulation][long][hide]") {
 
     Hash networkID = sha256(getTestConfig().NETWORK_PASSPHRASE);
 
-    int configNum = 0;
-    auto confGen = [&configNum]() -> Config {
+    auto confGen = [](int configNum) -> Config {
         // we have to have persistent nodes as we want to simulate a restart
-        auto c = getTestConfig(configNum++, Config::TESTDB_ON_DISK_SQLITE);
+        auto c = getTestConfig(configNum, Config::TESTDB_ON_DISK_SQLITE);
         return c;
     };
 
@@ -546,13 +545,13 @@ TEST_CASE("Accounts vs. latency", "[scalability][hide]") {
 static void
 netTopologyTest(
         std::string const &name,
-        std::function<Simulation::pointer(int numNodes, int &cfgCount)> mkSim) {
+        std::function<Simulation::pointer(int numNodes)> mkSim) {
     ScaleReporter r(
             {name + "nodes", "in-msg", "in-byte", "out-msg", "out-byte"});
 
     for (int numNodes = 4; numNodes < 64; numNodes += 4) {
         auto cfgCount = 0;
-        auto sim = mkSim(numNodes, cfgCount);
+        auto sim = mkSim(numNodes);
         sim->startAllNodes();
         auto nodes = sim->getNodes();
         assert(!nodes.empty());
@@ -586,11 +585,11 @@ netTopologyTest(
 
 TEST_CASE("Mesh nodes vs. network traffic", "[scalability][hide]") {
     netTopologyTest(
-            "mesh", [&](int numNodes, int &cfgCount) -> Simulation::pointer {
+            "mesh", [&](int numNodes) -> Simulation::pointer {
                 return Topologies::core(
                         numNodes, 1.0, Simulation::OVER_LOOPBACK,
-                        sha256(fmt::format("nodes-{:d}", numNodes)), [&]() -> Config {
-                            Config res = getTestConfig(cfgCount++);
+                        sha256(fmt::format("nodes-{:d}", numNodes)), [&](int cfgNum) -> Config {
+                            Config res = getTestConfig(cfgNum);
                             res.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = true;
                             res.MAX_PEER_CONNECTIONS = 1000;
                             return res;
@@ -600,11 +599,12 @@ TEST_CASE("Mesh nodes vs. network traffic", "[scalability][hide]") {
 
 TEST_CASE("Cycle nodes vs. network traffic", "[scalability][hide]") {
     netTopologyTest(
-            "cycle", [&](int numNodes, int &cfgCount) -> Simulation::pointer {
+            "cycle", [&](int numNodes) -> Simulation::pointer {
                 return Topologies::cycle(
                         numNodes, 1.0, Simulation::OVER_LOOPBACK,
-                        sha256(fmt::format("nodes-{:d}", numNodes)), [&]() -> Config {
-                            Config res = getTestConfig(cfgCount++);
+                        sha256(fmt::format("nodes-{:d}", numNodes)),
+                        [](int cfgCount) -> Config {
+                            Config res = getTestConfig();
                             res.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = true;
                             res.MAX_PEER_CONNECTIONS = 1000;
                             return res;
@@ -615,10 +615,11 @@ TEST_CASE("Cycle nodes vs. network traffic", "[scalability][hide]") {
 TEST_CASE("Branched-cycle nodes vs. network traffic", "[scalability][hide]") {
     netTopologyTest(
             "branchedcycle",
-            [&](int numNodes, int &cfgCount) -> Simulation::pointer {
+            [&](int numNodes) -> Simulation::pointer {
                 return Topologies::branchedcycle(
                         numNodes, 1.0, Simulation::OVER_LOOPBACK,
-                        sha256(fmt::format("nodes-{:d}", numNodes)), [&]() -> Config {
+                        sha256(fmt::format("nodes-{:d}", numNodes)),
+                        [](int cfgCount) -> Config {
                             Config res = getTestConfig(cfgCount++);
                             res.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = true;
                             res.MAX_PEER_CONNECTIONS = 1000;

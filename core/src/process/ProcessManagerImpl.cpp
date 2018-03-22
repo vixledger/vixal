@@ -10,9 +10,12 @@
 #include "util/asio.h"
 
 #include "ProcessManagerImpl.h"
+#include "process/PosixSpawnFileActions.h"
+#include "process/ProcessManager.h"
+
 #include "application/Application.h"
 #include "application/Config.h"
-#include "process/ProcessManager.h"
+
 #include "util/Logging.h"
 #include "util/Timer.h"
 
@@ -26,6 +29,10 @@
 #include <regex>
 #include <string>
 #include <utility>
+
+#ifdef __APPLE__
+extern char** environ;
+#endif
 
 namespace vixal {
 
@@ -195,6 +202,9 @@ ProcessExitEvent::Impl::run()
                        &pi)     // Pointer to PROCESS_INFORMATION structure
         )
     {
+        if (si.hStdOutput != NULL) {
+            CloseHandle(si.hStdOutput);
+        }
         CLOG(ERROR, "process") << "CreateProcess() failed: " << GetLastError();
         throw std::runtime_error("CreateProcess() failed");
     }
@@ -247,6 +257,7 @@ ProcessExitEvent::Impl::run()
 
 #include <spawn.h>
 #include <sys/wait.h>
+#include <process/PosixSpawnFileActions.h>
 
 ProcessManagerImpl::ProcessManagerImpl(Application &app)
         : mMaxProcesses(static_cast<int64_t>(app.getConfig().MAX_CONCURRENT_SUBPROCESSES)),
@@ -368,43 +379,20 @@ ProcessExitEvent::Impl::run() {
     argv.push_back(nullptr);
     int pid, err = 0;
 
-    posix_spawn_file_actions_t fileActions;
+    PosixSpawnFileActions fileActions;
     if (!mOutFile.empty()) {
-        err = posix_spawn_file_actions_init(&fileActions);
-        if (err) {
-            CLOG(ERROR, "process") << "posix_spawn_file_actions_init() failed: "
-                                   << strerror(err);
-            throw std::runtime_error("posix_spawn_file_actions_init() failed");
-        }
-        err = posix_spawn_file_actions_addopen(
-                &fileActions, 1, mOutFile.c_str(), O_RDWR | O_CREAT, 0600);
-        if (err) {
-            CLOG(ERROR, "process")
-                    << "posix_spawn_file_actions_addopen() failed: "
-                    << strerror(err);
-            throw std::runtime_error(
-                    "posix_spawn_file_actions_addopen() failed");
-        }
+        fileActions.addOpen(1, mOutFile, O_RDWR | O_CREAT, 0600);
     }
 
-    err = posix_spawnp(&pid, argv[0], mOutFile.empty() ? nullptr : &fileActions,
+    err = posix_spawnp(&pid, argv[0], fileActions,
                        nullptr, // posix_spawnattr_t*
-                       argv.data(), nullptr); //environ);
+                       argv.data(), environ);
+
     if (err) {
         CLOG(ERROR, "process") << "posix_spawn() failed: " << strerror(err);
         throw std::runtime_error("posix_spawn() failed");
     }
 
-    if (!mOutFile.empty()) {
-        err = posix_spawn_file_actions_destroy(&fileActions);
-        if (err) {
-            CLOG(ERROR, "process")
-                    << "posix_spawn_file_actions_destroy() failed: "
-                    << strerror(err);
-            throw std::runtime_error(
-                    "posix_spawn_file_actions_destroy() failed");
-        }
-    }
     ProcessManagerImpl::gImpls[pid] = shared_from_this();
     mRunning = true;
 }
@@ -440,6 +428,7 @@ ProcessManagerImpl::maybeRunPendingProcesses() {
             ++gNumProcessesActive;
         }
         catch (std::runtime_error &e) {
+            i->cancel(std::make_error_code(std::errc::io_error));
             CLOG(ERROR, "process") << "Error starting process: " << e.what();
             CLOG(ERROR, "process") << "When running: " << i->mCmdLine;
         }

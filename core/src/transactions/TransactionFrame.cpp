@@ -28,6 +28,7 @@
 namespace vixal {
 
 using namespace std;
+using xdr::operator==;
 
 TransactionFramePtr
 TransactionFrame::makeTransactionFromWire(Hash const &networkID,
@@ -59,7 +60,7 @@ TransactionFrame::getContentsHash() const {
 
 void
 TransactionFrame::clearCached() {
-    Hash zero;
+    Hash zero{};
     mContentsHash = zero;
     mFullHash = zero;
 }
@@ -119,10 +120,10 @@ bool
 TransactionFrame::checkSignature(SignatureChecker &signatureChecker,
                                  AccountFrame &account, int32_t neededWeight) {
     std::vector<Signer> signers;
-    if (account.getAccount().thresholds[0])
-        signers.push_back(
-                Signer(KeyUtils::convertKey<SignerKey>(account.getID()),
-                       account.getAccount().thresholds[0]));
+    if (account.getAccount().thresholds[0]) {
+        signers.emplace_back(KeyUtils::convertKey<SignerKey>(account.getID()),
+                             account.getAccount().thresholds[0]);
+    }
     signers.insert(signers.end(), account.getAccount().signers.begin(),
                    account.getAccount().signers.end());
 
@@ -175,11 +176,9 @@ TransactionFrame::resetResults() {
 }
 
 bool
-TransactionFrame::commonValid(SignatureChecker &signatureChecker,
-                              Application &app, LedgerDelta *delta,
-                              SequenceNumber current) {
-    bool applying = (delta != nullptr);
-
+TransactionFrame::commonValidPreSeqNum(Application &app, LedgerDelta *delta) {
+    // this function does validations that are independent of the account state
+    //    (stay true regardless of other side effects)
     if (mOperations.size() == 0) {
         app.getMetrics().newMeter({"transaction", "invalid", "missing-operation"}, "transaction").mark();
         getResult().result.code(txMISSING_OPERATION);
@@ -215,42 +214,72 @@ TransactionFrame::commonValid(SignatureChecker &signatureChecker,
         return false;
     }
 
-    // when applying, the account's sequence number is updated when taking fees
-    if (!applying) {
+    return true;
+}
+
+void
+TransactionFrame::processSeqNum(LedgerManager &lm, LedgerDelta &delta) {
+
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        if (mSigningAccount->getSeqNum() > mEnvelope.tx.seqNum) {
+            throw std::runtime_error("unexpected sequence number");
+        }
+        mSigningAccount->setSeqNum(mEnvelope.tx.seqNum);
+        mSigningAccount->storeChange(delta, lm.getDatabase());
+    }
+}
+
+TransactionFrame::ValidationType
+TransactionFrame::commonValid(SignatureChecker &signatureChecker,
+                              Application &app, LedgerDelta *delta,
+                              SequenceNumber current) {
+    ValidationType res = ValidationType::kInvalid;
+    bool applying = (delta != nullptr);
+    if (!commonValidPreSeqNum(app, delta)) {
+        return res;
+    }
+
+    auto &lm = app.getLedgerManager();
+    // in older versions, the account's sequence number is updated when taking
+    // fees
+    if (lm.getCurrentLedgerVersion() >= 10 || !applying) {
         if (current == 0) {
             current = mSigningAccount->getSeqNum();
         }
 
-        if (current + 1 != mEnvelope.tx.seqNum) {
+        if (current == INT64_MAX || current + 1 != mEnvelope.tx.seqNum) {
+
             app.getMetrics().newMeter({"transaction", "invalid", "bad-seq"}, "transaction").mark();
             getResult().result.code(txBAD_SEQ);
-            return false;
+            return res;
         }
     }
+
+    res = ValidationType::kInvalidUpdateSeqNum;
 
     if (!checkSignature(signatureChecker, *mSigningAccount,
                         mSigningAccount->getLowThreshold())) {
         app.getMetrics().newMeter({"transaction", "invalid", "bad-auth"}, "transaction").mark();
         getResult().result.code(txBAD_AUTH);
-        return false;
+        return res;
     }
 
     // if we are in applying mode fee was already deduced from signing account
     // balance, if not, we need to check if after that deduction this account
     // will still have minimum balance
     auto balanceAfter =
-            (applying && (app.getLedgerManager().getCurrentLedgerVersion() > 8))
+            (applying && (lm.getCurrentLedgerVersion() > 8))
             ? mSigningAccount->getAccount().balance
             : mSigningAccount->getAccount().balance - mEnvelope.tx.fee;
 
     // don't let the account go below the reserve
-    if (balanceAfter < mSigningAccount->getMinimumBalance(app.getLedgerManager())) {
+    if (balanceAfter < mSigningAccount->getMinimumBalance(lm)) {
         app.getMetrics().newMeter({"transaction", "invalid", "insufficient-balance"}, "transaction").mark();
         getResult().result.code(txINSUFFICIENT_BALANCE);
-        return false;
+        return res;
     }
 
-    return true;
+    return ValidationType::kFullyValid;
 }
 
 void
@@ -272,12 +301,15 @@ TransactionFrame::processFeeSeqNum(LedgerDelta &delta,
         mSigningAccount->addBalance(-fee);
         delta.getHeader().feePool += fee;
     }
-    if (mSigningAccount->getSeqNum() + 1 != mEnvelope.tx.seqNum) {
-        // this should not happen as the transaction set is sanitized for
-        // sequence numbers
-        throw std::runtime_error("Unexpected account state");
+    // in v10 we update sequence numbers during apply
+    if (ledgerManager.getCurrentLedgerVersion() <= 9) {
+        if (mSigningAccount->getSeqNum() + 1 != mEnvelope.tx.seqNum) {
+            // this should not happen as the transaction set is sanitized for
+            // sequence numbers
+            throw std::runtime_error("Unexpected account state");
+        }
+        mSigningAccount->setSeqNum(mEnvelope.tx.seqNum);
     }
-    mSigningAccount->setSeqNum(mEnvelope.tx.seqNum);
     mSigningAccount->storeChange(delta, db);
 }
 
@@ -343,7 +375,7 @@ TransactionFrame::checkValid(Application &app, SequenceNumber current) {
     SignatureChecker signatureChecker{
             app.getLedgerManager().getCurrentLedgerVersion(), getContentsHash(),
             mEnvelope.signatures};
-    bool res = commonValid(signatureChecker, app, nullptr, current);
+    bool res = commonValid(signatureChecker, app, nullptr, current) == ValidationType::kFullyValid;
     if (res) {
         for (auto &op : mOperations) {
             if (!op->checkValid(signatureChecker, app)) {
@@ -387,20 +419,14 @@ TransactionFrame::markResultFailed() {
 
 bool
 TransactionFrame::apply(LedgerDelta &delta, Application &app) {
-    TransactionMeta tm;
-    return apply(delta, tm, app);
+    TransactionMeta tm(1);
+    return apply(delta, tm.v1(), app);
 }
 
 bool
-TransactionFrame::apply(LedgerDelta &delta, TransactionMeta &meta,
-                        Application &app) {
-    resetSigningAccount();
-    SignatureChecker signatureChecker{
-            app.getLedgerManager().getCurrentLedgerVersion(), getContentsHash(),
-            mEnvelope.signatures};
-    if (!commonValid(signatureChecker, app, &delta, 0)) {
-        return false;
-    }
+TransactionFrame::applyOperations(SignatureChecker& signatureChecker,
+                                  LedgerDelta& delta, TransactionMetaV1& meta,
+                                  Application& app) {
 
     bool errorEncountered = false;
 
@@ -408,13 +434,13 @@ TransactionFrame::apply(LedgerDelta &delta, TransactionMeta &meta,
         // shield outer scope of any side effects by using
         // a sql transaction for ledger state and LedgerDelta
         soci::transaction sqlTx(app.getDatabase().getSession());
-        LedgerDelta thisTxDelta(delta);
+        LedgerDelta thisTxOpsDelta(delta);
 
         auto &opTimer = app.getMetrics().newTimer({"transaction", "op", "apply"});
 
         for (auto &op : mOperations) {
             auto time = opTimer.timeScope();
-            LedgerDelta opDelta(thisTxDelta);
+            LedgerDelta opDelta(thisTxOpsDelta);
             bool txRes = op->apply(signatureChecker, opDelta, app);
 
             if (!txRes) {
@@ -424,7 +450,7 @@ TransactionFrame::apply(LedgerDelta &delta, TransactionMeta &meta,
                 app.getInvariantManager().checkOnOperationApply(
                         op->getOperation(), op->getResult(), opDelta);
             }
-            meta.operations().emplace_back(opDelta.getChanges());
+            meta.operations.emplace_back(opDelta.getChanges());
             opDelta.commit();
         }
 
@@ -438,18 +464,43 @@ TransactionFrame::apply(LedgerDelta &delta, TransactionMeta &meta,
 
             // if an error occurred, it is responsibility of account's owner to
             // remove that signer
-            removeUsedOneTimeSignerKeys(signatureChecker, thisTxDelta, app.getLedgerManager());
+            removeUsedOneTimeSignerKeys(signatureChecker, thisTxOpsDelta, app.getLedgerManager());
             sqlTx.commit();
-            thisTxDelta.commit();
+            thisTxOpsDelta.commit();
         }
     }
 
     if (errorEncountered) {
-        meta.operations().clear();
+        meta.operations.clear();
         markResultFailed();
     }
 
     return !errorEncountered;
+}
+
+bool
+TransactionFrame::apply(LedgerDelta& delta, TransactionMetaV1& meta,
+                        Application& app) {
+    resetSigningAccount();
+    SignatureChecker signatureChecker{
+            app.getLedgerManager().getCurrentLedgerVersion(), getContentsHash(),
+            mEnvelope.signatures};
+    bool valid;
+    {
+        LedgerDelta txDelta(delta);
+        // when applying, a failure during tx validation means that
+        // we'll skip trying to apply operations but we'll still
+        // process the sequence number if needed
+        auto cv = commonValid(signatureChecker, app, &txDelta, 0);
+        if (cv >= ValidationType::kInvalidUpdateSeqNum) {
+            processSeqNum(app.getLedgerManager(), txDelta);
+        }
+        meta.txChanges = txDelta.getChanges();
+        txDelta.commit();
+        valid = (cv == ValidationType::kFullyValid);
+
+    }
+    return valid && applyOperations(signatureChecker, delta, meta, app);
 }
 
 VixalMessage

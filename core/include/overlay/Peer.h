@@ -6,6 +6,7 @@
 
 #include "util/asio.h"
 #include "database/Database.h"
+#include "overlay/PeerBareAddress.h"
 #include "util/noncopyable.h"
 #include "util/Timer.h"
 #include "xdrpp/message.h"
@@ -68,7 +69,7 @@ protected:
     std::string mRemoteVersion;
     uint32_t mRemoteOverlayMinVersion;
     uint32_t mRemoteOverlayVersion;
-    unsigned short mRemoteListeningPort;
+    PeerBareAddress mAddress;
 
     VirtualTimer mIdleTimer;
     VirtualClock::time_point mLastRead;
@@ -127,7 +128,7 @@ protected:
     medida::Meter &mDropInRecvHelloCertMeter;
     medida::Meter &mDropInRecvHelloBanMeter;
     medida::Meter &mDropInRecvHelloNetMeter;
-    medida::Meter &mDropInRecvHelloPortMeter;
+    medida::Meter &mDropInRecvHelloAddressMeter;
     medida::Meter &mDropInRecvAuthUnexpectedMeter;
     medida::Meter &mDropInRecvAuthRejectMeter;
     medida::Meter &mDropInRecvAuthInvalidPeerMeter;
@@ -195,6 +196,8 @@ protected:
 
     virtual AuthCert getAuthCert();
 
+    virtual PeerBareAddress makeAddress(int remoteListeningPort) const = 0;
+
     void startIdleTimer();
 
     void idleTimerExpired(asio::error_code const &error);
@@ -251,9 +254,9 @@ public:
         return mRemoteOverlayVersion;
     }
 
-    unsigned short
-    getRemoteListeningPort() {
-        return mRemoteListeningPort;
+    PeerBareAddress const &
+    getAddress() {
+        return mAddress;
     }
 
     NodeID
@@ -284,8 +287,6 @@ public:
     // If force is true, it will drop immediately without waiting for all
     // outgoing messages to be sent
     virtual void drop(bool force) = 0;
-
-    virtual std::string getIP() = 0;
 
     virtual ~Peer() = default;
 

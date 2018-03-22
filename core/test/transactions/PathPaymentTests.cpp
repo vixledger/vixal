@@ -115,6 +115,8 @@ TEST_CASE("pathpayment", "[tx][pathpayment]") {
     auto cur3 = makeAsset(gateway2, "CUR3");
     auto cur4 = makeAsset(gateway2, "CUR4");
 
+    closeLedgerOn(*app, 2, 1, 1, 2016);
+
     SECTION("path payment destination amount 0") {
         auto market = TestMarket{*app};
         auto source = root.create("source", minBalance1);

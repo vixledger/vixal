@@ -35,6 +35,7 @@ private:
     bool mDelayedShutdown{false};
     bool mShutdownScheduled{false};
 
+    PeerBareAddress makeAddress(int remoteListeningPort) const override;
 
     void recvMessage();
 
@@ -62,14 +63,12 @@ public:
     /// hollow constuctor; use `initiate` or `accept` instead
     TCPPeer(Application &app, Peer::PeerRole role, std::shared_ptr<SocketType> socket);
 
-    static pointer initiate(Application &app, std::string const &ip, unsigned short port);
+    static pointer initiate(Application& app, PeerBareAddress const& address);
 
     static pointer accept(Application &app, std::shared_ptr<SocketType> socket);
 
     ~TCPPeer() override;
 
     void drop(bool force) override;
-
-    std::string getIP() override;
 };
 }

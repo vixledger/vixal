@@ -33,6 +33,8 @@ public:
 
     Hash const &getHash() const;
 
+    static SequenceNumber getStartingSequenceNumber(uint32 ledgerSeq);
+
     // returns the first sequence number to use for new accounts
     SequenceNumber getStartingSequenceNumber() const;
 

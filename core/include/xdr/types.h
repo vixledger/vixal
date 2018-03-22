@@ -1,9 +1,9 @@
 // -*- C++ -*-
-// Automatically generated from types.x.
+// Automatically generated from /Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/core/src/xdr/types.x.
 // DO NOT EDIT or your changes may be overwritten
 
-#ifndef __XDR_STELLAR_TYPES_H_INCLUDED__
-#define __XDR_STELLAR_TYPES_H_INCLUDED__ 1
+#ifndef __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TYPES_H_INCLUDED__
+#define __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TYPES_H_INCLUDED__ 1
 
 #include <xdrpp/types.h>
 
@@ -571,4 +571,4 @@ namespace vixal {
 
 }
 
-#endif // !__XDR_STELLAR_TYPES_H_INCLUDED__
+#endif // !__XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TYPES_H_INCLUDED__

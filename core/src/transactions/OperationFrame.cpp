@@ -8,6 +8,7 @@
 #include "application/Application.h"
 #include "transactions/OperationFrame.h"
 #include "transactions/AllowTrustOpFrame.h"
+#include "transactions/BumpSequenceOpFrame.h"
 #include "transactions/ChangeTrustOpFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/CreatePassiveOfferOpFrame.h"
@@ -71,7 +72,8 @@ OperationFrame::makeHelper(Operation const &op, OperationResult &res,
             return std::make_shared<InflationOpFrame>(op, res, tx);
         case MANAGE_DATA:
             return std::make_shared<ManageDataOpFrame>(op, res, tx);
-
+        case BUMP_SEQUENCE:
+            return std::make_shared<BumpSequenceOpFrame>(op, res, tx);
         default:
             ostringstream err;
             err << "Unknown Tx type: " << op.body.type();
@@ -100,6 +102,11 @@ ThresholdLevel
 OperationFrame::getThresholdLevel() const {
     return ThresholdLevel::MEDIUM;
 }
+
+bool OperationFrame::isVersionSupported(uint32_t) const {
+    return true;
+}
+
 
 bool
 OperationFrame::checkSignature(SignatureChecker &signatureChecker) const {
@@ -133,6 +140,14 @@ bool
 OperationFrame::checkValid(SignatureChecker &signatureChecker, Application &app,
                            LedgerDelta *delta) {
     bool forApply = (delta != nullptr);
+    if (!isVersionSupported(app.getLedgerManager().getCurrentLedgerVersion())) {
+        app.getMetrics()
+                .newMeter({"operation", "invalid", "not-supported"}, "operation")
+                .mark();
+        mResult.code(opNOT_SUPPORTED);
+        return false;
+    }
+
     if (!loadAccount(app.getLedgerManager().getCurrentLedgerVersion(), delta,
                      app.getDatabase())) {
         if (forApply || !mOperation.sourceAccount) {

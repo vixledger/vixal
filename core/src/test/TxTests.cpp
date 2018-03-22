@@ -30,39 +30,67 @@ using xdr::operator==;
 namespace txtest {
 
 bool
-applyCheck(TransactionFramePtr tx, Application &app) {
+applyCheck(TransactionFramePtr tx, Application &app, bool checkSeqNum) {
     app.getDatabase().clearPreparedStatementCache();
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(), app.getDatabase());
+    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                      app.getDatabase());
 
-    auto txSet = std::make_shared<TxSetFrame>(
-            app.getLedgerManager().getLastClosedLedgerHeader().hash);
-    txSet->add(tx);
-
-    // TODO: maybe we should just close ledger with tx instead of checking all of  that manually?
+    AccountEntry srcAccountBefore;
 
     bool check = tx->checkValid(app, 0);
     TransactionResult checkResult = tx->getResult();
 
     REQUIRE((!check || checkResult.result.code() == txSUCCESS));
 
-    bool doApply;
-    // valid transaction sets ensure that
-    {
-        auto code = checkResult.result.code();
-        if (code != txNO_ACCOUNT && code != txBAD_SEQ && code != txBAD_AUTH) {
-            tx->processFeeSeqNum(delta, app.getLedgerManager());
-            doApply = true;
-        } else {
-            doApply = (code != txBAD_SEQ);
+    // now, check what happens when simulating what happens during a ledger
+    // close and reconcile it with the return value of "apply" with the one from
+    // checkValid:
+    // * an invalid (as per isValid) tx is still invalid during apply (and the
+    // same way)
+    // * a valid tx can fail later
+    auto code = checkResult.result.code();
+    if (code != txNO_ACCOUNT) {
+        auto acnt = loadAccount(tx->getSourceID(), app, true);
+        srcAccountBefore = acnt->getAccount();
+
+        // no account -> can't process the fee
+        tx->processFeeSeqNum(delta, app.getLedgerManager());
+
+        // verify that the fee got processed
+        auto added = delta.added();
+        REQUIRE(added.begin() == added.end());
+        auto deleted = delta.deleted();
+        REQUIRE(deleted.begin() == deleted.end());
+        auto modified = delta.modified();
+        REQUIRE(modified.begin() != modified.end());
+        int modifiedCount = 0;
+        for (auto m : modified) {
+            modifiedCount++;
+            REQUIRE(modifiedCount == 1);
+            REQUIRE(m.key.account().accountID == tx->getSourceID());
+            auto &prevAccount = m.previous->mEntry.data.account();
+            REQUIRE(prevAccount == srcAccountBefore);
+            auto curAccount = m.current->mEntry.data.account();
+            // the balance should have changed
+            REQUIRE(curAccount.balance < prevAccount.balance);
+            curAccount.balance = prevAccount.balance;
+            if (app.getLedgerManager().getCurrentLedgerVersion() <= 9) {
+                // v9 and below, we also need to verify that the sequence number
+                // also got processed at this time
+                REQUIRE(curAccount.seqNum == (prevAccount.seqNum + 1));
+                curAccount.seqNum = prevAccount.seqNum;
+            }
+            REQUIRE(curAccount == prevAccount);
         }
     }
 
     bool res = false;
 
-    if (doApply) {
+    {
+        LedgerDelta applyDelta(delta);
         try {
-            res = tx->apply(delta, app);
+            res = tx->apply(applyDelta, app);
         }
         catch (...) {
             tx->getResult().result.code(txINTERNAL_ERROR);
@@ -70,11 +98,51 @@ applyCheck(TransactionFramePtr tx, Application &app) {
 
         REQUIRE((!res || tx->getResultCode() == txSUCCESS));
 
+        // checks that the failure is the same if pre checks failed
         if (!check) {
             REQUIRE(checkResult == tx->getResult());
         }
-    } else {
-        res = check;
+
+        if (code != txNO_ACCOUNT) {
+            auto srcAccountAfter =
+                    txtest::loadAccount(srcAccountBefore.accountID, app, false);
+            if (srcAccountAfter) {
+                bool earlyFailure =
+                        (code == txMISSING_OPERATION || code == txTOO_EARLY ||
+                         code == txTOO_LATE || code == txINSUFFICIENT_FEE ||
+                         code == txBAD_SEQ);
+                // verify that the sequence number changed (v10+)
+                // do not perform the check if there was a failure before
+                // or during the sequence number processing
+                if (checkSeqNum &&
+                    app.getLedgerManager().getCurrentLedgerVersion() >= 10 &&
+                    !earlyFailure) {
+                    REQUIRE(srcAccountAfter->getSeqNum() ==
+                            (srcAccountBefore.seqNum + 1));
+                }
+                // on failure, no other changes should have been made
+                if (!res) {
+                    auto added = applyDelta.added();
+                    REQUIRE(added.begin() == added.end());
+                    auto deleted = applyDelta.deleted();
+                    REQUIRE(deleted.begin() == deleted.end());
+                    auto modified = applyDelta.modified();
+                    if (earlyFailure ||
+                        app.getLedgerManager().getCurrentLedgerVersion() <= 9) {
+                        // no changes during an early failure
+                        REQUIRE(modified.begin() == modified.end());
+                    } else {
+                        REQUIRE(modified.begin() != modified.end());
+                        for (auto m : modified) {
+                            REQUIRE(m.key.account().accountID ==
+                                    srcAccountBefore.accountID);
+                            // could check more here if needed
+                        }
+                    }
+                }
+            }
+        }
+        applyDelta.commit();
     }
 
     // validates db state
@@ -93,8 +161,8 @@ checkTransaction(TransactionFrame &txFrame, Application &app) {
 }
 
 void
-applyTx(TransactionFramePtr const &tx, Application &app) {
-    applyCheck(tx, app);
+applyTx(TransactionFramePtr const &tx, Application &app, bool checkSeqNum) {
+    applyCheck(tx, app, checkSeqNum);
     throwIf(tx->getResult());
     checkTransaction(*tx, app);
 }
@@ -113,7 +181,8 @@ closeLedgerOn(Application &app, uint32 ledgerSeq, int day, int month, int year,
     txSet->sortForHash();
     REQUIRE(txSet->checkValid(app));
 
-    VixalValue sv(txSet->getContentsHash(), getTestDate(day, month, year), emptyUpgradeSteps, 0);
+    VixalValue sv(txSet->getContentsHash(), getTestDate(day, month, year),
+                  emptyUpgradeSteps, 0);
     LedgerCloseData ledgerData(ledgerSeq, txSet, sv);
     app.getLedgerManager().closeLedger(ledgerData);
 
@@ -125,9 +194,10 @@ closeLedgerOn(Application &app, uint32 ledgerSeq, int day, int month, int year,
     REQUIRE(app.getLedgerManager().getLedgerNum() == (ledgerSeq + 1));
 
     TxSetResultMeta res;
-    std::transform(z1.results.begin(), z1.results.end(), z2.begin(),
-                   std::back_inserter(res), [](TransactionResultPair const &r1,
-                                               LedgerEntryChanges const &r2) {
+    std::transform(
+            z1.results.begin(), z1.results.end(), z2.begin(),
+            std::back_inserter(res),
+            [](TransactionResultPair const &r1, LedgerEntryChanges const &r2) {
                 return std::make_pair(r1, r2);
             });
 
@@ -546,6 +616,14 @@ manageData(std::string const &name, DataValue *value) {
     return op;
 }
 
+Operation
+bumpSequence(SequenceNumber to) {
+    Operation op;
+    op.body.type(BUMP_SEQUENCE);
+    op.body.bumpSequenceOp().bumpTo = to;
+    return op;
+}
+
 OperationFrame const &
 getFirstOperationFrame(TransactionFrame const &tx) {
     return *(tx.getOperations()[0]);
@@ -567,7 +645,8 @@ checkTx(int index, TxSetResultMeta &r, TransactionResultCode expected) {
 };
 
 void
-checkTx(int index, TxSetResultMeta &r, TransactionResultCode expected, OperationResultCode code) {
+checkTx(int index, TxSetResultMeta &r, TransactionResultCode expected,
+        OperationResultCode code) {
     checkTx(index, r, expected);
     REQUIRE(r[index].first.result.result.results()[0].code() == code);
 };

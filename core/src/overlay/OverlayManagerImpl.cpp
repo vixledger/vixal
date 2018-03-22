@@ -7,6 +7,7 @@
 
 #include "OverlayManagerImpl.h"
 
+#include "overlay/PeerBareAddress.h"
 
 #include "application/Application.h"
 
@@ -79,8 +80,8 @@ OverlayManagerImpl::start() {
 void
 OverlayManagerImpl::connectTo(std::string const &peerStr) {
     try {
-        auto pr = PeerRecord::parseIPPort(peerStr, mApp);
-        connectTo(pr);
+        auto address = PeerBareAddress::resolve(peerStr, mApp);
+        connectTo(address);
     }
     catch (const std::runtime_error &) {
         CLOG(ERROR, "Overlay") << "Unable to add peer '" << peerStr << "'";
@@ -88,13 +89,25 @@ OverlayManagerImpl::connectTo(std::string const &peerStr) {
 }
 
 void
+OverlayManagerImpl::connectTo(PeerBareAddress const &address) {
+    auto pr = PeerRecord{address, mApp.getClock().now(), 0};
+    connectTo(pr);
+}
+
+void
 OverlayManagerImpl::connectTo(PeerRecord &pr) {
     mConnectionsAttempted.mark();
-    if (!getConnectedPeer(pr.ip(), pr.port())) {
+    if (!getConnectedPeer(pr.getAddress())) {
         pr.backOff(mApp.getClock());
         pr.storePeerRecord(mApp.getDatabase());
 
-        addPendingPeer(TCPPeer::initiate(mApp, pr.ip(), pr.port()));
+        if (getPendingPeersCount() < mApp.getConfig().MAX_PENDING_CONNECTIONS) {
+            addPendingPeer(TCPPeer::initiate(mApp, pr.getAddress()));
+        } else {
+            CLOG(DEBUG, "Overlay")
+                    << "reached maximum number of pending connections, backing off "
+                    << pr.toString();
+        }
     } else {
         CLOG(ERROR, "Overlay") << "trying to connect to a node we're already connected to "
                                << pr.toString();
@@ -106,7 +119,8 @@ OverlayManagerImpl::storePeerList(std::vector<std::string> const &list,
                                   bool resetBackOff, bool preferred) {
     for (auto const &peerStr : list) {
         try {
-            auto pr = PeerRecord::parseIPPort(peerStr, mApp);
+            auto address = PeerBareAddress::resolve(peerStr, mApp);
+            auto pr = PeerRecord{address, mApp.getClock().now(), 0};
             pr.setPreferred(preferred);
             if (resetBackOff) {
                 pr.resetBackOff(mApp.getClock());
@@ -127,7 +141,7 @@ OverlayManagerImpl::storeConfigPeers() {
     std::vector<std::string> ppeers;
     for (auto const &s : mApp.getConfig().PREFERRED_PEERS) {
         try {
-            auto pr = PeerRecord::parseIPPort(s, mApp);
+            auto pr = PeerBareAddress::resolve(s, mApp);
             auto r = mPreferredPeers.insert(pr.toString());
             if (r.second) {
                 ppeers.push_back(*r.first);
@@ -147,9 +161,9 @@ std::vector<PeerRecord>
 OverlayManagerImpl::getPreferredPeersFromConfig() {
     std::vector<PeerRecord> peers;
     for (auto &pp : mPreferredPeers) {
-        auto prParsed = PeerRecord::parseIPPort(pp, mApp);
-        if (!getConnectedPeer(prParsed.ip(), prParsed.port())) {
-            auto pr = PeerRecord::loadPeerRecord(mApp.getDatabase(), prParsed.ip(), prParsed.port());
+        auto address = PeerBareAddress::resolve(pp, mApp);
+        if (!getConnectedPeer(address)) {
+            auto pr = PeerRecord::loadPeerRecord(mApp.getDatabase(), address);
             if (pr && pr->mNextAttempt <= mApp.getClock().now()) {
                 peers.emplace_back(*pr);
             }
@@ -160,7 +174,12 @@ OverlayManagerImpl::getPreferredPeersFromConfig() {
 
 std::vector<PeerRecord>
 OverlayManagerImpl::getPeersToConnectTo(int maxNum) {
-    const int batchSize = std::max(20, maxNum);
+
+    // don't connect to too many peers at once
+    maxNum = std::min(maxNum, 50);
+
+    // batch is how many peers to load from the database every time
+    const int batchSize = std::max(50, maxNum);
 
     std::vector<PeerRecord> peers;
     PeerRecord::loadPeerRecords(mApp.getDatabase(), batchSize,
@@ -168,7 +187,7 @@ OverlayManagerImpl::getPeersToConnectTo(int maxNum) {
                                 [&](PeerRecord const &pr) {
                                     // skip peers that we're already
                                     // connected/connecting to
-                                    if (!getConnectedPeer(pr.ip(), pr.port())) {
+                                    if (!getConnectedPeer(pr.getAddress())) {
                                         peers.emplace_back(pr);
                                     }
                                     return peers.size() < maxNum;
@@ -177,7 +196,7 @@ OverlayManagerImpl::getPeersToConnectTo(int maxNum) {
 }
 
 void
-OverlayManagerImpl::connectToMorePeers(vector<PeerRecord>& peers) {
+OverlayManagerImpl::connectToMorePeers(vector<PeerRecord> &peers) {
     orderByPreferredPeers(peers);
 
     for (auto &pr : peers) {
@@ -186,7 +205,7 @@ OverlayManagerImpl::connectToMorePeers(vector<PeerRecord>& peers) {
         }
         // we always try to connect to preferred peers
         if (!pr.isPreferred() && getAuthenticatedPeersCount() >=
-                                         mApp.getConfig().TARGET_PEER_CONNECTIONS) {
+                                 mApp.getConfig().TARGET_PEER_CONNECTIONS) {
             break;
         }
         connectTo(pr);
@@ -221,7 +240,7 @@ OverlayManagerImpl::tick() {
         // to work for both ip based and key based preferred mode)
         peers = getPeersToConnectTo(
                 mApp.getConfig().TARGET_PEER_CONNECTIONS -
-                        getAuthenticatedPeersCount());
+                getAuthenticatedPeersCount());
         connectToMorePeers(peers);
     }
 
@@ -232,12 +251,11 @@ OverlayManagerImpl::tick() {
 }
 
 Peer::pointer
-OverlayManagerImpl::getConnectedPeer(std::string const &ip, unsigned short port) {
+OverlayManagerImpl::getConnectedPeer(PeerBareAddress const &address) {
     auto pendingPeerIt =
             std::find_if(std::begin(mPendingPeers), std::end(mPendingPeers),
-                         [ip, port](Peer::pointer const &peer) {
-                             return peer->getIP() == ip &&
-                                    peer->getRemoteListeningPort() == port;
+                         [address](Peer::pointer const& peer) {
+                             return peer->getAddress() == address;
                          });
     if (pendingPeerIt != std::end(mPendingPeers)) {
         return *pendingPeerIt;
@@ -245,9 +263,8 @@ OverlayManagerImpl::getConnectedPeer(std::string const &ip, unsigned short port)
 
     auto authenticatedPeerIt = std::find_if(
             std::begin(mAuthenticatedPeers), std::end(mAuthenticatedPeers),
-            [ip, port](std::pair<NodeID, Peer::pointer> const &peer) {
-                return peer.second->getIP() == ip &&
-                       peer.second->getRemoteListeningPort() == port;
+            [address](std::pair<NodeID, Peer::pointer> const& peer) {
+                return peer.second->getAddress() == address;
             });
     if (authenticatedPeerIt != std::end(mAuthenticatedPeers)) {
         return authenticatedPeerIt->second;

@@ -25,6 +25,15 @@ using namespace std;
 LoopbackPeer::LoopbackPeer(Application &app, PeerRole role) : Peer(app, role) {
 }
 
+PeerBareAddress
+LoopbackPeer::makeAddress(int remoteListeningPort) const {
+    if (remoteListeningPort <= 0 || remoteListeningPort > UINT16_MAX) {
+        return PeerBareAddress{};
+    } else {
+        return PeerBareAddress{"127.0.0.1", static_cast<unsigned short>(remoteListeningPort)};
+    }
+}
+
 AuthCert
 LoopbackPeer::getAuthCert() {
     auto c = Peer::getAuthCert();
@@ -53,11 +62,6 @@ LoopbackPeer::sendMessage(xdr::msg_ptr &&msg) {
     while (mOutQueue.size() > mMaxQueueDepth && !mCorked) {
         deliverOne();
     }
-}
-
-std::string
-LoopbackPeer::getIP() {
-    return "127.0.0.1";
 }
 
 void

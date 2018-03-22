@@ -37,7 +37,7 @@ template<typename T>
 void
 replaceControlCharacters(T &s, int minSize) {
     std::locale loc("C");
-    if (s.size() < minSize) {
+    if (static_cast<int>(s.size()) < minSize) {
         s.resize(minSize);
     }
     for (auto it = s.begin(); it != s.end(); it++) {
@@ -77,7 +77,9 @@ makeValid(AccountEntry &a) {
         }
     }
     a.numSubEntries = (uint32) a.signers.size();
-    a.seqNum = a.seqNum & INT64_MAX;
+    if (a.seqNum < 0) {
+        a.seqNum = -a.seqNum;
+    }
     a.flags = a.flags & MASK_ACCOUNT_FLAGS;
 }
 

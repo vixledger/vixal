@@ -6,6 +6,7 @@
 
 #include "xdr/xdr.h"
 #include "xdrpp/message.h"
+#include <type_traits>
 #include <vector>
 
 namespace vixal {

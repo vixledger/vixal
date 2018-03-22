@@ -1,0 +1,6 @@
+[submodule "asio"]
+	path = asio
+	url = https://github.com/vixledger/asio.git
+[submodule "soci"]
+	path = soci
+	url = https://github.com/vixledger/soci.git

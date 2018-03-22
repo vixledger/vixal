@@ -56,8 +56,18 @@ protected:
 
     bool loadAccount(int ledgerProtocolVersion, LedgerDelta *delta, Database &db);
 
-    bool commonValid(SignatureChecker &signatureChecker, Application &app, LedgerDelta *delta,
-                     SequenceNumber current);
+    enum ValidationType {
+        kInvalid,             // transaction is not valid at all
+        kInvalidUpdateSeqNum, // transaction is invalid but its sequence number
+                              // should be updated
+        kFullyValid
+    };
+
+    bool commonValidPreSeqNum(Application& app, LedgerDelta* delta);
+
+    ValidationType commonValid(SignatureChecker& signatureChecker,
+                               Application& app, LedgerDelta* delta,
+                               SequenceNumber current);
 
     void resetSigningAccount();
 
@@ -76,6 +86,11 @@ protected:
                              LedgerManager &ledgerManager) const;
 
     void markResultFailed();
+
+    bool applyOperations(SignatureChecker& checker, LedgerDelta& delta,
+                         TransactionMetaV1& meta, Application& app);
+
+    void processSeqNum(LedgerManager& lm, LedgerDelta& delta);
 
 public:
     TransactionFrame(Hash const &networkID,
@@ -155,7 +170,7 @@ public:
 
     // apply this transaction to the current ledger
     // returns true if successfully applied
-    bool apply(LedgerDelta &delta, TransactionMeta &meta, Application &app);
+    bool apply(LedgerDelta& delta, TransactionMetaV1& meta, Application& app);
 
     // version without meta
     bool apply(LedgerDelta &delta, Application &app);
