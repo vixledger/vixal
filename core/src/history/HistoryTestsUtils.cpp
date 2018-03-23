@@ -283,6 +283,10 @@ CatchupSimulation::generateAndPublishHistory(size_t nPublishes) {
             generateRandomLedger();
             ++ledgerSeq;
         }
+        mBucketListAtLastPublish = getApp().getBucketManager().getBucketList();
+        // One more ledger is needed to close as vixal-core only publishes to just-before-LCL
+        generateRandomLedger();
+        ++ledgerSeq;
 
         REQUIRE(lm.getCurrentLedgerHeader().ledgerSeq == ledgerSeq);
 
@@ -296,7 +300,7 @@ CatchupSimulation::generateAndPublishHistory(size_t nPublishes) {
     REQUIRE(hm.getPublishFailureCount() == 0);
     REQUIRE(hm.getPublishSuccessCount() == publishSuccesses + nPublishes);
     REQUIRE(lm.getLedgerNum() ==
-            ((publishSuccesses + nPublishes) * hm.getCheckpointFrequency()));
+            ((publishSuccesses + nPublishes) * hm.getCheckpointFrequency()) + 1);
 }
 
 Application::pointer

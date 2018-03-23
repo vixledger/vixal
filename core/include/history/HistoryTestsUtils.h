@@ -5,8 +5,11 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "application/Config.h"
-#include "herder/LedgerCloseData.h"
 #include "application/Application.h"
+
+#include "bucket/BucketList.h"
+#include "herder/LedgerCloseData.h"
+
 #include "util/Timer.h"
 #include "util/TmpDir.h"
 
@@ -108,6 +111,7 @@ protected:
     std::vector<Config> mCfgs;
     Application::pointer mAppPtr;
     Application &mApp;
+    BucketList mBucketListAtLastPublish;
 
     std::default_random_engine mGenerator;
     std::bernoulli_distribution mFlip{0.5};
@@ -150,6 +154,11 @@ public:
     HistoryConfigurator &
     getHistoryConfigurator() const {
         return *mHistoryConfigurator.get();
+    }
+
+    BucketList
+    getBucketListAtLastPublish() const {
+        return mBucketListAtLastPublish;
     }
 
     void crankTillDone();

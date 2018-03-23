@@ -212,7 +212,7 @@ HistoryArchiveState::HistoryArchiveState() : server(VIXAL_CORE_VERSION) {
 }
 
 HistoryArchiveState::HistoryArchiveState(uint32_t ledgerSeq,
-                                         BucketList &buckets)
+                                         BucketList const  &buckets)
         : server(VIXAL_CORE_VERSION), currentLedger(ledgerSeq) {
     for (uint32_t i = 0; i < BucketList::kNumLevels; ++i) {
         HistoryStateBucket b;

@@ -30,12 +30,12 @@ public:
 
     template <typename T, typename... Args>
     std::shared_ptr<T>
-    executeWork(bool block, Args&&... args) {
+    executeWork(Args&&... args) {
         auto work = addWork<T>(std::forward<Args>(args)...);
         auto& clock = mApp.getClock();
         advanceChildren();
         while (!clock.io_context().stopped() && !allChildrenDone()) {
-            clock.crank(block);
+            clock.crank(true);
         }
         return work;
     }

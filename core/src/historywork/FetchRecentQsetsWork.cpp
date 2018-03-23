@@ -12,10 +12,8 @@
 namespace vixal {
 
 FetchRecentQsetsWork::FetchRecentQsetsWork(Application &app, AbstractWork &parent,
-                                           InferredQuorum &inferredQuorum,
-                                           handler endHandler)
+                                           InferredQuorum &inferredQuorum)
         : Work(app, parent, "fetch-recent-qsets"),
-          mEndHandler(endHandler),
           mInferredQuorum(inferredQuorum) {
 }
 
@@ -28,12 +26,6 @@ FetchRecentQsetsWork::onReset() {
     clearChildren();
     mDownloadSCPMessagesWork.reset();
     mDownloadDir = std::make_unique<TmpDir>(mApp.getTmpDirManager().tmpDir(getUniqueName()));
-}
-
-void
-FetchRecentQsetsWork::onFailureRaise() {
-    asio::error_code ec = std::make_error_code(std::errc::timed_out);
-    mEndHandler(ec);
 }
 
 Work::State
@@ -76,8 +68,6 @@ FetchRecentQsetsWork::onSuccess() {
         }
     }
 
-    asio::error_code ec;
-    mEndHandler(ec);
     return WORK_SUCCESS;
 }
 }
