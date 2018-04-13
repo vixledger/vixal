@@ -322,7 +322,10 @@ TEST_CASE("Stress test on 2 nodes 3 accounts 10 random transactions 10tx/sec",
             [&]() { return simulation->haveAllExternalized(3, 1); },
             2 * Herder::EXP_LEDGER_TIMESPAN_SECONDS, false);
 
-    simulation->executeAll(simulation->accountCreationTransactions(3));
+    auto nodes = simulation->getNodes();
+    auto &app = *nodes[0]; // pick a node to generate load
+
+    app.getLoadGenerator().generateLoad(true, 3, 0, 10, 100, false);
 
     try {
         simulation->crankUntil(
@@ -331,21 +334,21 @@ TEST_CASE("Stress test on 2 nodes 3 accounts 10 random transactions 10tx/sec",
                     // to the second node in time and the second node gets the
                     // nomination
                     return simulation->haveAllExternalized(5, 2) &&
-                           simulation->accountsOutOfSyncWithDb().empty();
+                           simulation->accountsOutOfSyncWithDb(app).empty();
                 },
                 3 * Herder::EXP_LEDGER_TIMESPAN_SECONDS, false);
 
-        auto crankingTime =
-                simulation->executeStressTest(10, 10, [&simulation](size_t i) {
-                    return simulation->createRandomTransaction(0.5);
-                });
+        app.getLoadGenerator().generateLoad(false, 3, 10, 10, 100, false);
 
         simulation->crankUntil(
-                [&]() { return simulation->accountsOutOfSyncWithDb().empty(); },
-                std::chrono::seconds(60), true);
+                [&]() {
+                    return simulation->haveAllExternalized(8, 2) &&
+                           simulation->accountsOutOfSyncWithDb(app).empty();
+                },
+                2 * Herder::EXP_LEDGER_TIMESPAN_SECONDS, true);
     }
     catch (...) {
-        auto problems = simulation->accountsOutOfSyncWithDb();
+        auto problems = simulation->accountsOutOfSyncWithDb(app);
         REQUIRE(problems.empty());
     }
 
@@ -366,19 +369,25 @@ newLoadTestApp(VirtualClock &clock) {
     // force maxTxSetSize to avoid throwing txSets on the floor during the first
     // ledger close
     appPtr->getLedgerManager().getCurrentLedgerHeader().maxTxSetSize =
-            cfg.DESIRED_MAX_TX_PER_LEDGER;
+            cfg.TESTING_UPGRADE_MAX_TX_PER_LEDGER;
     return appPtr;
 }
 
 TEST_CASE("Auto-calibrated single node load test", "[autoload][hide]") {
     VirtualClock clock(VirtualClock::REAL_TIME);
     auto appPtr = newLoadTestApp(clock);
-    appPtr->generateLoad(100000, 100000, 10, true);
+    // Create accounts
+    appPtr->generateLoad(true, 100000, 0, 10, 3, true);
     auto &io = clock.io_context();
     auto mainWork = asio::make_work_guard(io);
     auto &complete =
             appPtr->getMetrics().newMeter({"loadgen", "run", "complete"}, "run");
     while (!io.stopped() && complete.count() == 0) {
+        clock.crank();
+    }
+    // Generate payments
+    appPtr->generateLoad(false, 100000, 100000, 10, 100, true);
+    while (!io.stopped() && complete.count() == 1) {
         clock.crank();
     }
 }
@@ -434,59 +443,6 @@ public:
     }
 };
 
-static void
-closeLedger(Application &app) {
-    auto &clock = app.getClock();
-    bool advanced = false;
-    VirtualTimer t(clock);
-    auto nsecs = std::chrono::seconds(Herder::EXP_LEDGER_TIMESPAN_SECONDS);
-    if (app.getConfig().ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING) {
-        nsecs = std::chrono::seconds(1);
-    }
-    t.expires_after(nsecs);
-    t.async_wait([&](asio::error_code ec) { advanced = true; });
-
-    auto &io = clock.io_context();
-    auto mainWork = asio::make_work_guard(io);
-    auto &lm = app.getLedgerManager();
-    auto start = lm.getLastClosedLedgerNum();
-    while ((!io.stopped() && lm.getLastClosedLedgerNum() == start) || !advanced) {
-        clock.crank();
-    }
-}
-
-static void
-generateAccountsAndCloseLedger(Application &app, int num) {
-    auto &lg = app.getLoadGenerator();
-    std::vector<LoadGenerator::TxInfo> txs;
-    uint32_t ledgerNum = app.getLedgerManager().getLedgerNum();
-    int tries = num * 100;
-    while (tries-- > 0 && txs.size() < (size_t) num) {
-        lg.maybeCreateAccount(ledgerNum, txs);
-    }
-    LOG(INFO) << "Creating " << num << " accounts via txs...";
-    for (auto &tx : txs) {
-        tx.execute(app);
-    }
-    closeLedger(app);
-}
-
-static void
-generateTxsAndCloseLedger(Application &app, int num) {
-    auto &lg = app.getLoadGenerator();
-    std::vector<LoadGenerator::TxInfo> txs;
-    uint32_t ledgerNum = app.getLedgerManager().getLedgerNum();
-    int tries = num * 100;
-    while (tries-- > 0 && txs.size() < (size_t) num) {
-        txs.push_back(lg.createRandomTransaction(0.5, ledgerNum));
-    }
-    LOG(INFO) << "Applying " << txs.size() << " transactions...";
-    for (auto &tx : txs) {
-        tx.execute(app);
-    }
-    closeLedger(app);
-}
-
 TEST_CASE("Accounts vs. latency", "[scalability][hide]") {
     ScaleReporter r({"accounts", "txcount", "latencymin", "latencymax",
                      "latency50", "latency95", "latency99"});
@@ -497,49 +453,33 @@ TEST_CASE("Accounts vs. latency", "[scalability][hide]") {
 
     auto &lg = app.getLoadGenerator();
     auto &txtime = app.getMetrics().newTimer({"transaction", "op", "apply"});
+    uint32_t numItems = 500000;
 
-    int step = 5000;
-    size_t total = 10000000;
+    // Create accounts
+    lg.generateLoad(true, numItems, 0, 10, 100, true);
 
-    closeLedger(app);
-    closeLedger(app);
+    auto &complete =
+            appPtr->getMetrics().newMeter({"loadgen", "run", "complete"}, "run");
 
-    while (!app.getClock().io_context().stopped() &&
-           lg.mAccounts.size() < total) {
-        LOG(INFO) << "Creating " << (step * 10) << " bulking accounts and "
-                  << (step / 10) << " interesting accounts ("
-                  << 100 * (((double) lg.mAccounts.size()) / ((double) total))
-                  << "%)";
+    auto &io = clock.io_context();
+    auto mainWork = asio::make_work_guard(io);
+    while (!io.stopped() && complete.count() == 0) {
 
-        auto curr = lg.mAccounts.size();
-
-        // First, create 10*step "bulking" accounts
-        auto accounts = lg.createAccounts(step * 10);
-        for (auto &acc : accounts) {
-            acc->createDirectly(app);
-        }
-
-        // Then create step/10 "interesting" accounts via txs that set up
-        // trustlines and offers and such
-        generateAccountsAndCloseLedger(app, step / 10);
-
-        // Reload everything we just added.
-        while (curr < lg.mAccounts.size()) {
-            lg.loadAccount(app, lg.mAccounts.at(curr++));
-        }
-
-        txtime.clear();
-
-        // Then generate some non-account-creating (payment) txs in
-        // a subsequent ledger.
-        generateTxsAndCloseLedger(app, step / 10);
-
-        app.reportCfgMetrics();
-        r.write({(double) lg.mAccounts.size(), (double) txtime.count(),
-                 txtime.min(), txtime.max(), txtime.snapshot().getMedian(),
-                 txtime.snapshot().get95thPercentile(),
-                 txtime.snapshot().get99thPercentile()});
+        clock.crank();
     }
+    txtime.clear();
+    // Generate payment txs
+    lg.generateLoad(false, numItems, numItems / 10, 10, 100, true);
+    while (!io.stopped() && complete.count() == 1) {
+        clock.crank();
+    }
+
+    // Report latency
+    app.reportCfgMetrics();
+    r.write({(double) numItems, (double) txtime.count(), txtime.min(),
+             txtime.max(), txtime.snapshot().getMedian(),
+             txtime.snapshot().get95thPercentile(),
+             txtime.snapshot().get99thPercentile()});
 }
 
 static void
@@ -553,13 +493,25 @@ netTopologyTest(
         auto cfgCount = 0;
         auto sim = mkSim(numNodes);
         sim->startAllNodes();
+        sim->crankUntil([&]() { return sim->haveAllExternalized(5, 4); },
+                        2 * 5 * Herder::EXP_LEDGER_TIMESPAN_SECONDS, false);
+        REQUIRE(sim->haveAllExternalized(5, 4));
+
         auto nodes = sim->getNodes();
         assert(!nodes.empty());
         auto &app = *nodes[0];
-        closeLedger(app);
 
-        generateAccountsAndCloseLedger(app, 50);
-        closeLedger(app);
+        app.getLoadGenerator().generateLoad(true, 50, 0, 10, 100, false);
+        auto &complete =
+                app.getMetrics().newMeter({"loadgen", "run", "complete"}, "run");
+
+        sim->crankUntil(
+                [&]() {
+                    return sim->haveAllExternalized(8, 2) &&
+                           sim->accountsOutOfSyncWithDb(app).empty() &&
+                           complete.count() == 1;
+                },
+                2 * Herder::EXP_LEDGER_TIMESPAN_SECONDS, true);
 
         app.reportCfgMetrics();
 
@@ -604,7 +556,7 @@ TEST_CASE("Cycle nodes vs. network traffic", "[scalability][hide]") {
                         numNodes, 1.0, Simulation::OVER_LOOPBACK,
                         sha256(fmt::format("nodes-{:d}", numNodes)),
                         [](int cfgCount) -> Config {
-                            Config res = getTestConfig();
+                            Config res = getTestConfig(cfgCount);
                             res.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = true;
                             res.MAX_PEER_CONNECTIONS = 1000;
                             return res;
@@ -620,7 +572,7 @@ TEST_CASE("Branched-cycle nodes vs. network traffic", "[scalability][hide]") {
                         numNodes, 1.0, Simulation::OVER_LOOPBACK,
                         sha256(fmt::format("nodes-{:d}", numNodes)),
                         [](int cfgCount) -> Config {
-                            Config res = getTestConfig(cfgCount++);
+                            Config res = getTestConfig(cfgCount);
                             res.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING = true;
                             res.MAX_PEER_CONNECTIONS = 1000;
                             return res;

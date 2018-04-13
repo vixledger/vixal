@@ -9,6 +9,7 @@
 #include "test/test.h"
 #include "util/StatusManager.h"
 #include "herder/Upgrades.h"
+#include "history/HistoryArchiveManager.h"
 #include <xdrpp/marshal.h>
 
 using namespace vixal;
@@ -89,8 +90,9 @@ simulateUpgrade(std::vector<LedgerUpgradeNode> const &nodes,
         }
     }
 
-    HistoryManager::initializeHistoryArchive(
-            *simulation->getNode(keys[0].getPublicKey()), "test");
+    simulation->getNode(keys[0].getPublicKey())
+            ->getHistoryArchiveManager()
+            .initializeHistoryArchive("test");
 
     for (size_t i = 0; i < nodes.size(); i++) {
         for (size_t j = i + 1; j < nodes.size(); j++) {
@@ -460,7 +462,6 @@ TEST_CASE("Ledger Manager applies upgrades properly", "[upgrades]") {
 }
 
 TEST_CASE("simulate upgrades", "[herder][upgrades]") {
-    auto epoch = VirtualClock::from_time_t(0);
     // no upgrade is done
     auto noUpgrade =
             LedgerUpgradeableData(LedgerManager::GENESIS_LEDGER_VERSION,
@@ -533,7 +534,7 @@ TEST_CASE("simulate upgrades", "[herder][upgrades]") {
                                                     {upgrade, genesis(0, 30)}};
         auto checks = std::vector<LedgerUpgradeCheck>{
                 {genesis(0, 20), {noUpgrade, noUpgrade, noUpgrade}},
-                {genesis(0, 36), {upgrade, upgrade, upgrade}}};
+                {genesis(0, 36), {upgrade,   upgrade,   upgrade}}};
         simulateUpgrade(nodes, checks);
     }
 

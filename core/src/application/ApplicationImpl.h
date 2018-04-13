@@ -9,6 +9,7 @@
 #include "application/PersistentState.h"
 #include "util/Timer.h"
 #include "util/TmpDir.h"
+#include "util/MetricResetter.h"
 
 #include <thread>
 
@@ -67,6 +68,8 @@ public:
 
     void syncAllMetrics() override;
 
+    void clearMetrics(std::string const &domain) override;
+
     TmpDirManager &getTmpDirManager() override;
 
     LedgerManager &getLedgerManager() override;
@@ -74,6 +77,8 @@ public:
     BucketManager &getBucketManager() override;
 
     CatchupManager &getCatchupManager() override;
+
+    HistoryArchiveManager &getHistoryArchiveManager() override;
 
     HistoryManager &getHistoryManager() override;
 
@@ -120,7 +125,9 @@ public:
 
     bool manualClose() override;
 
-    void generateLoad(uint32_t nAccounts, uint32_t nTxs, uint32_t txRate, bool autoRate) override;
+    void generateLoad(bool isCreate, uint32_t nAccounts, uint32_t nTxs,
+                      uint32_t txRate, uint32_t batchSize,
+                      bool autoRate) override;
 
     LoadGenerator &getLoadGenerator() override;
 
@@ -162,6 +169,7 @@ private:
     std::unique_ptr<BucketManager> mBucketManager;
     std::unique_ptr<CatchupManager> mCatchupManager;
     std::unique_ptr<HerderPersistence> mHerderPersistence;
+    std::unique_ptr<HistoryArchiveManager> mHistoryArchiveManager;
     std::unique_ptr<HistoryManager> mHistoryManager;
     std::unique_ptr<InvariantManager> mInvariantManager;
     std::unique_ptr<Maintainer> mMaintainer;

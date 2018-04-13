@@ -81,5 +81,6 @@ project_add_test(BucketListIsConsistentWithDatabaseTests invariant tests)
 project_add_test(AccountSubEntriesCountIsValidTests invariant tests)
 project_add_test(ConservationOfLumensTests invariant tests)
 project_add_test(ProcessTests process tests)
+project_add_test(CoreTests simulation tests)
 
 

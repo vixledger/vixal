@@ -15,10 +15,9 @@
 
 namespace vixal {
 
-PutSnapshotFilesWork::PutSnapshotFilesWork(
-        Application &app, AbstractWork &parent,
-        std::shared_ptr<HistoryArchive const> archive,
-        std::shared_ptr<StateSnapshot> snapshot)
+PutSnapshotFilesWork::PutSnapshotFilesWork(Application &app, AbstractWork &parent,
+                                           std::shared_ptr<HistoryArchive> archive,
+                                           std::shared_ptr<StateSnapshot> snapshot)
         : Work(app, parent, "put-snapshot-files-" + archive->getName()),
           mArchive(archive), mSnapshot(snapshot) {
 }

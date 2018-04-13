@@ -102,8 +102,9 @@ LedgerManager::ledgerAbbrev(LedgerHeaderHistoryEntry he) {
 }
 
 LedgerManagerImpl::LedgerManagerImpl(Application &app)
-        : mApp(app), mTransactionApply(
-        app.getMetrics().newTimer({"ledger", "transaction", "apply"})),
+        : mApp(app),
+          mTransactionApply(app.getMetrics().newTimer({"ledger", "transaction", "apply"})),
+          mTransactionCount(app.getMetrics().newHistogram({"ledger", "transaction", "count"})),
           mLedgerClose(app.getMetrics().newTimer({"ledger", "ledger", "close"})),
           mLedgerAgeClosed(app.getMetrics().newTimer({"ledger", "age", "closed"})),
           mLedgerAge(app.getMetrics().newCounter({"ledger", "age", "current-seconds"})),
@@ -599,9 +600,9 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const &ledgerData) {
 
     // If we do not support ledger version, we can't apply that ledger, fail!
     if (mCurrentLedger->mHeader.ledgerVersion >
-            Config::CURRENT_LEDGER_PROTOCOL_VERSION) {
+        Config::CURRENT_LEDGER_PROTOCOL_VERSION) {
         CLOG(ERROR, "Ledger") << "Unknown ledger version: "
-                << mCurrentLedger->mHeader.ledgerVersion;
+                              << mCurrentLedger->mHeader.ledgerVersion;
         throw std::runtime_error(
                 fmt::format("cannot apply ledger with not supported version: {}",
                             mCurrentLedger->mHeader.ledgerVersion));
@@ -744,7 +745,7 @@ LedgerManagerImpl::checkDbState() {
         if (a.numSubEntries != (uint32) actualSubEntries) {
             throw std::runtime_error(
                     fmt::format("Mismatch in number of subentries for account {}: "
-                                        "account says {} but found {}",
+                                "account says {} but found {}",
                                 KeyUtils::toStrKey(i.first), a.numSubEntries,
                                 actualSubEntries));
         }
@@ -808,6 +809,13 @@ LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr> &txs,
     CLOG(DEBUG, "Tx") << "applyTransactions: ledger = "
                       << mCurrentLedger->mHeader.ledgerSeq;
     int index = 0;
+
+    // Record tx count
+    auto numTxs = txs.size();
+    if (numTxs > 0) {
+        mTransactionCount.update(static_cast<int64_t>(numTxs));
+    }
+
     for (auto tx : txs) {
         auto txTime = mTransactionApply.timeScope();
         LedgerDelta delta(ledgerDelta);

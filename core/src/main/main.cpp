@@ -12,6 +12,7 @@
 #include "ledger/LedgerManager.h"
 #include "http/HttpClient.h"
 #include "historywork/GetHistoryArchiveStateWork.h"
+#include "history/HistoryArchiveManager.h"
 #include "work/WorkManager.h"
 #include "application/PersistentState.h"
 #include "application/Maintainer.h"
@@ -101,46 +102,46 @@ static const struct option vixal_core_options[] = {
 static void
 usage(int err = 1) {
     auto usageMsg = "usage: vixal-core [OPTIONS]\n"
-            "where OPTIONS can be any of:\n"
-            "      --base64             Use base64 for --printtxn and --signtxn\n"
-            "      --catchup-at SEQ     Do a catchup at ledger SEQ, then quit\n"
-            "                           Use current as SEQ to catchup to 'current'"
-            "history checkpoint\n"
-            "      --catchup-complete   Do a complete catchup, then quit\n"
-            "      --catchup-recent NUM Do a recent catchup for NUM ledgers, then quit\n"
-            "      --catchup-to SEQ     Do a catchup to ledger SEQ, then quit\n"
-            "                           Use current as SEQ to catchup to 'current' history checkpoint\n"
-            "      --c                  Send a command to local vixal-core. try '--c help' for more information\n"
-            "      --conf FILE          Specify a config file ('-' for STDIN, default 'vixal-core.cfg')\n"
-            "      --convertid ID       Displays ID in all known forms\n"
-            "      --dumpxdr FILE       Dump an XDR file, for debugging\n"
-            "      --loadxdr FILE       Load an XDR bucket file, for testing\n"
-            "      --forcescp           Next time vixal-core is run, SCP will start "
-            "with the local ledger rather than waiting to hear from the network.\n"
-//            "      --fuzz FILE          Run a single fuzz input and exit\n"
-//            "      --genfuzz FILE       Generate a random fuzzer input file\n"
-            "      --genseed            Generate and print a random node seed\n"
-            "      --help               Display this string\n"
-            "      --inferquorum        Print a quorum set inferred from history\n"
-            "      --checkquorum        Check quorum intersection from history\n"
-            "      --graphquorum        Print a quorum set graph from history\n"
-            "      --output-file        Output file for --graphquorum and --report-last-history-checkpoint commands\n"
-            "      --offlineinfo        Return information for an offline instance\n"
-            "      --ll LEVEL           Set the log level. (redundant with --c ll but you need this form for the tests.)\n"
-            "                           LEVEL can be: trace, debug, info, error, fatal\n"
-            "      --metric METRIC      Report metric METRIC on exit\n"
-            "      --newdb              Creates or restores the DB to the genesis ledger\n"
-            "      --newhist ARCH       Initialize the named history archive ARCH\n"
-            "      --report-last-history-checkpoint\n"
-            "                           Report information about last checkpoint available in history archives\n"
-            "      --printtxn FILE      Pretty-print one transaction envelope, then quit\n"
-            "      --signtxn FILE       Add signature to transaction envelope, then quit\n"
-            "                           (Key is read from stdin or terminal, as appropriate.)\n"
-            "      --sec2pub            Print the public key corresponding to a secret key\n"
-            "      --netid STRING       Specify network ID for subsequent signtxn\n"
-            "                           (Default is VIXAL_NETWORK_ID environment variable)\n"
-            // "      --test               Run self-tests\n"
-            "      --version            Print version information\n";
+                    "where OPTIONS can be any of:\n"
+                    "      --base64             Use base64 for --printtxn and --signtxn\n"
+                    "      --catchup-at SEQ     Do a catchup at ledger SEQ, then quit\n"
+                    "                           Use current as SEQ to catchup to 'current'"
+                    "history checkpoint\n"
+                    "      --catchup-complete   Do a complete catchup, then quit\n"
+                    "      --catchup-recent NUM Do a recent catchup for NUM ledgers, then quit\n"
+                    "      --catchup-to SEQ     Do a catchup to ledger SEQ, then quit\n"
+                    "                           Use current as SEQ to catchup to 'current' history checkpoint\n"
+                    "      --c                  Send a command to local vixal-core. try '--c help' for more information\n"
+                    "      --conf FILE          Specify a config file ('-' for STDIN, default 'vixal-core.cfg')\n"
+                    "      --convertid ID       Displays ID in all known forms\n"
+                    "      --dumpxdr FILE       Dump an XDR file, for debugging\n"
+                    "      --loadxdr FILE       Load an XDR bucket file, for testing\n"
+                    "      --forcescp           Next time vixal-core is run, SCP will start "
+                    "with the local ledger rather than waiting to hear from the network.\n"
+                    //            "      --fuzz FILE          Run a single fuzz input and exit\n"
+                    //            "      --genfuzz FILE       Generate a random fuzzer input file\n"
+                    "      --genseed            Generate and print a random node seed\n"
+                    "      --help               Display this string\n"
+                    "      --inferquorum        Print a quorum set inferred from history\n"
+                    "      --checkquorum        Check quorum intersection from history\n"
+                    "      --graphquorum        Print a quorum set graph from history\n"
+                    "      --output-file        Output file for --graphquorum and --report-last-history-checkpoint commands\n"
+                    "      --offlineinfo        Return information for an offline instance\n"
+                    "      --ll LEVEL           Set the log level. (redundant with --c ll but you need this form for the tests.)\n"
+                    "                           LEVEL can be: trace, debug, info, error, fatal\n"
+                    "      --metric METRIC      Report metric METRIC on exit\n"
+                    "      --newdb              Creates or restores the DB to the genesis ledger\n"
+                    "      --newhist ARCH       Initialize the named history archive ARCH\n"
+                    "      --report-last-history-checkpoint\n"
+                    "                           Report information about last checkpoint available in history archives\n"
+                    "      --printtxn FILE      Pretty-print one transaction envelope, then quit\n"
+                    "      --signtxn FILE       Add signature to transaction envelope, then quit\n"
+                    "                           (Key is read from stdin or terminal, as appropriate.)\n"
+                    "      --sec2pub            Print the public key corresponding to a secret key\n"
+                    "      --netid STRING       Specify network ID for subsequent signtxn\n"
+                    "                           (Default is VIXAL_NETWORK_ID environment variable)\n"
+                    // "      --test               Run self-tests\n"
+                    "      --version            Print version information\n";
     if (err) {
         std::cerr << usageMsg;
     } else {
@@ -493,8 +494,9 @@ initializeHistories(Config &cfg, vector<string> newHistories) {
     Application::pointer app = Application::create(clock, cfg, false);
 
     for (auto const &arch : newHistories) {
-        if (!HistoryManager::initializeHistoryArchive(*app, arch))
+        if (!app->getHistoryArchiveManager().initializeHistoryArchive(arch)) {
             return 1;
+        }
     }
     return 0;
 }
@@ -511,7 +513,7 @@ startApp(const string &cfgFile, Config &cfg) {
         if (!checkInitialized(app)) {
             return 0;
         } else {
-            if (!HistoryManager::checkSensibleConfig(cfg)) {
+            if (!app->getHistoryArchiveManager().checkSensibleConfig()) {
                 return 1;
             }
             if (cfg.ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING) {
@@ -754,8 +756,7 @@ main(int argc, char *const *argv) {
                     result = catchupTo(cfg, catchupToTarget, catchupInfo);
                 }
                 app->gracefulStop();
-                while (app->getClock().crank(true))
-                    ;
+                while (app->getClock().crank(true));
                 if (!catchupInfo.isNull()) {
                     writeCatchupInfo(catchupInfo, outputFile);
                 }

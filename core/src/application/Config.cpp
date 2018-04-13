@@ -254,8 +254,8 @@ Config::load(std::string const &filename) {
                 LOG_FILE_PATH = readString(item);
             } else if (item.first == "TMP_DIR_PATH") {
                 throw std::invalid_argument("TMP_DIR_PATH is not supported "
-                                                    "anymore - tmp data is now kept in "
-                                                    "BUCKET_DIR_PATH/tmp");
+                                            "anymore - tmp data is now kept in "
+                                            "BUCKET_DIR_PATH/tmp");
             } else if (item.first == "BUCKET_DIR_PATH") {
                 BUCKET_DIR_PATH = readString(item);
             } else if (item.first == "NODE_NAMES") {
@@ -324,7 +324,7 @@ Config::load(std::string const &filename) {
                                 throw std::invalid_argument(err);
                             }
                         }
-                        HISTORY[archive.first] = std::make_shared<HistoryArchive>(archive.first, get, put, mkdir);
+                        HISTORY[archive.first] = HistoryArchiveConfiguration{archive.first, get, put, mkdir};
                     }
                 } else {
                     throw std::invalid_argument("incomplete HISTORY block");
@@ -420,9 +420,9 @@ Config::validateConfig() {
     try {
         if (FAILURE_SAFETY >= r.size()) {
             LOG(ERROR) << "Not enough nodes / thresholds too strict in your "
-                    "Quorum set to ensure your desired level of "
-                    "FAILURE_SAFETY. Reduce FAILURE_SAFETY or fix "
-                    "quorum set";
+                          "Quorum set to ensure your desired level of "
+                          "FAILURE_SAFETY. Reduce FAILURE_SAFETY or fix "
+                          "quorum set";
             throw std::invalid_argument(
                     "FAILURE_SAFETY incompatible with QUORUM_SET");
         }
@@ -430,8 +430,8 @@ Config::validateConfig() {
         if (!UNSAFE_QUORUM) {
             if (FAILURE_SAFETY == 0) {
                 LOG(ERROR) << "Can't have FAILURE_SAFETY=0 unless you also set "
-                        "UNSAFE_QUORUM=true. Be sure you know what you are "
-                        "doing!";
+                              "UNSAFE_QUORUM=true. Be sure you know what you are "
+                              "doing!";
                 throw std::invalid_argument("SCP unsafe");
             }
 
@@ -441,9 +441,9 @@ Config::validateConfig() {
             if (QUORUM_SET.threshold < minSize) {
                 LOG(ERROR)
                         << "Your THESHOLD_PERCENTAGE is too low. If you really "
-                                "want "
-                                "this set UNSAFE_QUORUM=true. Be sure you know what you "
-                                "are doing!";
+                           "want "
+                           "this set UNSAFE_QUORUM=true. Be sure you know what you "
+                           "are doing!";
                 throw std::invalid_argument("SCP unsafe");
             }
         }

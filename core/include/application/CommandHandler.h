@@ -59,6 +59,8 @@ public:
 
     void metrics(std::string const &params, std::string &retStr);
 
+    void clearMetrics(std::string const& params, std::string& retStr);
+
     void peers(std::string const &params, std::string &retStr);
 
     void quorum(std::string const &params, std::string &retStr);

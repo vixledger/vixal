@@ -65,7 +65,7 @@ private:
     AssertionInfo m_lastAssertionInfo;
 
     void printDot() {
-        stream << '.';
+        stream << '.' << std::flush;
         mDots++;
         if (mDots == 40) {
             printNewLine();

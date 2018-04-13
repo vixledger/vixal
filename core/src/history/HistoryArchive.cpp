@@ -23,6 +23,18 @@ namespace vixal {
 
 unsigned const HistoryArchiveState::HISTORY_ARCHIVE_STATE_VERSION = 1;
 
+template<typename... Tokens>
+std::string
+formatString(std::string const &templateString, Tokens const &... tokens) {
+    try {
+        return fmt::format(templateString, tokens...);
+    } catch (fmt::FormatError const &ex) {
+        CLOG(ERROR, "History") << "failed to format string \"" << templateString
+                               << "\":" << ex.what();
+        throw std::runtime_error("failed to format command string");
+    }
+}
+
 bool
 HistoryArchiveState::futuresAllReady() const {
     for (auto const &level : currentBuckets) {
@@ -212,7 +224,7 @@ HistoryArchiveState::HistoryArchiveState() : server(VIXAL_CORE_VERSION) {
 }
 
 HistoryArchiveState::HistoryArchiveState(uint32_t ledgerSeq,
-                                         BucketList const  &buckets)
+                                         BucketList const &buckets)
         : server(VIXAL_CORE_VERSION), currentLedger(ledgerSeq) {
     for (uint32_t i = 0; i < BucketList::kNumLevels; ++i) {
         HistoryStateBucket b;
@@ -224,11 +236,8 @@ HistoryArchiveState::HistoryArchiveState(uint32_t ledgerSeq,
     }
 }
 
-HistoryArchive::HistoryArchive(std::string const &name,
-                               std::string const &getCmd,
-                               std::string const &putCmd,
-                               std::string const &mkdirCmd)
-        : mName(name), mGetCmd(getCmd), mPutCmd(putCmd), mMkdirCmd(mkdirCmd) {
+HistoryArchive::HistoryArchive(HistoryArchiveConfiguration const &config)
+        : mConfig(config) {
 }
 
 HistoryArchive::~HistoryArchive() {
@@ -236,45 +245,63 @@ HistoryArchive::~HistoryArchive() {
 
 bool
 HistoryArchive::hasGetCmd() const {
-    return !mGetCmd.empty();
+    return !mConfig.mGetCmd.empty();
 }
 
 bool
 HistoryArchive::hasPutCmd() const {
-    return !mPutCmd.empty();
+    return !mConfig.mPutCmd.empty();
 }
 
 bool
 HistoryArchive::hasMkdirCmd() const {
-    return !mMkdirCmd.empty();
+    return !mConfig.mMkdirCmd.empty();
 }
 
 std::string const &
 HistoryArchive::getName() const {
-    return mName;
+    return mConfig.mName;
 }
 
 std::string
 HistoryArchive::getFileCmd(std::string const &remote, std::string const &local) const {
-    if (mGetCmd.empty()) {
+    if (mConfig.mGetCmd.empty()) {
         return "";
     }
-    return fmt::format(mGetCmd, remote, local);
+    return formatString(mConfig.mGetCmd, remote, local);
 }
 
 std::string
 HistoryArchive::putFileCmd(std::string const &local, std::string const &remote) const {
-    if (mPutCmd.empty()) {
+    if (mConfig.mPutCmd.empty()) {
         return "";
     }
-    return fmt::format(mPutCmd, local, remote);
+    return formatString(mConfig.mPutCmd, remote, local);
 }
 
 std::string
 HistoryArchive::mkdirCmd(std::string const &remoteDir) const {
-    if (mMkdirCmd.empty()) {
+    if (mConfig.mMkdirCmd.empty()) {
         return "";
     }
-    return fmt::format(mMkdirCmd, remoteDir);
+    return formatString(mConfig.mMkdirCmd, remoteDir);
+}
+
+void
+HistoryArchive::markSuccess() {
+    mSuccess++;
+}
+
+void
+HistoryArchive::markFailure() {
+    mFailure++;
+}
+
+Json::Value
+HistoryArchive::getJsonInfo() const {
+    Json::Value result;
+    result["success"] = mSuccess;
+    result["failure"] = mFailure;
+    return result;
 }
 }

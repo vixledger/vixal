@@ -98,10 +98,11 @@ public:
 
     bool resolveNodeID(std::string const &s, PublicKey &retKey) override;
 
-    void dumpInfo(Json::Value &ret, size_t limit) override;
 
-    void dumpQuorumInfo(Json::Value &ret, NodeID const &id, bool summary,
-                        uint64 index) override;
+    Json::Value getJsonInfo(size_t limit) override;
+
+    Json::Value getJsonQuorumInfo(NodeID const& id, bool summary,
+                                  uint64 index) override;
 
     struct TxMap {
         SequenceNumber mMaxSeq{0};

@@ -29,6 +29,8 @@ class BucketManager;
 
 class CatchupManager;
 
+class HistoryArchiveManager;
+
 class HistoryManager;
 
 class Maintainer;
@@ -135,7 +137,7 @@ public:
         APP_CONNECTED_STANDBY_STATE, // Connected to other SCP peers in sync with network but ledger subsystem still booting up
 
         APP_CATCHING_UP_STATE, // some work required to catchup to the consensus ledger ie:
-                               // downloading from history, applying buckets and replaying transactions
+        // downloading from history, applying buckets and replaying transactions
 
         APP_SYNCED_STATE, // In sync with SCP peers, applying transactions. SCP is active,
 
@@ -178,6 +180,9 @@ public:
     // Call syncOwnMetrics on self and syncMetrics all objects owned by App.
     virtual void syncAllMetrics() = 0;
 
+    // Clear all metrics
+    virtual void clearMetrics(std::string const &domain) = 0;
+
     // Get references to each of the "subsystem" objects.
     virtual TmpDirManager &getTmpDirManager() = 0;
 
@@ -186,6 +191,8 @@ public:
     virtual BucketManager &getBucketManager() = 0;
 
     virtual CatchupManager &getCatchupManager() = 0;
+
+    virtual HistoryArchiveManager &getHistoryArchiveManager() = 0;
 
     virtual HistoryManager &getHistoryManager() = 0;
 
@@ -239,7 +246,9 @@ public:
 
     // If config.ARTIFICIALLY_GENERATE_LOAD_FOR_TESTING=true, generate some load
     // against the current application.
-    virtual void generateLoad(uint32_t nAccounts, uint32_t nTxs, uint32_t txRate, bool autoRate) = 0;
+    virtual void generateLoad(bool isCreate, uint32_t nAccounts, uint32_t nTxs,
+                              uint32_t txRate, uint32_t batchSize,
+                              bool autoRate) = 0;
 
     // Access the load generator for manual operation.
     virtual LoadGenerator &getLoadGenerator() = 0;

@@ -4,6 +4,7 @@ set(Sources
         HistoryManagerImpl.cpp
         InferredQuorum.cpp
         StateSnapshot.cpp
+        HistoryArchiveManager.cpp
         HistoryTestsUtils.cpp
         )
 
@@ -14,6 +15,7 @@ set(PublicHeaders
         ${VIXAL_INCLUDE_DIR}/history/HistoryManager.h
         ${VIXAL_INCLUDE_DIR}/history/InferredQuorum.h
         ${VIXAL_INCLUDE_DIR}/history/StateSnapshot.h
+        ${VIXAL_INCLUDE_DIR}/history/HistoryArchiveManager.h
         ${VIXAL_INCLUDE_DIR}/history/HistoryTestsUtils.h
         )
 

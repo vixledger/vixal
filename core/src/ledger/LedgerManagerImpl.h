@@ -25,6 +25,8 @@ namespace medida {
 class Timer;
 
 class Counter;
+
+class Histogram;
 }
 
 namespace vixal {
@@ -40,6 +42,7 @@ class LedgerManagerImpl : public LedgerManager {
 
     Application &mApp;
     medida::Timer &mTransactionApply;
+    medida::Histogram &mTransactionCount;
     medida::Timer &mLedgerClose;
     medida::Timer &mLedgerAgeClosed;
     medida::Counter &mLedgerAge;
@@ -119,7 +122,7 @@ public:
                       bool manualCatchup) override;
 
     HistoryManager::LedgerVerificationStatus
-    verifyCatchupCandidate(LedgerHeaderHistoryEntry const&, bool manualCatchup) const override;
+    verifyCatchupCandidate(LedgerHeaderHistoryEntry const &, bool manualCatchup) const override;
 
     void closeLedger(LedgerCloseData const &ledgerData) override;
 

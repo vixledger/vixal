@@ -87,7 +87,7 @@ public:
             std::function<bool(SCPStatement const &)> const &filter = [](SCPStatement const &) { return true; },
             NodeID const *excluded = nullptr);
 
-    void toJson(SCPQuorumSet const &qSet, Json::Value &value) const;
+    Json::Value toJson(SCPQuorumSet const& qSet) const;
 
     std::string to_string(SCPQuorumSet const &qSet) const;
 

@@ -4,12 +4,13 @@
 
 #include "historywork/MakeRemoteDirWork.h"
 #include "history/HistoryArchive.h"
+#include "application/Application.h"
 
 namespace vixal {
 
 MakeRemoteDirWork::MakeRemoteDirWork(
         Application &app, AbstractWork &parent, std::string const &dir,
-        std::shared_ptr<HistoryArchive const> archive)
+        std::shared_ptr<HistoryArchive> archive)
         : RunCommandWork(app, parent, std::string("make-remote-dir ") + dir), mDir(dir), mArchive(archive) {
     assert(mArchive);
 }
@@ -24,4 +25,17 @@ MakeRemoteDirWork::getCommand(std::string &cmdLine, std::string &outFile) {
         cmdLine = mArchive->mkdirCmd(mDir);
     }
 }
+
+Work::State
+MakeRemoteDirWork::onSuccess() {
+    mArchive->markSuccess();
+    return RunCommandWork::onSuccess();
+}
+
+void
+MakeRemoteDirWork::onFailureRaise() {
+    mArchive->markFailure();
+    RunCommandWork::onFailureRaise();
+}
+
 }

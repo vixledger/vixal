@@ -134,6 +134,9 @@ protected:
     std::vector<SequenceNumber> bobSeqs;
     std::vector<SequenceNumber> carolSeqs;
 
+    void crankForAtMost(Application::pointer app,
+                        VirtualClock::duration duration);
+
 public:
     explicit CatchupSimulation(
             std::shared_ptr<HistoryConfigurator> cg =
@@ -160,8 +163,6 @@ public:
     getBucketListAtLastPublish() const {
         return mBucketListAtLastPublish;
     }
-
-    void crankTillDone();
 
     void generateRandomLedger();
 

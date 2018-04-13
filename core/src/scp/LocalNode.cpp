@@ -310,27 +310,25 @@ LocalNode::findClosestVBlocking(SCPQuorumSet const &qset,
     return res;
 }
 
-void
-LocalNode::toJson(SCPQuorumSet const &qSet, Json::Value &value) const {
-    value["t"] = qSet.threshold;
-    auto &entries = value["v"];
+Json::Value
+LocalNode::toJson(SCPQuorumSet const &qSet) const {
+    Json::Value ret;
+    ret["t"] = qSet.threshold;
+    auto& entries = ret["v"];
     for (auto const &v : qSet.validators) {
         entries.append(mSCP->getDriver().toShortString(v));
     }
     for (auto const &s : qSet.innerSets) {
-        Json::Value iV;
-        toJson(s, iV);
-        entries.append(iV);
+        entries.append(toJson(s));
     }
+    return ret;
 }
 
 std::string
 LocalNode::to_string(SCPQuorumSet const &qSet) const {
-    Json::Value v;
-    toJson(qSet, v);
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
-    return Json::writeString(builder, v);
+    return Json::writeString(builder, toJson(qSet));
 }
 
 NodeID const &

@@ -28,7 +28,7 @@ class InvariantManagerImpl : public InvariantManager {
 public:
     explicit InvariantManagerImpl(medida::MetricsRegistry &registry);
 
-    Json::Value getInformation() override;
+    Json::Value getJsonInfo() override;
 
 
     void checkOnOperationApply(Operation const &operation,

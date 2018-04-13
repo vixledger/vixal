@@ -36,12 +36,9 @@ class HistoryManagerImpl : public HistoryManager {
     PublishQueueBuckets::BucketCount loadBucketsReferencedByPublishQueue();
 
 public:
-    HistoryManagerImpl(Application &app);
+    explicit HistoryManagerImpl(Application &app);
 
     ~HistoryManagerImpl() override;
-
-    std::shared_ptr<HistoryArchive>
-    selectRandomReadableHistoryArchive() override;
 
     uint32_t getCheckpointFrequency() const override;
 
@@ -62,8 +59,6 @@ public:
     void queueCurrentHistory() override;
 
     void takeSnapshotAndPublish(HistoryArchiveState const &has);
-
-    bool hasAnyWritableHistoryArchive() override;
 
     uint32_t getMinLedgerQueuedToPublish() override;
 
@@ -94,13 +89,10 @@ public:
 
     std::string localFilename(std::string const &basename) override;
 
-    uint64_t getPublishSkipCount() override;
 
     uint64_t getPublishQueueCount() override;
 
     uint64_t getPublishDelayCount() override;
-
-    uint64_t getPublishStartCount() override;
 
     uint64_t getPublishSuccessCount() override;
 

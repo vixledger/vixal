@@ -15,6 +15,7 @@
 #include "database/Database.h"
 #include "herder/Herder.h"
 #include "herder/HerderPersistence.h"
+#include "history/HistoryArchiveManager.h"
 #include "history/HistoryManager.h"
 #include "invariant/AccountSubEntriesCountIsValid.h"
 #include "invariant/BucketListIsConsistentWithDatabase.h"
@@ -104,6 +105,7 @@ ApplicationImpl::initialize() {
     mHerderPersistence = HerderPersistence::create(*this);
     mBucketManager = BucketManager::create(*this);
     mCatchupManager = CatchupManager::create(*this);
+    mHistoryArchiveManager = std::make_unique<HistoryArchiveManager>(*this);
     mHistoryManager = HistoryManager::create(*this);
     mInvariantManager = createInvariantManager();
     mMaintainer = std::make_unique<Maintainer>(*this);
@@ -213,6 +215,7 @@ ApplicationImpl::getJsonInfo() {
     info["ledger"]["version"] = lcl.header.ledgerVersion;
     info["ledger"]["baseFee"] = lcl.header.baseFee;
     info["ledger"]["baseReserve"] = lcl.header.baseReserve;
+    info["ledger"]["maxTxSetSize"] = lcl.header.maxTxSetSize;
     info["ledger"]["age"] = (int) lm.secondsSinceLastLedgerClose();
     info["peers"]["pending_count"] = getOverlayManager().getPendingPeersCount();
     info["peers"]["authenticated_count"] = getOverlayManager().getAuthenticatedPeersCount();
@@ -227,16 +230,20 @@ ApplicationImpl::getJsonInfo() {
     }
 
     auto &herder = getHerder();
-    Json::Value q;
-    herder.dumpQuorumInfo(q, getConfig().NODE_SEED.getPublicKey(), true,
-                          herder.getCurrentLedgerSeq());
+    auto q = herder.getJsonQuorumInfo(getConfig().NODE_SEED.getPublicKey(),
+                                      true, herder.getCurrentLedgerSeq());
     if (q["slots"].size() != 0) {
         info["quorum"] = q["slots"];
     }
 
-    Json::Value invariantFailures = getInvariantManager().getInformation();
+    auto invariantFailures = getInvariantManager().getJsonInfo();
     if (!invariantFailures.empty()) {
         info["invariant_failures"] = invariantFailures;
+    }
+
+    auto historyArchiveInfo = getHistoryArchiveManager().getJsonInfo();
+    if (!historyArchiveInfo.empty()) {
+        info["history"] = historyArchiveInfo;
     }
 
     return root;
@@ -402,16 +409,19 @@ ApplicationImpl::manualClose() {
 }
 
 void
-ApplicationImpl::generateLoad(uint32_t nAccounts, uint32_t nTxs,
-                              uint32_t txRate, bool autoRate) {
+ApplicationImpl::generateLoad(bool isCreate, uint32_t nAccounts, uint32_t nTxs,
+                              uint32_t txRate, uint32_t batchSize,
+                              bool autoRate) {
     getMetrics().newMeter({"loadgen", "run", "start"}, "run").mark();
-    getLoadGenerator().generateLoad(*this, nAccounts, nTxs, txRate, autoRate);
+    getLoadGenerator().clear();
+    getLoadGenerator().generateLoad(isCreate, nAccounts, nTxs, txRate,
+                                    batchSize, autoRate);
 }
 
 LoadGenerator &
 ApplicationImpl::getLoadGenerator() {
     if (!mLoadGenerator) {
-        mLoadGenerator = std::make_unique<LoadGenerator>(getNetworkID());
+        mLoadGenerator = std::make_unique<LoadGenerator>(*this);
     }
     return *mLoadGenerator;
 }
@@ -516,6 +526,17 @@ ApplicationImpl::syncAllMetrics() {
     syncOwnMetrics();
 }
 
+void
+ApplicationImpl::clearMetrics(std::string const &domain) {
+    MetricResetter resetter;
+    auto const &metrics = mMetrics->getAllMetrics();
+    for (auto const &kv : metrics) {
+        if (domain.empty() || kv.first.domain() == domain) {
+            kv.second->process(resetter);
+        }
+    }
+}
+
 TmpDirManager &
 ApplicationImpl::getTmpDirManager() {
     return *mTmpDirManager;
@@ -534,6 +555,11 @@ ApplicationImpl::getBucketManager() {
 CatchupManager &
 ApplicationImpl::getCatchupManager() {
     return *mCatchupManager;
+}
+
+HistoryArchiveManager&
+ApplicationImpl::getHistoryArchiveManager() {
+    return *mHistoryArchiveManager;
 }
 
 HistoryManager &

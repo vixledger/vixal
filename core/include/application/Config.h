@@ -20,7 +20,13 @@ namespace vixal {
 
 using namespace nonstd;
 
-class HistoryArchive;
+
+struct HistoryArchiveConfiguration {
+    std::string mName;
+    std::string mGetCmd;
+    std::string mPutCmd;
+    std::string mMkdirCmd;
+};
 
 class Config : public std::enable_shared_from_this<Config> {
     void validateConfig();
@@ -189,7 +195,7 @@ public:
     std::map<std::string, std::string> VALIDATOR_NAMES;
 
     // History config
-    std::map<std::string, std::shared_ptr<HistoryArchive>> HISTORY;
+    std::map<std::string, HistoryArchiveConfiguration> HISTORY;
 
     // Database config
     SecretValue DATABASE;

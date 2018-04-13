@@ -54,6 +54,9 @@ public:
     // How many ledgers in the past we keep track of
     static uint32 const MAX_SLOTS_TO_REMEMBER;
 
+    // Threshold used to filter out irrelevant events.
+    static std::chrono::nanoseconds const TIMERS_THRESHOLD_NANOSEC;
+
     static std::unique_ptr<Herder> create(Application &app);
 
     enum State {
@@ -68,6 +71,8 @@ public:
         TX_STATUS_ERROR,
         TX_STATUS_COUNT
     };
+
+    static const char* TX_STATUS_STRING[TX_STATUS_COUNT];
 
     enum EnvelopeStatus {
         /// for some reason this envelope was discarded - either is was invalid,
@@ -140,8 +145,9 @@ public:
 
     virtual ~Herder() = default;
 
-    virtual void dumpInfo(Json::Value &ret, size_t limit) = 0;
+    virtual Json::Value getJsonInfo(size_t limit) = 0;
 
-    virtual void dumpQuorumInfo(Json::Value &ret, NodeID const &id, bool summary, uint64 index) = 0;
+    virtual Json::Value getJsonQuorumInfo(NodeID const& id, bool summary,
+                                          uint64 index = 0) = 0;
 };
 }

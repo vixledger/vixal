@@ -6,13 +6,13 @@
 
 #include "xdr/xdr.h"
 #include <util/noncopyable.h>
-#include <util/SociNoWarnings.h>
 #include <util/lrucache.hpp>
 #include <util/Timer.h>
 #include <medida/timer_context.h>
 #include <set>
 #include <string>
 #include <utility>
+#include <soci/soci.h>
 
 namespace medida {
 class Meter;

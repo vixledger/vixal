@@ -24,8 +24,9 @@ public:
     // select a new readable history archive at random each time it runs /
     // retries.
     GetAndUnzipRemoteFileWork(
-            Application &app, AbstractWork &parent, FileTransferInfo ft,
-            std::shared_ptr<HistoryArchive const> archive = nullptr,
+            Application &app, AbstractWork &parent,
+            FileTransferInfo ft,
+            std::shared_ptr<HistoryArchive> archive = nullptr,
             size_t maxRetries = Work::RETRY_A_LOT);
 
     ~GetAndUnzipRemoteFileWork();

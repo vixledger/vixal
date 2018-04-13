@@ -10,6 +10,7 @@
 #include "util/GlobalChecks.h"
 #include "util/Logging.h"
 #include "xdrpp/marshal.h"
+#include "json/json.h"
 
 namespace vixal {
 using xdr::operator==;
@@ -92,28 +93,34 @@ SCP::getSlot(uint64 slotIndex, bool create) {
     return res;
 }
 
-void
-SCP::dumpInfo(Json::Value &ret, size_t limit) {
+Json::Value
+SCP::getJsonInfo(size_t limit) {
+    Json::Value ret;
     auto it = mKnownSlots.rbegin();
     while (it != mKnownSlots.rend() && limit-- != 0) {
-        it->second->dumpInfo(ret);
+        auto &slot = *(it->second);
+        ret[std::to_string(slot.getSlotIndex())] = slot.getJsonInfo();
         it++;
     }
+    return ret;
 }
 
-void
-SCP::dumpQuorumInfo(Json::Value &ret, NodeID const &id, bool summary,
-                    uint64 index) {
+Json::Value
+SCP::getJsonQuorumInfo(NodeID const &id, bool summary, uint64 index) {
+    Json::Value ret;
     if (index == 0) {
         for (auto &item : mKnownSlots) {
-            item.second->dumpQuorumInfo(ret, id, summary);
+            auto &slot = *item.second;
+            ret[std::to_string(slot.getSlotIndex())] =
+                    slot.getJsonQuorumInfo(id, summary);
         }
     } else {
         auto s = getSlot(index, false);
         if (s) {
-            s->dumpQuorumInfo(ret, id, summary);
+            ret[std::to_string(index)] = s->getJsonQuorumInfo(id, summary);
         }
     }
+    return ret;
 }
 
 bool

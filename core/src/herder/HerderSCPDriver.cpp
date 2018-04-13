@@ -10,6 +10,7 @@
 #include "application/Application.h"
 #include "util/Logging.h"
 #include <xdrpp/marshal.h>
+#include <util/format.h>
 
 namespace vixal {
 
@@ -28,7 +29,9 @@ HerderSCPDriver::SCPMetrics::SCPMetrics(Application &app)
           mConfirmedBallotPrepared(app.getMetrics().newMeter({"scp", "ballot", "confirmed-prepared"}, "ballot")),
           mAcceptedCommit(app.getMetrics().newMeter({"scp", "ballot", "accepted-commit"}, "ballot")),
           mHerderStateCurrent(app.getMetrics().newCounter({"herder", "state", "current"})),
-          mHerderStateChanges(app.getMetrics().newTimer({"herder", "state", "changes"})) {
+          mHerderStateChanges(app.getMetrics().newTimer({"herder", "state", "changes"})),
+          mNominateToPrepare(app.getMetrics().newTimer({"scp", "timing", "nominated"})),
+          mPrepareToExternalize(app.getMetrics().newTimer({"scp", "timing", "externalized"})) {
 }
 
 HerderSCPDriver::HerderSCPDriver(Application &app, HerderImpl &herder,
@@ -239,7 +242,7 @@ HerderSCPDriver::validateValue(uint64_t slotIndex, Value const &value,
             if (i != 0 && (lastUpgradeType >= thisUpgradeType)) {
                 CLOG(TRACE, "Herder")
                         << "HerderSCPDriver::validateValue out of "
-                                "order upgrade step at index "
+                           "order upgrade step at index "
                         << i;
                 res = SCPDriver::kInvalidValue;
             }
@@ -509,8 +512,7 @@ HerderSCPDriver::valueExternalized(uint64_t slotIndex, Value const &value) {
 void
 HerderSCPDriver::logQuorumInformation(uint64_t index) {
     std::string res;
-    Json::Value v;
-    mApp.getHerder().dumpQuorumInfo(v, mSCP.getLocalNodeID(), true, index);
+    auto v = mApp.getHerder().getJsonQuorumInfo(mSCP.getLocalNodeID(), true, index);
     auto slots = v.get("slots", "");
     if (!slots.empty()) {
         std::string indexs = std::to_string(static_cast<uint32>(index));
@@ -572,6 +574,7 @@ HerderSCPDriver::updatedCandidateValue(uint64_t slotIndex, Value const &value) {
 void
 HerderSCPDriver::startedBallotProtocol(uint64_t slotIndex,
                                        SCPBallot const &ballot) {
+    recordSCPEvent(slotIndex, false);
     mSCPMetrics.mStartBallotProtocol.mark();
 }
 
@@ -590,5 +593,67 @@ HerderSCPDriver::confirmedBallotPrepared(uint64_t slotIndex,
 void
 HerderSCPDriver::acceptedCommit(uint64_t slotIndex, SCPBallot const &ballot) {
     mSCPMetrics.mAcceptedCommit.mark();
+}
+
+void
+HerderSCPDriver::recordSCPEvent(uint64_t slotIndex, bool isNomination) {
+    auto &timing = mSCPExecutionTimes[slotIndex];
+    VirtualClock::time_point start = mApp.getClock().now();
+    if (isNomination) {
+        timing.mNominationStart =
+                make_optional<VirtualClock::time_point>(start);
+    } else {
+        timing.mPrepareStart = make_optional<VirtualClock::time_point>(start);
+    }
+}
+
+void
+HerderSCPDriver::recordSCPExecutionMetrics(uint64_t slotIndex) {
+    auto externalizeStart = mApp.getClock().now();
+
+    // Use threshold of 0 in case of a single node
+    auto &qset = mApp.getConfig().QUORUM_SET;
+    auto isSingleNode = qset.innerSets.size() == 0 &&
+                        qset.validators.size() == 1 &&
+                        qset.validators[0] == getSCP().getLocalNodeID();
+    auto threshold = isSingleNode ? std::chrono::nanoseconds::zero()
+                                  : Herder::TIMERS_THRESHOLD_NANOSEC;
+
+    auto SCPTimingIt = mSCPExecutionTimes.find(slotIndex);
+    if (SCPTimingIt == mSCPExecutionTimes.end()) {
+        return;
+    }
+
+    auto &SCPTiming = SCPTimingIt->second;
+
+    auto recordTiming = [&](VirtualClock::time_point start,
+                            VirtualClock::time_point end, medida::Timer &timer,
+                            std::string const &logStr) {
+        auto delta =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        CLOG(DEBUG, "Herder") << fmt::format("{} delta for slot {} is {} ns.",
+                                             logStr, slotIndex, delta.count());
+        if (delta >= threshold) {
+            timer.update(delta);
+        }
+    };
+
+    // Compute nomination time
+    if (SCPTiming.mNominationStart && SCPTiming.mPrepareStart) {
+        recordTiming(*SCPTiming.mNominationStart, *SCPTiming.mPrepareStart,
+                     mSCPMetrics.mNominateToPrepare, "Nominate");
+    }
+
+    // Compute prepare time
+    if (SCPTiming.mPrepareStart) {
+        recordTiming(*SCPTiming.mPrepareStart, externalizeStart,
+                     mSCPMetrics.mPrepareToExternalize, "Prepare");
+    }
+
+    // Clean up timings map
+    auto it = mSCPExecutionTimes.begin();
+    while (it != mSCPExecutionTimes.end() && it->first <= slotIndex) {
+        it = mSCPExecutionTimes.erase(it);
+    }
 }
 }

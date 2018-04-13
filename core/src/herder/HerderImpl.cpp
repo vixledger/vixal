@@ -125,6 +125,8 @@ findOrAdd(HerderImpl::AccountTxMap &acc, AccountID const &aid) {
 
 void
 HerderImpl::valueExternalized(uint64 slotIndex, VixalValue const &value) {
+    // record metrics
+    getHerderSCPDriver().recordSCPExecutionMetrics(slotIndex);
     updateSCPCounters();
 
     // called both here and at the end (this one is in case of an exception)
@@ -662,6 +664,7 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger) {
             newProposedValue.upgrades.emplace_back(v.begin(), v.end());
         }
     }
+    getHerderSCPDriver().recordSCPEvent(slotIndex, true);
     mHerderSCPDriver.nominate(slotIndex, newProposedValue, proposedSet,
                               lcl.header.scpValue);
 }
@@ -719,22 +722,24 @@ HerderImpl::resolveNodeID(std::string const &s, PublicKey &retKey) {
     return r;
 }
 
-void
-HerderImpl::dumpInfo(Json::Value &ret, size_t limit) {
+Json::Value
+HerderImpl::getJsonInfo(size_t limit) {
+    Json::Value ret;
     ret["you"] =
             mApp.getConfig().toStrKey(mApp.getConfig().NODE_SEED.getPublicKey());
 
-    getSCP().dumpInfo(ret, limit);
-
-    mPendingEnvelopes.dumpInfo(ret, limit);
+    ret["scp"] = getSCP().getJsonInfo(limit);
+    ret["queue"] = mPendingEnvelopes.getJsonInfo(limit);
+    return ret;
 }
 
-void
-HerderImpl::dumpQuorumInfo(Json::Value &ret, NodeID const &id, bool summary,
-                           uint64 index) {
-    ret["node"] = mApp.getConfig().toStrKey(id);
+Json::Value
+HerderImpl::getJsonQuorumInfo(NodeID const &id, bool summary, uint64 index) {
+    Json::Value ret;
 
-    getSCP().dumpQuorumInfo(ret["slots"], id, summary, index);
+    ret["node"] = mApp.getConfig().toStrKey(id);
+    ret["slots"] = getSCP().getJsonQuorumInfo(id, summary, index);
+    return ret;
 }
 
 void
@@ -835,7 +840,7 @@ HerderImpl::restoreSCPState() {
         // we may have exceptions when upgrading the protocol
         // this should be the only time we get exceptions decoding old messages.
         CLOG(INFO, "Herder") << "Error while restoring old scp messages, "
-                "proceeding without them : "
+                                "proceeding without them : "
                              << e.what();
     }
 }
@@ -920,12 +925,10 @@ HerderImpl::updatePendingTransactions(
 
 void
 HerderImpl::herderOutOfSync() {
-    CLOG(INFO, "Herder") << "Lost track of consensus";
+    CLOG(WARNING, "Herder") << "Lost track of consensus";
 
-    Json::Value v;
-    dumpInfo(v, 20);
-    std::string s = v.toStyledString();
-    CLOG(INFO, "Herder") << "Out of sync context: " << s;
+    auto s = getJsonInfo(20).toStyledString();
+    CLOG(WARNING, "Herder") << "Out of sync context: " << s;
 
     mSCPMetrics.mLostSync.mark();
     mHerderSCPDriver.lostSync();

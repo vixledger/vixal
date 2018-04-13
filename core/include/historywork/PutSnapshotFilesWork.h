@@ -12,7 +12,7 @@ namespace vixal {
 struct StateSnapshot;
 
 class PutSnapshotFilesWork : public Work {
-    std::shared_ptr<HistoryArchive const> mArchive;
+    std::shared_ptr<HistoryArchive> mArchive;
     std::shared_ptr<StateSnapshot> mSnapshot;
     HistoryArchiveState mRemoteState;
 
@@ -22,7 +22,7 @@ class PutSnapshotFilesWork : public Work {
 
 public:
     PutSnapshotFilesWork(Application &app, AbstractWork &parent,
-                         std::shared_ptr<HistoryArchive const> archive,
+                         std::shared_ptr<HistoryArchive> archive,
                          std::shared_ptr<StateSnapshot> snapshot);
 
     ~PutSnapshotFilesWork();

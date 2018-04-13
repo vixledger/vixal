@@ -11,7 +11,7 @@
 #include "xdr/xdr.h"
 #include "test/test.h"
 #include "test/TestUtils.h"
-#include "util/SociNoWarnings.h"
+#include <soci/soci.h>
 
 namespace vixal {
 

@@ -4,15 +4,17 @@
 
 #include "historywork/GetRemoteFileWork.h"
 #include "history/HistoryArchive.h"
+#include "history/HistoryArchiveManager.h"
 #include "history/HistoryManager.h"
 #include "application/Application.h"
 
 namespace vixal {
 
-GetRemoteFileWork::GetRemoteFileWork(
-        Application &app, AbstractWork &parent, std::string const &remote,
-        std::string const &local, std::shared_ptr<HistoryArchive const> archive,
-        size_t maxRetries)
+GetRemoteFileWork::GetRemoteFileWork(Application &app, AbstractWork &parent,
+                                     std::string const &remote,
+                                     std::string const &local,
+                                     std::shared_ptr<HistoryArchive> archive,
+                                     size_t maxRetries)
         : RunCommandWork(app, parent, std::string("get-remote-file ") + remote,
                          maxRetries), mRemote(remote), mLocal(local), mArchive(archive) {
 }
@@ -23,17 +25,32 @@ GetRemoteFileWork::~GetRemoteFileWork() {
 
 void
 GetRemoteFileWork::getCommand(std::string &cmdLine, std::string &outFile) {
-    auto archive = mArchive;
-    if (!archive) {
-        archive = mApp.getHistoryManager().selectRandomReadableHistoryArchive();
+    mCurrentArchive = mArchive;
+    if (!mCurrentArchive) {
+        mCurrentArchive = mApp.getHistoryArchiveManager()
+                .selectRandomReadableHistoryArchive();
     }
-    assert(archive);
-    assert(archive->hasGetCmd());
-    cmdLine = archive->getFileCmd(mRemote, mLocal);
+    assert(mCurrentArchive);
+    assert(mCurrentArchive->hasGetCmd());
+    cmdLine = mCurrentArchive->getFileCmd(mRemote, mLocal);
 }
 
 void
 GetRemoteFileWork::onReset() {
     std::remove(mLocal.c_str());
+}
+
+Work::State
+GetRemoteFileWork::onSuccess() {
+    assert(mCurrentArchive);
+    mCurrentArchive->markSuccess();
+    return RunCommandWork::onSuccess();
+}
+
+void
+GetRemoteFileWork::onFailureRaise() {
+    assert(mCurrentArchive);
+    mCurrentArchive->markFailure();
+    RunCommandWork::onFailureRaise();
 }
 }

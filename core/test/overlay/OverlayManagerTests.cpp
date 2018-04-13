@@ -15,8 +15,8 @@
 #include "test/test.h"
 #include "test/TestUtils.h"
 #include "transactions/TransactionFrame.h"
-#include "util/SociNoWarnings.h"
 #include "util/Timer.h"
+#include <soci/soci.h>
 
 using namespace vixal;
 using namespace std;

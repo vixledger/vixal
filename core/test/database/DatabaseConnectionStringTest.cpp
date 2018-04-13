@@ -4,7 +4,7 @@
 
 #include "../src/database/DatabaseConnectionString.h"
 #include "catch.hpp"
-#include "util/SociNoWarnings.h"
+#include <soci/soci.h>
 
 using namespace vixal;
 

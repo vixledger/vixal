@@ -14,14 +14,14 @@ struct HistoryArchiveState;
 
 class PutHistoryArchiveStateWork : public Work {
     HistoryArchiveState const &mState;
-    std::shared_ptr<HistoryArchive const> mArchive;
+    std::shared_ptr<HistoryArchive> mArchive;
     std::string mLocalFilename;
     std::shared_ptr<Work> mPutRemoteFileWork;
 
 public:
     PutHistoryArchiveStateWork(Application &app, AbstractWork &parent,
                                HistoryArchiveState const &state,
-                               std::shared_ptr<HistoryArchive const> archive);
+                               std::shared_ptr<HistoryArchive> archive);
 
     ~PutHistoryArchiveStateWork();
 

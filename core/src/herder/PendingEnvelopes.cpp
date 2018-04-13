@@ -387,22 +387,22 @@ PendingEnvelopes::getQSet(Hash const &hash) {
     return SCPQuorumSetPtr();
 }
 
-void
-PendingEnvelopes::dumpInfo(Json::Value &ret, size_t limit) {
-    Json::Value &q = ret["queue"];
+Json::Value
+PendingEnvelopes::getJsonInfo(size_t limit) {
+    Json::Value ret;
 
     {
         auto it = mEnvelopes.rbegin();
         size_t l = limit;
         while (it != mEnvelopes.rend() && l-- != 0) {
             if (it->second.mFetchingEnvelopes.size() != 0) {
-                Json::Value &slot = q[std::to_string(it->first)]["fetching"];
+                Json::Value& slot = ret[std::to_string(it->first)]["fetching"];
                 for (auto const &e : it->second.mFetchingEnvelopes) {
                     slot.append(mHerder.getSCP().envToStr(e));
                 }
             }
             if (it->second.mReadyEnvelopes.size() != 0) {
-                Json::Value &slot = q[std::to_string(it->first)]["pending"];
+                Json::Value& slot = ret[std::to_string(it->first)]["pending"];
                 for (auto const &e : it->second.mReadyEnvelopes) {
                     slot.append(mHerder.getSCP().envToStr(e));
                 }
@@ -410,5 +410,6 @@ PendingEnvelopes::dumpInfo(Json::Value &ret, size_t limit) {
             it++;
         }
     }
+    return ret;
 }
 }
