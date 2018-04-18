@@ -9,33 +9,12 @@
 namespace Catch {
 
 std::string
-StringMaker<vixal::ClaimOfferAtom>::convert(vixal::ClaimOfferAtom const &coa) {
-    return xdr::xdr_to_string(coa);
-}
-
-std::string
-StringMaker<vixal::Hash>::convert(vixal::Hash const &hash) {
-    return xdr::xdr_to_string(hash);
-}
-
-std::string
-StringMaker<vixal::OfferEntry>::convert(vixal::OfferEntry const &oe) {
-    return xdr::xdr_to_string(oe);
-}
-
-
-std::string
 StringMaker<vixal::OfferState>::convert(vixal::OfferState const &os) {
     return fmt::format(
             "selling: {}, buying: {}, price: {}, amount: {}, type: {}",
             xdr::xdr_to_string(os.selling), xdr::xdr_to_string(os.buying),
             xdr::xdr_to_string(os.price), os.amount,
             os.type == vixal::OfferType::PASSIVE ? "passive" : "active");
-}
-
-std::string
-StringMaker<vixal::TransactionResult>::convert(vixal::TransactionResult const &tr) {
-    return xdr::xdr_to_string(tr);
 }
 
 std::string

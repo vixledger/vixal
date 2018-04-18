@@ -231,7 +231,7 @@ TEST_CASE("postgres smoketest", "[db]") {
     }
 }
 
-TEST_CASE("postgres performance", "[db][pgperf][hide]") {
+TEST_CASE("postgres performance", "[db][pgperf][!hide]") {
     Config cfg(getTestConfig(0, Config::TESTDB_POSTGRESQL));
     VirtualClock clock;
     std::default_random_engine gen;

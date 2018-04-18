@@ -7,10 +7,11 @@ namespace Catch {
 struct SimpleTestReporter : public ConsoleReporter {
 
     SimpleTestReporter(ReporterConfig const &_config)
-            : ConsoleReporter(_config),
-              m_lastAssertionInfo{"", SourceLineInfo("", 0), "", ResultDisposition::Normal} {
+            : ConsoleReporter(_config) {
 
     }
+
+    ~SimpleTestReporter() = default;
 
     static std::string
     getDescription() {
@@ -38,7 +39,7 @@ struct SimpleTestReporter : public ConsoleReporter {
 
     void
     assertionStarting(AssertionInfo const &ai) override {
-        m_lastAssertionInfo = ai;
+        mLastAssertInfo = std::make_unique<AssertionInfo>(ai);
     }
 
     bool
@@ -48,7 +49,7 @@ struct SimpleTestReporter : public ConsoleReporter {
         if (result.isOk()) {
             return true;
         }
-        ConsoleReporter::assertionStarting(m_lastAssertionInfo);
+        ConsoleReporter::assertionStarting(*mLastAssertInfo);
         return ConsoleReporter::assertionEnded(_assertionStats);
     }
 
@@ -62,7 +63,7 @@ struct SimpleTestReporter : public ConsoleReporter {
 private:
     int mDots{0};
 
-    AssertionInfo m_lastAssertionInfo;
+    std::unique_ptr<AssertionInfo> mLastAssertInfo;
 
     void printDot() {
         stream << '.' << std::flush;

@@ -12,6 +12,10 @@
 #include "util/Fs.h"
 #include "util/format.h"
 
+#include <chrono>
+#include <future>
+#include <thread>
+
 using namespace vixal;
 
 TEST_CASE("subprocess", "[process]") {
@@ -136,4 +140,50 @@ TEST_CASE("subprocess storm", "[process]") {
         REQUIRE(!fs::exists(src));
         REQUIRE(fs::exists(dst));
     }
+}
+
+TEST_CASE("shutdown while process running", "[process]") {
+    VirtualClock clock;
+    auto const& cfg1 = getTestConfig(0);
+    auto const& cfg2 = getTestConfig(1);
+    auto app1 = createTestApplication(clock, cfg1);
+    auto app2 = createTestApplication(clock, cfg2);
+#ifdef _WIN32
+    std::string command = "waitfor /T 10 pause";
+#else
+    std::string command = "sleep 10";
+#endif
+    std::vector<ProcessExitEvent> events = {
+            app1->getProcessManager().runProcess(command, ""),
+            app2->getProcessManager().runProcess(command, "")
+    };
+    std::vector<asio::error_code> errorCodes;
+    size_t exitedCount = 0;
+    for (auto& event : events) {
+        event.async_wait([&](asio::error_code ec) {
+            CLOG(DEBUG, "Process") << "process exited: " << ec;
+            if (ec) {
+                CLOG(DEBUG, "Process") << "error code: " << ec.message();
+            }
+            exitedCount++;
+            errorCodes.push_back(ec);
+        });
+    }
+
+    // Wait, just in case the processes haven't started yet
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // Shutdown so we force the command execution to fail
+    app1->getProcessManager().shutdown();
+    app2->getProcessManager().shutdown();
+
+    while (exitedCount < events.size() && !clock.io_context().stopped()) {
+        clock.crank(true);
+    }
+    REQUIRE(exitedCount == events.size());
+    for (auto const& errorCode : errorCodes) {
+        REQUIRE(errorCode == asio::error::operation_aborted);
+    }
+
+
 }

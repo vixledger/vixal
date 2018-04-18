@@ -2,13 +2,13 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/LedgerTestUtils.h"
 #include "database/Database.h"
+#include "herder/LedgerCloseData.h"
+#include "ledger/LedgerTestUtils.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/EntryFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManager.h"
-#include "catch.hpp"
 #include "application/Application.h"
 #include "application/Config.h"
 #include "test/test.h"
@@ -16,6 +16,7 @@
 #include "util/Logging.h"
 #include "util/Timer.h"
 #include "util/types.h"
+#include "catch.hpp"
 #include <xdrpp/autocheck.h>
 
 using namespace vixal;

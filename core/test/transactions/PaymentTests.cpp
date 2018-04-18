@@ -1883,7 +1883,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
     }
 }
 
-TEST_CASE("single create account SQL", "[singlesql][paymentsql][hide]") {
+TEST_CASE("single create account SQL", "[singlesql][paymentsql][!hide]") {
     Config::TestDbMode mode = Config::TESTDB_ON_DISK_SQLITE;
 #ifdef USE_POSTGRES
     if (!force_sqlite)

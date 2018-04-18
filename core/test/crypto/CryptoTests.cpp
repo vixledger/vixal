@@ -161,7 +161,7 @@ struct SignVerifyTestcase {
     }
 };
 
-TEST_CASE("sign and verify benchmarking", "[crypto-bench][bench][hide]") {
+TEST_CASE("sign and verify benchmarking", "[crypto-bench][bench][!hide]") {
     size_t n = 100000;
     std::vector<SignVerifyTestcase> cases;
     for (size_t i = 0; i < n; ++i) {

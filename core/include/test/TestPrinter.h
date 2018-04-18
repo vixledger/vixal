@@ -5,10 +5,11 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "catchup/CatchupWork.h"
-#include "xdr/transaction.h"
-#include "xdrpp/printer.h"
 #include "application/Application.h"
 #include "history/HistoryTestsUtils.h"
+#include "xdrpp/printer.h"
+#include "xdrpp/types.h"
+
 #include <catch.hpp>
 
 namespace vixal {
@@ -18,34 +19,22 @@ struct OfferState;
 
 namespace Catch {
 
-template<>
-struct StringMaker<vixal::ClaimOfferAtom> {
-    static std::string convert(vixal::ClaimOfferAtom const &coa);
-};
-
-template<>
-struct StringMaker<vixal::Hash> {
-    static std::string convert(vixal::Hash const &coa);
-};
-
-template<>
-struct StringMaker<vixal::OfferEntry> {
-    static std::string convert(vixal::OfferEntry const &coa);
+template <typename T>
+struct StringMaker<T, typename std::enable_if<xdr::xdr_traits<T>::valid>::type> {
+    static std::string
+    convert(T const& val) {
+        return xdr::xdr_to_string(val);
+    }
 };
 
 template<>
 struct StringMaker<vixal::OfferState> {
-    static std::string convert(vixal::OfferState const &coa);
-};
-
-template<>
-struct StringMaker<vixal::TransactionResult> {
-    static std::string convert(vixal::TransactionResult const &coa);
+    static std::string convert(vixal::OfferState const &os);
 };
 
 template<>
 struct StringMaker<vixal::CatchupRange> {
-    static std::string convert(vixal::CatchupRange const &coa);
+    static std::string convert(vixal::CatchupRange const &cr);
 };
 
 template<>

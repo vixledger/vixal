@@ -905,7 +905,7 @@ TEST_CASE("checkdb succeeding", "[bucket][checkdb]") {
     std::vector<vixal::LedgerKey> emptySet;
 
     // Create accounts
-    app->generateLoad(true, 1000, 0, 1000, 100, false);
+    app->generateLoad(true, 1000, 0, 0, 1000, 100, false);
     auto &m = app->getMetrics();
     while (m.newMeter({"loadgen", "run", "complete"}, "run").count() == 0) {
         clock.crank(false);

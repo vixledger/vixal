@@ -14,6 +14,7 @@
 #include "test/TxTests.h"
 #include "test/test.h"
 #include "work/WorkManager.h"
+#include <catch.hpp>
 
 #include <medida/metrics_registry.h>
 

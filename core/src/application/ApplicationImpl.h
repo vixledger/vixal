@@ -125,7 +125,8 @@ public:
 
     bool manualClose() override;
 
-    void generateLoad(bool isCreate, uint32_t nAccounts, uint32_t nTxs,
+    void generateLoad(bool isCreate, uint32_t nAccounts,
+                      uint32_t offset, uint32_t nTxs,
                       uint32_t txRate, uint32_t batchSize,
                       bool autoRate) override;
 

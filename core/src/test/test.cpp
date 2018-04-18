@@ -7,8 +7,6 @@
 
 #define CATCH_CONFIG_RUNNER
 
-#include <catch.hpp>
-
 #include "CoreVersion.h"
 #include "application/Config.h"
 #include "util/TmpDir.h"
@@ -21,12 +19,14 @@
 
 namespace vixal {
 
-
-bool force_sqlite = (std::getenv("VIXAL_FORCE_SQLITE") != nullptr);
 static std::vector<std::string> gTestMetrics;
 static std::vector<std::unique_ptr<Config>> gTestCfg[Config::TESTDB_MODES];
 static std::vector<TmpDir> gTestRoots;
 static bool gTestAllVersions{false};
+static std::vector<uint32> gVersionsToTest;
+
+
+bool force_sqlite = (std::getenv("VIXAL_FORCE_SQLITE") != nullptr);
 
 Config const &
 getTestConfig(unsigned instanceNumber, Config::TestDbMode mode) {
@@ -133,10 +133,20 @@ test(int argc, char *argv[], el::Level ll,
     LOG(INFO) << "Testing vixal-core " << VIXAL_CORE_VERSION;
     LOG(INFO) << "Logging to " << cfg.LOG_FILE_PATH;
 
+    using namespace Catch;
     Catch::Session session{};
+    session.cli(
+            session.cli() |
+            clara::Opt(gTestAllVersions)["--all-versions"]("Test all versions") |
+            clara::Opt(gVersionsToTest,
+                       "version")["--version"]("Test specific version(s)"));
     auto r = session.applyCommandLine(argc, argv);
+
     if (r != 0) {
         return r;
+    }
+    if (gVersionsToTest.empty()) {
+        gVersionsToTest.emplace_back(Config::CURRENT_LEDGER_PROTOCOL_VERSION);
     }
     r = session.run();
     gTestRoots.clear();
@@ -182,7 +192,9 @@ void
 for_versions(std::vector<uint32> const &versions, Application &app, std::function<void(void)> const &f) {
     auto previousVersion = app.getLedgerManager().getCurrentLedgerVersion();
     for (auto v : versions) {
-        if (!gTestAllVersions && v != Config::CURRENT_LEDGER_PROTOCOL_VERSION) {
+        if (!gTestAllVersions &&
+                std::find(gVersionsToTest.begin(), gVersionsToTest.end(), v) ==
+                        gVersionsToTest.end()) {
             continue;
         }
         SECTION("protocol version " + std::to_string(v)) {

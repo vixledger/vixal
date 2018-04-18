@@ -29,7 +29,7 @@ class Application;
 
 class LoadGenerator {
 public:
-    LoadGenerator(Application &app);
+    explicit LoadGenerator(Application &app);
 
     virtual ~LoadGenerator();
 
@@ -58,7 +58,7 @@ public:
 
     // Schedule a callback to generateLoad() STEP_MSECS miliseconds from now.
     void scheduleLoadGeneration(bool isCreate, uint32_t nAccounts,
-                                uint32_t nTxs, uint32_t txRate,
+                                uint32_t offset, uint32_t nTxs, uint32_t txRate,
                                 uint32_t batchSize, bool autoRate);
 
     // Generate one "step" worth of load (assuming 1 step per STEP_MSECS) at a
@@ -66,7 +66,8 @@ public:
     // If work remains after the current step, call scheduleLoadGeneration()
     // with the remainder.
 
-    void generateLoad(bool isCreate, uint32_t nAccounts, uint32_t nTxs,
+    void generateLoad(bool isCreate, uint32_t nAccounts,
+                      uint32_t offset, uint32_t nTxs,
                       uint32_t txRate, uint32_t batchSize, bool autoRate);
 
     std::vector<Operation> createAccounts(uint64_t i, uint64_t batchSize,
@@ -77,12 +78,13 @@ public:
     bool loadAccount(TestAccountPtr account, Database &database);
 
     std::pair<TestAccountPtr, TestAccountPtr>
-    pickAccountPair(uint32_t numAccounts, uint32_t ledgerNum,
-                    uint64_t sourceAccountId);
+    pickAccountPair(uint32_t numAccounts, uint32_t offset,
+                    uint32_t ledgerNum, uint64_t sourceAccountId);
 
     TestAccountPtr findAccount(uint64_t accountId, uint32_t ledgerNum);
 
     LoadGenerator::TxInfo paymentTransaction(uint32_t numAccounts,
+                                             uint32_t offset,
                                              uint32_t ledgerNum,
                                              uint64_t sourceAccount);
 
@@ -99,11 +101,12 @@ public:
                      uint32_t nAccounts, uint32_t nTxs, uint32_t batchSize,
                      uint32_t txRate);
 
-    uint32_t submitCreationTx(uint32_t nAccounts, uint32_t batchSize,
-                              uint32_t ledgerNum);
+    uint32_t submitCreationTx(uint32_t nAccounts, uint32_t offset,
+                              uint32_t batchSize, uint32_t ledgerNum);
 
-    uint32_t submitPaymentTx(uint32_t nAccounts, uint32_t nTxs,
-                             uint32_t batchSize, uint32_t ledgerNum);
+    uint32_t submitPaymentTx(uint32_t nAccounts, uint32_t offset,
+                             uint32_t batchSize, uint32_t ledgerNum,
+                             uint32_t nTxs);
 
     void updateMinBalance();
 
@@ -117,7 +120,7 @@ public:
         medida::Meter &mTxnRejected;
         medida::Meter &mTxnBytes;
 
-        TxMetrics(medida::MetricsRegistry &m);
+        explicit TxMetrics(medida::MetricsRegistry &m);
 
         void report();
     };

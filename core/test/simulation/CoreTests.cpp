@@ -32,7 +32,7 @@ using namespace vixal;
 typedef std::unique_ptr<Application> appPtr;
 
 // Simulation tests. Some of the tests in this suite are long.
-// They are marked with [long][hide]. Run the day-to-day tests with
+// They are marked with [long][!hide]. Run the day-to-day tests with
 //
 //     --test
 // or
@@ -189,7 +189,7 @@ resilienceTest(Simulation::pointer sim) {
     }
 }
 
-TEST_CASE("resilience tests", "[resilience][simulation][long][hide]") {
+TEST_CASE("resilience tests", "[resilience][simulation][long][!hide]") {
     Simulation::Mode mode = Simulation::OVER_LOOPBACK;
 
     Hash networkID = sha256(getTestConfig().NETWORK_PASSPHRASE);
@@ -312,7 +312,7 @@ TEST_CASE("cycle4 topology", "[simulation]") {
 }
 
 TEST_CASE("Stress test on 2 nodes 3 accounts 10 random transactions 10tx/sec",
-          "[stress100][simulation][stress][long][hide]") {
+          "[stress100][simulation][stress][long][!hide]") {
     Hash networkID = sha256(getTestConfig().NETWORK_PASSPHRASE);
     Simulation::pointer simulation =
             Topologies::pair(Simulation::OVER_LOOPBACK, networkID);
@@ -325,7 +325,7 @@ TEST_CASE("Stress test on 2 nodes 3 accounts 10 random transactions 10tx/sec",
     auto nodes = simulation->getNodes();
     auto &app = *nodes[0]; // pick a node to generate load
 
-    app.getLoadGenerator().generateLoad(true, 3, 0, 10, 100, false);
+    app.getLoadGenerator().generateLoad(true, 3, 0, 0, 10, 100, false);
 
     try {
         simulation->crankUntil(
@@ -338,7 +338,7 @@ TEST_CASE("Stress test on 2 nodes 3 accounts 10 random transactions 10tx/sec",
                 },
                 3 * Herder::EXP_LEDGER_TIMESPAN_SECONDS, false);
 
-        app.getLoadGenerator().generateLoad(false, 3, 10, 10, 100, false);
+        app.getLoadGenerator().generateLoad(false, 3, 0, 10, 10, 100, false);
 
         simulation->crankUntil(
                 [&]() {
@@ -373,11 +373,11 @@ newLoadTestApp(VirtualClock &clock) {
     return appPtr;
 }
 
-TEST_CASE("Auto-calibrated single node load test", "[autoload][hide]") {
+TEST_CASE("Auto-calibrated single node load test", "[autoload][!hide]") {
     VirtualClock clock(VirtualClock::REAL_TIME);
     auto appPtr = newLoadTestApp(clock);
     // Create accounts
-    appPtr->generateLoad(true, 100000, 0, 10, 3, true);
+    appPtr->generateLoad(true, 100000, 0, 0, 10, 3, true);
     auto &io = clock.io_context();
     auto mainWork = asio::make_work_guard(io);
     auto &complete =
@@ -386,7 +386,7 @@ TEST_CASE("Auto-calibrated single node load test", "[autoload][hide]") {
         clock.crank();
     }
     // Generate payments
-    appPtr->generateLoad(false, 100000, 100000, 10, 100, true);
+    appPtr->generateLoad(false, 100000, 0, 100000, 10, 100, true);
     while (!io.stopped() && complete.count() == 1) {
         clock.crank();
     }
@@ -443,7 +443,7 @@ public:
     }
 };
 
-TEST_CASE("Accounts vs. latency", "[scalability][hide]") {
+TEST_CASE("Accounts vs. latency", "[scalability][!hide]") {
     ScaleReporter r({"accounts", "txcount", "latencymin", "latencymax",
                      "latency50", "latency95", "latency99"});
 
@@ -456,7 +456,7 @@ TEST_CASE("Accounts vs. latency", "[scalability][hide]") {
     uint32_t numItems = 500000;
 
     // Create accounts
-    lg.generateLoad(true, numItems, 0, 10, 100, true);
+    lg.generateLoad(true, numItems, 0, 0, 10, 100, true);
 
     auto &complete =
             appPtr->getMetrics().newMeter({"loadgen", "run", "complete"}, "run");
@@ -469,7 +469,7 @@ TEST_CASE("Accounts vs. latency", "[scalability][hide]") {
     }
     txtime.clear();
     // Generate payment txs
-    lg.generateLoad(false, numItems, numItems / 10, 10, 100, true);
+    lg.generateLoad(false, numItems, 0, numItems / 10, 10, 100, true);
     while (!io.stopped() && complete.count() == 1) {
         clock.crank();
     }
@@ -501,7 +501,7 @@ netTopologyTest(
         assert(!nodes.empty());
         auto &app = *nodes[0];
 
-        app.getLoadGenerator().generateLoad(true, 50, 0, 10, 100, false);
+        app.getLoadGenerator().generateLoad(true, 50, 0, 0, 10, 100, false);
         auto &complete =
                 app.getMetrics().newMeter({"loadgen", "run", "complete"}, "run");
 
@@ -535,7 +535,7 @@ netTopologyTest(
     }
 }
 
-TEST_CASE("Mesh nodes vs. network traffic", "[scalability][hide]") {
+TEST_CASE("Mesh nodes vs. network traffic", "[scalability][!hide]") {
     netTopologyTest(
             "mesh", [&](int numNodes) -> Simulation::pointer {
                 return Topologies::core(
@@ -549,7 +549,7 @@ TEST_CASE("Mesh nodes vs. network traffic", "[scalability][hide]") {
             });
 }
 
-TEST_CASE("Cycle nodes vs. network traffic", "[scalability][hide]") {
+TEST_CASE("Cycle nodes vs. network traffic", "[scalability][!hide]") {
     netTopologyTest(
             "cycle", [&](int numNodes) -> Simulation::pointer {
                 return Topologies::cycle(
@@ -564,7 +564,7 @@ TEST_CASE("Cycle nodes vs. network traffic", "[scalability][hide]") {
             });
 }
 
-TEST_CASE("Branched-cycle nodes vs. network traffic", "[scalability][hide]") {
+TEST_CASE("Branched-cycle nodes vs. network traffic", "[scalability][!hide]") {
     netTopologyTest(
             "branchedcycle",
             [&](int numNodes) -> Simulation::pointer {
@@ -580,7 +580,7 @@ TEST_CASE("Branched-cycle nodes vs. network traffic", "[scalability][hide]") {
             });
 }
 
-TEST_CASE("Bucket-list entries vs. write throughput", "[scalability][hide]") {
+TEST_CASE("Bucket-list entries vs. write throughput", "[scalability][!hide]") {
     VirtualClock clock;
     Config const &cfg = getTestConfig();
 
