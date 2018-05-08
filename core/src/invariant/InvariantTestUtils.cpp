@@ -5,6 +5,7 @@
 #include "invariant/InvariantTestUtils.h"
 #include "invariant/InvariantDoesNotHold.h"
 #include "invariant/InvariantManager.h"
+#include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerTestUtils.h"
 #include "application/Application.h"

@@ -8,11 +8,11 @@
 #include "application/Application.h"
 #include "overlay/OverlayManager.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 #include "util/types.h"
 
 namespace vixal {
 
-using xdr::operator<;
 
 LoadManager::LoadManager() : mPeerCosts(128) {
 }

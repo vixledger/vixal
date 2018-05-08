@@ -11,13 +11,13 @@
 #include "json/json.h"
 #include "util/GlobalChecks.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 #include "util/types.h"
 
 #include "xdrpp/marshal.h"
 
+
 namespace vixal {
-using xdr::operator==;
-using xdr::operator<;
 using namespace std::placeholders;
 
 // max number of transitions that can occur from processing one message
@@ -672,7 +672,7 @@ BallotProtocol::attemptPreparedAccept(SCPStatement const &hint) {
 
         bool accepted = federatedAccept(
                 // checks if any node is voting for this ballot
-                [&ballot, this](SCPStatement const &st) {
+                [&ballot](SCPStatement const& st) {
                     bool res;
 
                     switch (st.pledges.type()) {

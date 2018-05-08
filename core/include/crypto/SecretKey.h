@@ -5,6 +5,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "crypto/KeyUtils.h"
+#include "util/XDROperators.h"
 #include "xdr/types.h"
 
 #include <array>
@@ -12,9 +13,6 @@
 #include <ostream>
 
 namespace vixal {
-
-using xdr::operator==;
-using xdr::operator<;
 
 class ByteSlice;
 
@@ -26,6 +24,7 @@ class SecretKey {
     using uint512 = xdr::opaque_array<64>;
     PublicKeyType mKeyType;
     uint512 mSecretKey;
+    PublicKey mPublicKey;
 
     struct Seed {
         PublicKeyType mKeyType;
@@ -43,7 +42,7 @@ public:
     ~SecretKey();
 
     // Get the public key portion of this secret key.
-    PublicKey getPublicKey() const;
+    PublicKey const &getPublicKey() const;
 
     // Get the seed portion of this secret key as a StrKey string.
     SecretValue getStrKeySeed() const;

@@ -12,14 +12,11 @@
 #include "application/Application.h"
 #include "test/TestUtils.h"
 #include "test/test.h"
+#include "util/XDROperators.h"
+
 #include <random>
 
 using namespace vixal;
-
-namespace vixal {
-using xdr::operator<;
-}
-
 
 static LedgerEntry
 generateRandomLedgerEntry(std::map<LedgerKey, LedgerEntry> &liveEntries,

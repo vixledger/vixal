@@ -4,13 +4,12 @@
 
 #include "util/types.h"
 #include "util/uint128_t.h"
+#include "util/XDROperators.h"
 #include <algorithm>
 #include <locale>
 
 namespace vixal {
 static std::locale cLocale("C");
-
-using xdr::operator==;
 
 bool
 isZero(uint256 const &b) {

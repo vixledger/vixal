@@ -5,6 +5,8 @@
 #include "crypto/Hex.h"
 #include "crypto/SignerKey.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerManager.h"
+
 #include "catch.hpp"
 #include "test/TestAccount.h"
 #include "test/TestUtils.h"

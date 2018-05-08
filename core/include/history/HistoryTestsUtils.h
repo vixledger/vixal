@@ -4,17 +4,14 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "application/Config.h"
-#include "application/Application.h"
-
 #include "bucket/BucketList.h"
 #include "herder/LedgerCloseData.h"
-
+#include "application/Application.h"
+#include "application/Config.h"
 #include "util/Timer.h"
 #include "util/TmpDir.h"
 
 #include <random>
-#include <xdr/ledger-entries.h>
 
 namespace vixal {
 

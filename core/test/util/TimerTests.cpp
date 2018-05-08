@@ -192,11 +192,12 @@ TEST_CASE("timer cancels", "[timer]") {
         timers.push_back(std::make_unique<VirtualTimer>(*app));
         timers.back()->expires_after(std::chrono::seconds(i));
         timers.back()->async_wait(
-                [&timerFired, &timerCancelled, i](asio::error_code const &ec) {
-                    if (ec)
+                [&](asio::error_code const &ec) {
+                    if (ec) {
                         ++timerCancelled;
-                    else
+                    } else {
                         ++timerFired;
+                    }
                 });
     }
     timers[5]->async_wait([&](asio::error_code const &ec) {

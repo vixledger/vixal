@@ -252,7 +252,6 @@ TEST_CASE("postgres performance", "[db][pgperf][!hide]") {
         LOG(INFO) << "timing 10 inserts of " << sz << " rows";
         {
             for (int64_t i = 0; i < 10; ++i) {
-                TIMED_SCOPE(bulkinsert, "single large-tx insert");
                 soci::transaction sqltx(session);
                 for (int64_t j = 0; j < sz; ++j) {
                     int64_t r = dist(gen);
@@ -268,7 +267,6 @@ TEST_CASE("postgres performance", "[db][pgperf][!hide]") {
                   << div << " inserts each";
         soci::transaction sqltx(session);
         for (int64_t i = 0; i < 10; ++i) {
-            TIMED_SCOPE(timerobj, "many small-tx insert");
             for (int64_t j = 0; j < sz / div; ++j) {
                 soci::transaction subtx(session);
                 for (int64_t k = 0; k < div; ++k) {
@@ -281,7 +279,6 @@ TEST_CASE("postgres performance", "[db][pgperf][!hide]") {
             }
         }
         {
-            TIMED_SCOPE(timerobj, "outer commit");
             sqltx.commit();
         }
     }

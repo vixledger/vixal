@@ -27,7 +27,7 @@ namespace vixal {
 
 static std::mutex gVerifySigCacheMutex;
 static cache::lru_cache<Hash, bool> gVerifySigCache(0xffff);
-static std::unique_ptr <SHA256> gHasher = SHA256::create();
+static std::unique_ptr<SHA256> gHasher = SHA256::create();
 static uint64_t gVerifyCacheHit = 0;
 static uint64_t gVerifyCacheMiss = 0;
 
@@ -62,17 +62,9 @@ SecretKey::Seed::~Seed() {
     std::memset(mSeed.data(), 0, mSeed.size());
 }
 
-PublicKey
+PublicKey const &
 SecretKey::getPublicKey() const {
-    PublicKey pk;
-
-    assert(mKeyType == PUBLIC_KEY_TYPE_ED25519);
-
-    if (crypto_sign_ed25519_sk_to_pk(pk.ed25519().data(), mSecretKey.data()) !=
-        0) {
-        throw std::runtime_error("error extracting public key from secret key");
-    }
-    return pk;
+    return mPublicKey;
 }
 
 SecretKey::Seed
@@ -124,10 +116,10 @@ SecretKey::sign(ByteSlice const &bin) const {
 
 SecretKey
 SecretKey::random() {
-    PublicKey pk;
     SecretKey sk;
     assert(sk.mKeyType == PUBLIC_KEY_TYPE_ED25519);
-    if (crypto_sign_keypair(pk.ed25519().data(), sk.mSecretKey.data()) != 0) {
+    if (crypto_sign_keypair(sk.mPublicKey.ed25519().data(),
+                            sk.mSecretKey.data()) != 0) {
         throw std::runtime_error("error generating random secret key");
     }
     return sk;
@@ -135,15 +127,14 @@ SecretKey::random() {
 
 SecretKey
 SecretKey::fromSeed(ByteSlice const &seed) {
-    PublicKey pk;
     SecretKey sk;
     assert(sk.mKeyType == PUBLIC_KEY_TYPE_ED25519);
 
     if (seed.size() != crypto_sign_SEEDBYTES) {
         throw std::runtime_error("seed does not match byte size");
     }
-    if (crypto_sign_seed_keypair(pk.ed25519().data(), sk.mSecretKey.data(),
-                                 seed.data()) != 0) {
+    if (crypto_sign_seed_keypair(sk.mPublicKey.ed25519().data(),
+                                 sk.mSecretKey.data(), seed.data()) != 0) {
         throw std::runtime_error("error generating secret key from seed");
     }
     return sk;
@@ -152,7 +143,7 @@ SecretKey::fromSeed(ByteSlice const &seed) {
 SecretKey
 SecretKey::fromStrKeySeed(std::string const &strKeySeed) {
     uint8_t ver;
-    std::vector <uint8_t> seed;
+    std::vector<uint8_t> seed;
     if (!strKey::fromStrKey(strKeySeed, ver, seed) ||
         (ver != strKey::STRKEY_SEED_ED25519) ||
         (seed.size() != crypto_sign_SEEDBYTES) ||
@@ -160,11 +151,10 @@ SecretKey::fromStrKeySeed(std::string const &strKeySeed) {
         throw std::runtime_error("invalid seed");
     }
 
-    PublicKey pk;
     SecretKey sk;
     assert(sk.mKeyType == PUBLIC_KEY_TYPE_ED25519);
-    if (crypto_sign_seed_keypair(pk.ed25519().data(), sk.mSecretKey.data(),
-                                 seed.data()) != 0) {
+    if (crypto_sign_seed_keypair(sk.mPublicKey.ed25519().data(),
+                                 sk.mSecretKey.data(), seed.data()) != 0) {
         throw std::runtime_error("error generating secret key from seed");
     }
     return sk;
@@ -172,13 +162,13 @@ SecretKey::fromStrKeySeed(std::string const &strKeySeed) {
 
 void
 PubKeyUtils::clearVerifySigCache() {
-    std::lock_guard <std::mutex> guard(gVerifySigCacheMutex);
+    std::lock_guard<std::mutex> guard(gVerifySigCacheMutex);
     gVerifySigCache.clear();
 }
 
 void
 PubKeyUtils::flushVerifySigCacheCounts(uint64_t &hits, uint64_t &misses) {
-    std::lock_guard <std::mutex> guard(gVerifySigCacheMutex);
+    std::lock_guard<std::mutex> guard(gVerifySigCacheMutex);
     hits = gVerifyCacheHit;
     misses = gVerifyCacheMiss;
     gVerifyCacheHit = 0;
@@ -252,7 +242,7 @@ PubKeyUtils::verifySig(PublicKey const &key, Signature const &signature,
     auto cacheKey = verifySigCacheKey(key, signature, bin);
 
     {
-        std::lock_guard <std::mutex> guard(gVerifySigCacheMutex);
+        std::lock_guard<std::mutex> guard(gVerifySigCacheMutex);
         if (gVerifySigCache.exists(cacheKey)) {
             ++gVerifyCacheHit;
             return gVerifySigCache.get(cacheKey);
@@ -263,7 +253,7 @@ PubKeyUtils::verifySig(PublicKey const &key, Signature const &signature,
     bool ok =
             (crypto_sign_verify_detached(signature.data(), bin.data(), bin.size(),
                                          key.ed25519().data()) == 0);
-    std::lock_guard <std::mutex> guard(gVerifySigCacheMutex);
+    std::lock_guard<std::mutex> guard(gVerifySigCacheMutex);
     gVerifySigCache.put(cacheKey, ok);
     return ok;
 }

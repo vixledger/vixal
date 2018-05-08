@@ -8,13 +8,19 @@
 #include "crypto/SHA.h"
 #include "application/Application.h"
 #include "application/Config.h"
-#include "medida/medida.h"
+
 #include "overlay/LoopbackPeer.h"
-#include "xdr/xdr.h"
 #include "simulation/LoadGenerator.h"
+
 #include "test/TxTests.h"
+
+#include "medida/medida.h"
+
 #include "util/Timer.h"
+#include "util/XDROperators.h"
+
 #include "xdr/types.h"
+#include "xdr/xdr.h"
 
 #define SIMULATION_CREATE_NODE(N) \
     const Hash v##N##VSeed = sha256("NODE_SEED_" #N); \
@@ -22,8 +28,6 @@
     const PublicKey v##N##NodeID = v##N##SecretKey.getPublicKey();
 
 namespace vixal {
-using xdr::operator<;
-using xdr::operator==;
 
 class Simulation {
 public:
@@ -34,8 +38,9 @@ public:
 
     using pointer = std::shared_ptr<Simulation>;
     using ConfigGen = std::function<Config(int i)>;
+    using QuorumSetAdjuster = std::function<SCPQuorumSet(SCPQuorumSet const &)>;
 
-    Simulation(Mode mode, Hash const &networkID, ConfigGen = nullptr);
+    Simulation(Mode mode, Hash const &networkID, ConfigGen = nullptr, QuorumSetAdjuster = nullptr);
 
     ~Simulation();
 
@@ -123,6 +128,8 @@ private:
     std::vector<std::shared_ptr<LoopbackPeerConnection>> mLoopbackConnections;
 
     ConfigGen mConfigGen; // config generator
+
+    QuorumSetAdjuster mQuorumSetAdjuster;
 
     std::chrono::milliseconds const quantum = std::chrono::milliseconds(100);
 };

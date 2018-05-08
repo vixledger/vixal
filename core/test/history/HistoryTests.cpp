@@ -16,6 +16,7 @@
 #include "historywork/GzipFileWork.h"
 #include "historywork/PutHistoryArchiveStateWork.h"
 #include "ledger/CheckpointRange.h"
+#include "ledger/LedgerManager.h"
 #include "catch.hpp"
 #include "application/ExternalQueue.h"
 #include "application/PersistentState.h"
@@ -212,8 +213,7 @@ TEST_CASE("HistoryArchiveState::get_put", "[history]") {
 
     HistoryArchiveState has2;
     auto get = wm.executeWork<GetHistoryArchiveStateWork>(
-            "get-history-archive-state", has2, 0, std::chrono::seconds(0),
-            archive);
+            "get-history-archive-state", has2, 0, archive);
     REQUIRE(get->getState() == Work::WORK_SUCCESS);
     REQUIRE(has2.currentLedger == 0x1234);
 }
@@ -259,7 +259,7 @@ TEST_CASE("Full history catchup", "[history][historycatchup]") {
 
     catchupSimulation.generateAndPublishInitialHistory(3);
 
-    uint32_t initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+    uint32_t initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     std::vector<Application::pointer> apps;
 
@@ -324,7 +324,7 @@ TEST_CASE("History prefix catchup", "[history][historycatchup][prefixcatchup]") 
             std::string("Catchup to prefix of published history"));
     apps.push_back(a);
     uint32_t freq = apps.back()->getHistoryManager().getCheckpointFrequency();
-    CHECK(apps.back()->getLedgerManager().getLedgerNum() == freq + 1);
+    CHECK(apps.back()->getLedgerManager().getLedgerNum() == freq + 2);
 
     // Then attempt catchup to 74, prefix of 128. Should round up to 128.
     // Should replay the 64th (since it gets externalized) and land on 129.
@@ -333,7 +333,7 @@ TEST_CASE("History prefix catchup", "[history][historycatchup][prefixcatchup]") 
             Config::TESTDB_IN_MEMORY_SQLITE,
             std::string("Catchup to second prefix of published history"));
     apps.push_back(a);
-    CHECK(apps.back()->getLedgerManager().getLedgerNum() == 2 * freq + 1);
+    CHECK(apps.back()->getLedgerManager().getLedgerNum() == 2 * freq + 2);
 }
 
 TEST_CASE("Publish/catchup alternation, with stall",
@@ -349,7 +349,7 @@ TEST_CASE("Publish/catchup alternation, with stall",
 
     auto &lm = catchupSimulation.getApp().getLedgerManager();
 
-    uint32_t initLedger = lm.getLastClosedLedgerNum() - 1;
+    uint32_t initLedger = lm.getLastClosedLedgerNum() - 2;
 
     app2 = catchupSimulation.catchupNewApplication(
             initLedger, std::numeric_limits<uint32_t>::max(), false,
@@ -378,8 +378,8 @@ TEST_CASE("Publish/catchup alternation, with stall",
     // By now we should have had 3 + 1 + 2 + 3 = 9 publishes, and should
     // have advanced 1 ledger in to the 9th block.
     uint32_t freq = app2->getHistoryManager().getCheckpointFrequency();
-    CHECK(app2->getLedgerManager().getLedgerNum() == 9 * freq + 1);
-    CHECK(app3->getLedgerManager().getLedgerNum() == 9 * freq + 1);
+    CHECK(app2->getLedgerManager().getLedgerNum() == 9 * freq + 2);
+    CHECK(app3->getLedgerManager().getLedgerNum() == 9 * freq + 2);
 
     // Finally, publish a little more history than the last publish-point
     // but not enough to get to the _next_ publish-point:
@@ -392,7 +392,7 @@ TEST_CASE("Publish/catchup alternation, with stall",
     // by providing 30 cranks of the event loop and assuming that failure
     // to catch up within that time means 'stalled'.
 
-    initLedger = lm.getLastClosedLedgerNum() - 1;
+    initLedger = lm.getLastClosedLedgerNum() - 2;
 
     REQUIRE(!catchupSimulation.catchupApplication(
             initLedger, std::numeric_limits<uint32_t>::max(), false, app2));
@@ -566,7 +566,7 @@ TEST_CASE("too far behind / catchup restart", "[history][catchupstall]") {
 
     // Catch up successfully the first time
     auto app2 = catchupSimulation.catchupNewApplication(
-            catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1,
+            catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2,
             std::numeric_limits<uint32_t>::max(), false,
             Config::TESTDB_IN_MEMORY_SQLITE, "app2");
 
@@ -574,13 +574,13 @@ TEST_CASE("too far behind / catchup restart", "[history][catchupstall]") {
     catchupSimulation.generateAndPublishHistory(1);
 
     auto init = app2->getLedgerManager().getLastClosedLedgerNum() + 2;
-    REQUIRE(init == 66);
+    REQUIRE(init == 67);
 
     // Now start a catchup on that catchups as far as it can due to gap
     LOG(INFO) << "Starting catchup (with gap) from " << init;
     REQUIRE(catchupSimulation.catchupApplication(
             init, std::numeric_limits<uint32_t>::max(), false, app2, true, init + 10));
-    REQUIRE(app2->getLedgerManager().getLastClosedLedgerNum() == 75);
+    REQUIRE(app2->getLedgerManager().getLastClosedLedgerNum() == 76);
 
     app2->getWorkManager().clearChildren();
 
@@ -588,10 +588,10 @@ TEST_CASE("too far behind / catchup restart", "[history][catchupstall]") {
     catchupSimulation.generateAndPublishHistory(1);
 
     // And catchup successfully
-    init = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+    init = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     REQUIRE(catchupSimulation.catchupApplication(init, std::numeric_limits<uint32_t>::max(), false, app2));
-    REQUIRE(app2->getLedgerManager().getLastClosedLedgerNum() == 192);
+    REQUIRE(app2->getLedgerManager().getLastClosedLedgerNum() == 193);
 }
 
 /*
@@ -607,7 +607,7 @@ TEST_CASE("Catchup recent", "[history][catchuprecent]") {
 
     // Network has published 0x3f (63), 0x7f (127) and 0xbf (191)
     // Network is currently sitting on ledger 0xc0 (192)
-    uint32_t initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+    uint32_t initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     // Check that isolated catchups work at a variety of boundary
     // conditions relative to the size of a checkpoint:
@@ -623,7 +623,7 @@ TEST_CASE("Catchup recent", "[history][catchuprecent]") {
     // Now push network along a little bit and see that they can all still
     // catch up properly.
     catchupSimulation.generateAndPublishHistory(2);
-    initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+    initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     for (auto a : apps) {
         catchupSimulation.catchupApplication(initLedger, 80, false, a);
@@ -632,7 +632,7 @@ TEST_CASE("Catchup recent", "[history][catchuprecent]") {
     // Now push network along a _lot_ further along see that they can all
     // still catch up properly.
     catchupSimulation.generateAndPublishHistory(25);
-    initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+    initLedger = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     for (auto a : apps) {
         catchupSimulation.catchupApplication(initLedger, 80, false, a);
@@ -649,7 +649,7 @@ TEST_CASE("Catchup manual", "[history][catchupmanual]") {
     std::vector<Application::pointer> apps;
 
     catchupSimulation.generateAndPublishInitialHistory(6);
-    auto initLedger1 = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+    auto initLedger1 = catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     REQUIRE(initLedger1 == 383);
 
@@ -657,7 +657,7 @@ TEST_CASE("Catchup manual", "[history][catchupmanual]") {
     // catch up properly.
     catchupSimulation.generateAndPublishHistory(2);
     auto initLedger2 =
-            catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 1;
+            catchupSimulation.getApp().getLedgerManager().getLastClosedLedgerNum() - 2;
 
     for (auto const &test : vixal::gCatchupRangeCases) {
         // test only 5% of those configurations

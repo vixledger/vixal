@@ -17,10 +17,10 @@ namespace vixal {
 GetHistoryArchiveStateWork::GetHistoryArchiveStateWork(
         Application &app, AbstractWork &parent, std::string uniqueName,
         HistoryArchiveState &state, uint32_t seq,
-        VirtualClock::duration const &initialDelay,
         std::shared_ptr<HistoryArchive> archive, size_t maxRetries)
-        : Work(app, parent, std::move(uniqueName), maxRetries), mState(state),
-          mSeq(seq), mInitialDelay(initialDelay),
+        : Work(app, parent, std::move(uniqueName), maxRetries),
+          mState(state),
+          mSeq(seq),
           mArchive(archive),
           mLocalFilename(archive ? HistoryArchiveState::localName(app, archive->getName())
                                  : app.getHistoryManager().localFilename(HistoryArchiveState::baseName())),
@@ -45,14 +45,6 @@ GetHistoryArchiveStateWork::getStatus() const {
     return Work::getStatus();
 }
 
-VirtualClock::duration
-GetHistoryArchiveStateWork::getRetryDelay() const {
-    if (mInitialDelay.count() != 0 && mRetries == 0) {
-        return mInitialDelay;
-    }
-    return Work::getRetryDelay();
-}
-
 void
 GetHistoryArchiveStateWork::onReset() {
     clearChildren();
@@ -62,15 +54,7 @@ GetHistoryArchiveStateWork::onReset() {
                                : HistoryArchiveState::remoteName(mSeq),
                                mLocalFilename, mArchive, getMaxRetries());
 
-    if (mSeq != 0 && mRetries == 0 && mInitialDelay.count() != 0) {
-        // If this is our first reset (on addition) and we're fetching a
-        // known snapshot, immediately initiate a timed retry, to avoid
-        // cluttering the console with the initial-probe failure.
-        setState(WORK_FAILURE_RETRY);
-        scheduleRetry();
-    } else {
-        mGetHistoryArchiveStateStart.mark();
-    }
+    mGetHistoryArchiveStateStart.mark();
 }
 
 void

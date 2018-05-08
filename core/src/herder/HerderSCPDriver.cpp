@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "herder/HerderSCPDriver.h"
+#include "ledger/LedgerManager.h"
 #include "crypto/Hex.h"
 #include "crypto/SHA.h"
 #include "HerderImpl.h"
@@ -61,6 +62,7 @@ HerderSCPDriver::stateChanged() {
 void
 HerderSCPDriver::bootstrap() {
     stateChanged();
+    clearSCPExecutionEvents();
 }
 
 void
@@ -229,11 +231,14 @@ HerderSCPDriver::validateValue(uint64_t slotIndex, Value const &value,
 
     SCPDriver::ValidationLevel res = validateValueHelper(slotIndex, b);
     if (res != SCPDriver::kInvalidValue) {
+        auto const &lcl = mLedgerManager.getLastClosedLedgerHeader();
+
         LedgerUpgradeType lastUpgradeType = LEDGER_UPGRADE_VERSION;
         // check upgrades
         for (size_t i = 0; i < b.upgrades.size(); i++) {
             LedgerUpgradeType thisUpgradeType;
-            if (!mUpgrades.isValid(b.closeTime, b.upgrades[i], thisUpgradeType, nomination, mApp.getConfig())) {
+            if (!mUpgrades.isValid(b.upgrades[i], thisUpgradeType, nomination,
+                                   mApp.getConfig(), lcl.header)) {
                 CLOG(TRACE, "Herder")
                         << "HerderSCPDriver::validateValue invalid step at index "
                         << i;
@@ -270,11 +275,14 @@ HerderSCPDriver::extractValidValue(uint64_t slotIndex, Value const &value) {
     }
     Value res;
     if (validateValueHelper(slotIndex, b) == SCPDriver::kFullyValidatedValue) {
+        auto const &lcl = mLedgerManager.getLastClosedLedgerHeader();
+
         // remove the upgrade steps we don't like
         LedgerUpgradeType thisUpgradeType;
         for (auto it = b.upgrades.begin(); it != b.upgrades.end();) {
 
-            if (!mUpgrades.isValid(b.closeTime, *it, thisUpgradeType, true, mApp.getConfig())) {
+            if (!mUpgrades.isValid(*it, thisUpgradeType, true, mApp.getConfig(),
+                                   lcl.header)) {
                 it = b.upgrades.erase(it);
             } else {
                 it++;
@@ -595,6 +603,16 @@ HerderSCPDriver::acceptedCommit(uint64_t slotIndex, SCPBallot const &ballot) {
     mSCPMetrics.mAcceptedCommit.mark();
 }
 
+optional<VirtualClock::time_point>
+HerderSCPDriver::getPrepareStart(uint64_t slotIndex) {
+    optional<VirtualClock::time_point> res;
+    auto it = mSCPExecutionTimes.find(slotIndex);
+    if (it != mSCPExecutionTimes.end()) {
+        res = it->second.mPrepareStart;
+    }
+    return res;
+}
+
 void
 HerderSCPDriver::recordSCPEvent(uint64_t slotIndex, bool isNomination) {
     auto &timing = mSCPExecutionTimes[slotIndex];
@@ -652,8 +670,13 @@ HerderSCPDriver::recordSCPExecutionMetrics(uint64_t slotIndex) {
 
     // Clean up timings map
     auto it = mSCPExecutionTimes.begin();
-    while (it != mSCPExecutionTimes.end() && it->first <= slotIndex) {
+    while (it != mSCPExecutionTimes.end() && it->first < slotIndex) {
         it = mSCPExecutionTimes.erase(it);
     }
+}
+
+void
+HerderSCPDriver::clearSCPExecutionEvents() {
+    mSCPExecutionTimes.clear();
 }
 }

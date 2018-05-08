@@ -4,7 +4,9 @@
 
 #include "util/asio.h"
 #include "crypto/Hex.h"
+
 #include "herder/LedgerCloseData.h"
+
 #include "catch.hpp"
 #include "application/Application.h"
 #include "test/test.h"

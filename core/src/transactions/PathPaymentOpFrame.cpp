@@ -15,11 +15,11 @@
 #include "application/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "util/XDROperators.h"
 
 namespace vixal {
 
 using namespace std;
-using xdr::operator==;
 
 PathPaymentOpFrame::PathPaymentOpFrame(Operation const &op,
                                        OperationResult &res,

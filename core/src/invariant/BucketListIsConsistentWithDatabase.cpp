@@ -8,6 +8,7 @@
 #include "database/Database.h"
 #include "invariant/InvariantManager.h"
 #include "ledger/DataFrame.h"
+#include "ledger/LedgerRange.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/TrustFrame.h"
 #include "util/format.h"

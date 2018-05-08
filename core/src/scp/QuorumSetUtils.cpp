@@ -5,12 +5,13 @@
 #include "scp/QuorumSetUtils.h"
 
 #include "xdr/scp.h"
+#include "util/XDROperators.h"
 
+#include <algorithm>
 #include <set>
 
 namespace vixal {
 
-using xdr::operator<;
 
 namespace {
 
@@ -85,6 +86,9 @@ isQuorumSetSane(SCPQuorumSet const &qSet, bool extraChecks) {
 }
 
 // helper function that:
+//  * removes nodeID
+//      { t: n, v: { ...BEFORE... , nodeID, ...AFTER... }, ...}
+//      { t: n-1, v: { ...BEFORE..., ...AFTER...} , ... }
 //  * simplifies singleton inner set into outerset
 //      { t: n, v: { ... }, { t: 1, X }, ... }
 //        into
@@ -93,15 +97,23 @@ isQuorumSetSane(SCPQuorumSet const &qSet, bool extraChecks) {
 //      { t:1, { innerSet } } into innerSet
 
 void
-normalizeQSet(SCPQuorumSet &qSet) {
+normalizeQSet(SCPQuorumSet &qSet, NodeID const *idToRemove) {
+    using xdr::operator==;
     auto &v = qSet.validators;
+    if (idToRemove) {
+        auto it_v = std::remove_if(v.begin(), v.end(), [&](NodeID const &n) {
+            return n == *idToRemove;
+        });
+        qSet.threshold -= uint32(v.end() - it_v);
+        v.erase(it_v, v.end());
+    }
     auto &i = qSet.innerSets;
     auto it = i.begin();
     while (it != i.end()) {
-        normalizeQSet(*it);
+        normalizeQSet(*it, idToRemove);
         // merge singleton inner sets into validator list
         if (it->threshold == 1 && it->validators.size() == 1 &&
-                it->innerSets.empty()) {
+            it->innerSets.empty()) {
             v.emplace_back(it->validators.front());
             it = i.erase(it);
         } else {

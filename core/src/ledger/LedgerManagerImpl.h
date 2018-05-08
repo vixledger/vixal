@@ -53,7 +53,21 @@ class LedgerManagerImpl : public LedgerManager {
 
     medida::Counter &mSyncingLedgersSize;
 
+
     SyncingLedgerChain mSyncingLedgers;
+    uint32_t mCatchupTriggerLedger{0};
+
+    CatchupState mCatchupState{CatchupState::NONE};
+
+    void initializeCatchup(LedgerCloseData const &ledgerData);
+
+    void continueCatchup(LedgerCloseData const &ledgerData);
+
+    void finalizeCatchup(LedgerCloseData const &ledgerData);
+
+    void addToSyncingLedgers(LedgerCloseData const &ledgerData);
+
+    void startCatchupIf(uint32_t lastReceivedLedgerSeq);
 
     void historyCaughtup(asio::error_code const &ec,
                          CatchupWork::ProgressState progressState,
@@ -72,14 +86,29 @@ class LedgerManagerImpl : public LedgerManager {
 
     void advanceLedgerPointers();
 
+    enum class CloseLedgerIfResult {
+        CLOSED,
+        TOO_OLD,
+        TOO_NEW
+    };
+
+    CloseLedgerIfResult closeLedgerIf(LedgerCloseData const &ledgerData);
+
     State mState;
+
+    void setState(State s);
+
+    void setCatchupState(CatchupState s);
+
 
 public:
     explicit LedgerManagerImpl(Application &app);
 
-    void setState(State s) override;
+    void bootstrap() override;
 
     State getState() const override;
+
+    CatchupState getCatchupState() const override;
 
     std::string getStateHuman() const override;
 
@@ -118,7 +147,7 @@ public:
 
     Database &getDatabase() override;
 
-    void startCatchUp(CatchupConfiguration configuration,
+    void startCatchup(CatchupConfiguration configuration,
                       bool manualCatchup) override;
 
     HistoryManager::LedgerVerificationStatus

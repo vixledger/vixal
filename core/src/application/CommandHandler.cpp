@@ -7,6 +7,8 @@
 #include "application/Application.h"
 #include "application/ExternalQueue.h"
 
+#include "ledger/LedgerManager.h"
+
 #include "crypto/Hex.h"
 
 #include "herder/Herder.h"
@@ -14,7 +16,8 @@
 #include "overlay/BanManager.h"
 #include "overlay/OverlayManager.h"
 
-#include "util/basen.h"
+#include "util/Decoder.h"
+#include "util/XDROperators.h"
 #include "util/format.h"
 #include "util/Logging.h"
 #include "util/StatusManager.h"
@@ -35,7 +38,6 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 namespace vixal {
-using xdr::operator<;
 
 CommandHandler::CommandHandler(Application &app) : mApp(app) {
     if (mApp.getConfig().HTTP_PORT) {
@@ -203,7 +205,7 @@ CommandHandler::testTx(std::string const &params, std::string &retStr) {
     } else {
         root["status"] = "error";
         root["detail"] = "Bad HTTP GET: try something like: "
-                "testtx?from=root&to=bob&amount=1000000000";
+                         "testtx?from=root&to=bob&amount=1000000000";
     }
     retStr = root.toStyledString();
 }
@@ -214,99 +216,100 @@ CommandHandler::fileNotFound(std::string const &params, std::string &retStr) {
     retStr += "supported commands:<p/>";
 
     retStr += "<p><h1> /bans</h1>"
-            "list current active bans"
-            "</p><p><h1> /catchup?ledger=NNN[&mode=MODE]</h1>"
-            "triggers the instance to catch up to ledger NNN from history; "
-            "mode is either 'minimal' (the default, if omitted) or 'complete'."
-            "</p><p><h1> /checkdb</h1>"
-            "triggers the instance to perform an integrity check of the database."
-            "</p><p><h1> /connect?peer=NAME&port=NNN</h1>"
-            "triggers the instance to connect to peer NAME at port NNN."
-            "</p><p><h1> "
-            "/droppeer?node=NODE_ID[&ban=D]</h1>"
-            "drops peer identified by PEER_ID, when D is 1 the peer is also banned"
-            "</p><p><h1> "
-            "/generateload[?mode=(create|pay)&accounts=N&txs=M&txrate=(R|auto)&batchsize=L]</h1>"
-            "artificially generate load for testing; must be used with "
-            "ARTIFICIALLY_GENERATE_LOAD_FOR_TESTING set to true"
-            "</p><p><h1> /help</h1>"
-            "give a list of currently supported commands"
-            "</p><p><h1> /info</h1>"
-            "returns information about the server in JSON format (sync state, "
-            "connected peers, etc)"
-            "</p><p><h1> /ll?level=L[&partition=P]</h1>"
-            "adjust the log level for partition P (or all if no partition is "
-            "specified).<br>"
-            "level is one of FATAL, ERROR, WARNING, INFO, DEBUG, VERBOSE, TRACE"
-            "</p><p><h1> /logrotate</h1>"
-            "rotate log files"
-            "</p><p><h1> /manualclose</h1>"
-            "close the current ledger; must be used with MANUAL_CLOSE set to true"
-            "</p><p><h1> /metrics</h1>"
-            "returns a snapshot of the metrics registry (for monitoring and "
-            "debugging purpose)"
-            "</p><p><h1> /clearmetrics?[domain=DOMAIN]</h1>"
-            "clear metrics for a specified domain. If no domain specified, "
-            "clear all metrics (for testing purposes)"
-            "</p><p><h1> /peers</h1>"
-            "returns the list of known peers in JSON format"
-            "</p><p><h1> /quorum?[node=NODE_ID][&compact=true]</h1>"
-            "returns information about the quorum for node NODE_ID (this node by"
-            " default). NODE_ID is either a full key (`GABCD...`), an alias "
-            "(`$name`) or an abbreviated ID(`@GABCD`)."
-            "If compact is set, only returns a summary version."
-            "</p><p><h1> /scp?[limit=n]</h1>"
-            "returns a JSON object with the internal state of the SCP engine for "
-            "the last n (default 2) ledgers."
-            "</p><p><h1> /tx?blob=BASE64</h1>"
-            "submit a transaction to the network.<br>"
-            "blob is a base64 encoded XDR serialized 'TransactionEnvelope'<br>"
-            "returns a JSON object<br>"
-            "wasReceived: boolean, true if transaction was queued properly<br>"
-            "result: base64 encoded, XDR serialized 'TransactionResult'<br>"
-            "</p><p><h1> /upgrades?mode=(get|set|clear)&[upgradetime=DATETIME]&"
-            "[basefee=NUM]&[basereserve=NUM]&[maxtxsize=NUM]&[protocolversion=NUM]"
-            "</h1>"
-            "gets, sets or clears upgrades.<br>"
-            "When mode=set, upgradetime is a required date in the ISO 8601 "
-            "date format (UTC) in the form 1970-01-01T00:00:00Z.<br>"
-            "fee (uint32) This is what you would prefer the base fee to be. It is "
-            "in stroops<br>"
-            "basereserve (uint32) This is what you would prefer the base reserve "
-            "to be. It is in stroops.<br>"
-            "maxtxsize (uint32) This defines the maximum number of transactions "
-            "to include in a ledger. When too many transactions are pending, "
-            "surge pricing is applied. The instance picks the top maxtxsize"
-            " transactions locally to be considered in the next ledger.Where "
-            "transactions are ordered by transaction fee(lower fee transactions"
-            " are held for later).<br>"
-            "protocolversion (uint32) defines the protocol version to upgrade to."
-            " When specified it must match the protocol version supported by the"
-            " node<br>"
-            "</p><p><h1> /dropcursor?id=XYZ</h1> deletes the tracking cursor with "
-            "identified by `id`. See `setcursor` for more information"
-            "</p><p><h1> /setcursor?id=ID&cursor=N</h1> sets or creates a cursor "
-            "identified by `ID` with value `N`. ID is an uppercase AlphaNum, N is "
-            "an uint32 that represents the last ledger sequence number that the "
-            "instance ID processed."
-            "Cursors are used by dependent services to tell vixal - core which "
-            "data can be safely deleted by the instance."
-            "The data is historical data stored in the SQL tables such as "
-            "txhistory or ledgerheaders.When all consumers processed the data for "
-            "ledger sequence N the data can be safely removed by the instance."
-            "The actual deletion is performed by invoking the `maintenance` "
-            "endpoint."
-            "</p><p><h1> /maintenance[?queue=true[&count=N]]</h1> Performs "
-            "maintenance tasks on the instance."
-            "<ul><li><i>queue</i> performs deletion of queue data. Deletes at most "
-            "count entries from each table (defaults to 50000). See setcursor for "
-            "more information</li></ul>"
-            "</p><p><h1> "
-            "/unban?node=NODE_ID</h1>"
-            "remove ban for PEER_ID"
-            "</p>"
+              "list current active bans"
+              "</p><p><h1> /catchup?ledger=NNN[&mode=MODE]</h1>"
+              "triggers the instance to catch up to ledger NNN from history; "
+              "mode is either 'minimal' (the default, if omitted) or 'complete'."
+              "</p><p><h1> /checkdb</h1>"
+              "triggers the instance to perform an integrity check of the database."
+              "</p><p><h1> /connect?peer=NAME&port=NNN</h1>"
+              "triggers the instance to connect to peer NAME at port NNN."
+              "</p><p><h1> "
+              "/droppeer?node=NODE_ID[&ban=D]</h1>"
+              "drops peer identified by PEER_ID, when D is 1 the peer is also banned"
+              "</p><p><h1> "
+              "/generateload[?mode=(create|pay)&accounts=N&txs=M&txrate=(R|auto)&batchsize=L]</h1>"
+              "artificially generate load for testing; must be used with "
+              "ARTIFICIALLY_GENERATE_LOAD_FOR_TESTING set to true"
+              "</p><p><h1> /help</h1>"
+              "give a list of currently supported commands"
+              "</p><p><h1> /info</h1>"
+              "returns information about the server in JSON format (sync state, "
+              "connected peers, etc)"
+              "</p><p><h1> /ll?level=L[&partition=P]</h1>"
+              "adjust the log level for partition P (or all if no partition is "
+              "specified).<br>"
+              "level is one of FATAL, ERROR, WARNING, INFO, DEBUG, VERBOSE, TRACE"
+              "</p><p><h1> /logrotate</h1>"
+              "rotate log files"
+              "</p><p><h1> /manualclose</h1>"
+              "close the current ledger; must be used with MANUAL_CLOSE set to true"
+              "</p><p><h1> /metrics</h1>"
+              "returns a snapshot of the metrics registry (for monitoring and "
+              "debugging purpose)"
+              "</p><p><h1> /clearmetrics?[domain=DOMAIN]</h1>"
+              "clear metrics for a specified domain. If no domain specified, "
+              "clear all metrics (for testing purposes)"
+              "</p><p><h1> /peers</h1>"
+              "returns the list of known peers in JSON format"
+              "</p><p><h1> /quorum?[node=NODE_ID][&compact=true]</h1>"
+              "returns information about the quorum for node NODE_ID (this node by"
+              " default). NODE_ID is either a full key (`GABCD...`), an alias "
+              "(`$name`) or an abbreviated ID(`@GABCD`)."
+              "If compact is set, only returns a summary version."
+              "</p><p><h1> /scp?[limit=n]</h1>"
+              "returns a JSON object with the internal state of the SCP engine for "
+              "the last n (default 2) ledgers."
+              "</p><p><h1> /tx?blob=BASE64</h1>"
+              "submit a transaction to the network.<br>"
+              "blob is a base64 encoded XDR serialized 'TransactionEnvelope'<br>"
+              "returns a JSON object<br>"
+              "wasReceived: boolean, true if transaction was queued properly<br>"
+              "result: base64 encoded, XDR serialized 'TransactionResult'<br>"
+              "</p><p><h1> /upgrades?mode=(get|set|clear)&[upgradetime=DATETIME]&"
+              "[basefee=NUM]&[basereserve=NUM]&[maxtxsize=NUM]&[protocolversion=NUM]"
+              "</h1>"
+              "gets, sets or clears upgrades.<br>"
+              "When mode=set, upgradetime is a required date in the ISO 8601 "
+              "date format (UTC) in the form 1970-01-01T00:00:00Z.<br>"
+              "fee (uint32) This is what you would prefer the base fee to be. It is "
+              "in stroops<br>"
+              "basereserve (uint32) This is what you would prefer the base reserve "
+              "to be. It is in stroops.<br>"
+              "maxtxsize (uint32) This defines the maximum number of transactions "
+              "to include in a ledger. When too many transactions are pending, "
+              "surge pricing is applied. The instance picks the top maxtxsize"
+              " transactions locally to be considered in the next ledger.Where "
+              "transactions are ordered by transaction fee(lower fee transactions"
+              " are held for later).<br>"
+              "protocolversion (uint32) defines the protocol version to upgrade to."
+              " When specified it must match one of the protocol versions supported"
+              " by the node and should be greater than ledgerVersion from the current"
+              " ledger <br>"
+              "</p><p><h1> /dropcursor?id=XYZ</h1> deletes the tracking cursor with "
+              "identified by `id`. See `setcursor` for more information"
+              "</p><p><h1> /setcursor?id=ID&cursor=N</h1> sets or creates a cursor "
+              "identified by `ID` with value `N`. ID is an uppercase AlphaNum, N is "
+              "an uint32 that represents the last ledger sequence number that the "
+              "instance ID processed."
+              "Cursors are used by dependent services to tell vixal - core which "
+              "data can be safely deleted by the instance."
+              "The data is historical data stored in the SQL tables such as "
+              "txhistory or ledgerheaders.When all consumers processed the data for "
+              "ledger sequence N the data can be safely removed by the instance."
+              "The actual deletion is performed by invoking the `maintenance` "
+              "endpoint."
+              "</p><p><h1> /maintenance[?queue=true[&count=N]]</h1> Performs "
+              "maintenance tasks on the instance."
+              "<ul><li><i>queue</i> performs deletion of queue data. Deletes at most "
+              "count entries from each table (defaults to 50000). See setcursor for "
+              "more information</li></ul>"
+              "</p><p><h1> "
+              "/unban?node=NODE_ID</h1>"
+              "remove ban for PEER_ID"
+              "</p>"
 
-            "<br>";
+              "<br>";
 
     retStr += "<p>Have fun!</p>";
 }
@@ -404,7 +407,7 @@ CommandHandler::generateLoad(std::string const &params, std::string &retStr) {
                             numItems, itemType, txRate, hours);
     } else {
         retStr = "Set ARTIFICIALLY_GENERATE_LOAD_FOR_TESTING=true in "
-                "the vixal-core.cfg if you want this behavior";
+                 "the vixal-core.cfg if you want this behavior";
     }
 }
 
@@ -489,7 +492,7 @@ CommandHandler::catchup(std::string const &params, std::string &retStr) {
         }
     }
 
-    mApp.getLedgerManager().startCatchUp({ledger, count}, true);
+    mApp.getLedgerManager().startCatchup({ledger, count}, true);
     retStr = (std::string("Started catchup to ledger ") +
               std::to_string(ledger) + std::string(" in mode ") +
               std::string(
@@ -718,7 +721,7 @@ CommandHandler::tx(std::string const &params, std::string &retStr) {
         TransactionEnvelope envelope;
         std::string blob = params.substr(prefix.size());
         std::vector<uint8_t> binBlob;
-        bn::decode_b64(blob, binBlob);
+        decoder::decode_b64(blob, binBlob);
 
         xdr::xdr_from_opaque(binBlob, envelope);
         TransactionFramePtr transaction =
@@ -744,8 +747,8 @@ CommandHandler::tx(std::string const &params, std::string &retStr) {
                 std::string resultBase64;
                 auto resultBin =
                         xdr::xdr_to_opaque(transaction->getResult());
-                resultBase64.reserve(bn::encoded_size64(resultBin.size()) + 1);
-                resultBase64 = bn::encode_b64(resultBin);
+                resultBase64.reserve(decoder::encoded_size64(resultBin.size()) + 1);
+                resultBase64 = decoder::encode_b64(resultBin);
 
                 output << R"( , "error": ")" << resultBase64 << "\"";
             }
@@ -753,7 +756,7 @@ CommandHandler::tx(std::string const &params, std::string &retStr) {
         }
     } else {
         throw std::invalid_argument("Must specify a tx blob: tx?blob=<tx in "
-                                            "xdr format>\"}");
+                                    "xdr format>\"}");
     }
 
     retStr = output.str();

@@ -12,11 +12,11 @@
 #include "medida/metrics_registry.h"
 #include "util/Logging.h"
 #include "util/types.h"
+#include "util/XDROperators.h"
 
 namespace vixal {
 
 using namespace std;
-using xdr::operator==;
 
 ManageDataOpFrame::ManageDataOpFrame(Operation const &op, OperationResult &res,
                                      TransactionFrame &parentTx)

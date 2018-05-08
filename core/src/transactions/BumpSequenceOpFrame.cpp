@@ -11,9 +11,9 @@
 #include "medida/metrics_registry.h"
 
 #include "transactions/TransactionFrame.h"
+#include "util/XDROperators.h"
 
 namespace vixal {
-using xdr::operator==;
 
 BumpSequenceOpFrame::BumpSequenceOpFrame(Operation const &op,
                                          OperationResult &res,

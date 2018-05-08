@@ -5,6 +5,7 @@
 #include "catch.hpp"
 #include "json/json.h"
 #include "application/Application.h"
+#include "ledger/LedgerManager.h"
 #include "test/TestAccount.h"
 #include "test/TestExceptions.h"
 #include "test/TestUtils.h"

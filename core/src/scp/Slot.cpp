@@ -8,14 +8,14 @@
 #include "json/json.h"
 #include "util/GlobalChecks.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 #include "util/types.h"
+
 #include "xdrpp/marshal.h"
 
 #include <ctime>
 
 namespace vixal {
-using xdr::operator==;
-using xdr::operator<;
 
 using namespace std::placeholders;
 
@@ -287,7 +287,7 @@ Slot::federatedAccept(StatementPredicate voted, StatementPredicate accepted,
 
     // Checks if the set of nodes that accepted or voted for it form a quorum
 
-    auto ratifyFilter = [this, &voted, &accepted](SCPStatement const &st) {
+    auto ratifyFilter = [&](SCPStatement const& st) {
         bool res;
         res = accepted(st) || voted(st);
         return res;

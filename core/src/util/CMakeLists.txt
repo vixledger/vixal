@@ -48,7 +48,7 @@ set(PublicHeaders
         ${VIXAL_INCLUDE_DIR}/util/abstract_clock.hpp
         ${VIXAL_INCLUDE_DIR}/util/manual_clock.hpp
         ${VIXAL_INCLUDE_DIR}/util/SimpleTestReporter.hpp
-        ${VIXAL_INCLUDE_DIR}/util/MetricResetter.h)
+        ${VIXAL_INCLUDE_DIR}/util/MetricResetter.h ../../include/util/XDROperators.h)
 
 add_library(util SHARED ${Sources} ${PublicHeaders})
 target_link_libraries(util crypto)

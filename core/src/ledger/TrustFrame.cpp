@@ -9,13 +9,13 @@
 #include "crypto/SHA.h"
 #include "crypto/SecretKey.h"
 #include "database/Database.h"
+#include "util/XDROperators.h"
 #include "util/types.h"
 
 using namespace std;
 using namespace soci;
 
 namespace vixal {
-using xdr::operator==;
 
 // note: the primary key omits assettype as assetcodes are non overlapping
 const char *TrustFrame::kSQLCreateStatement1 =

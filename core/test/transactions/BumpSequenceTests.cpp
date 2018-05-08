@@ -15,13 +15,12 @@
 #include "transactions/TransactionFrame.h"
 #include "util/Logging.h"
 #include "util/Timer.h"
-#include "util/make_unique.h"
+#include "util/XDROperators.h"
 
 using namespace vixal;
 using namespace vixal::txtest;
 
 TEST_CASE("bump sequence", "[tx][bumpsequence]") {
-    using xdr::operator==;
 
     Config const &cfg = getTestConfig();
 

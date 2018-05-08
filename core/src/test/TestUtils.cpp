@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <invariant/InvariantDoesNotHold.h>
+#include "ledger/LedgerManager.h"
 #include "overlay/LoopbackPeer.h"
 #include "test/TestUtils.h"
 

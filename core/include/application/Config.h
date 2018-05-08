@@ -216,6 +216,8 @@ public:
     std::string toStrKey(PublicKey const &pk) const;
 
     bool resolveNodeID(std::string const &s, PublicKey &retKey) const;
+
+    std::chrono::seconds getExpectedLedgerCloseTime() const;
 };
 
 Config const &getTestConfig(unsigned instanceNumber = 0, Config::TestDbMode mode = Config::TESTDB_DEFAULT);

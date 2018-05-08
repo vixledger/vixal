@@ -7,28 +7,27 @@
 #include "catchup/CatchupManager.h"
 #include <memory>
 
-namespace medida
-{
+namespace medida {
 class Meter;
 }
 
-namespace vixal
-{
+namespace vixal {
 
 class Application;
+
 class Work;
 
-class CatchupManagerImpl : public CatchupManager
-{
-    Application& mApp;
+class CatchupManagerImpl : public CatchupManager {
+    Application &mApp;
     std::shared_ptr<Work> mCatchupWork;
 
-    medida::Meter& mCatchupStart;
-    medida::Meter& mCatchupSuccess;
-    medida::Meter& mCatchupFailure;
+    medida::Meter &mCatchupStart;
+    medida::Meter &mCatchupSuccess;
+    medida::Meter &mCatchupFailure;
 
-  public:
-    CatchupManagerImpl(Application& app);
+public:
+    CatchupManagerImpl(Application &app);
+
     ~CatchupManagerImpl() override;
 
     void historyCaughtup() override;
@@ -40,8 +39,13 @@ class CatchupManagerImpl : public CatchupManager
     std::string getStatus() const override;
 
     uint64_t getCatchupStartCount() const override;
+
     uint64_t getCatchupSuccessCount() const override;
+
     uint64_t getCatchupFailureCount() const override;
+
+    void logAndUpdateCatchupStatus(bool contiguous,
+                                   std::string const &message) override;
 
     void logAndUpdateCatchupStatus(bool contiguous) override;
 };

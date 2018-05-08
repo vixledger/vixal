@@ -4,6 +4,7 @@
 
 #include "invariant/MinimumAccountBalance.h"
 #include "invariant/InvariantManager.h"
+#include "ledger/LedgerManager.h"
 #include "util/format.h"
 #include "application/Application.h"
 #include "xdrpp/printer.h"

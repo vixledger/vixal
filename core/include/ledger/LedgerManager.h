@@ -48,22 +48,31 @@ public:
 
     enum State {
         // Loading state from database, not yet active
-                LM_BOOTING_STATE,
+        LM_BOOTING_STATE,
 
         // local state is in sync with view of consensus coming from herder
         // desynchronization will cause transition to CATCHING_UP_STATE.
-                LM_SYNCED_STATE,
+        LM_SYNCED_STATE,
 
         // local state doesn't match view of consensus from herder
         // catchup is in progress
-                LM_CATCHING_UP_STATE,
+        LM_CATCHING_UP_STATE,
 
         LM_NUM_STATE
     };
 
-    virtual void setState(State s) = 0;
+    enum class CatchupState {
+        NONE,
+        WAITING_FOR_TRIGGER_LEDGER,
+        APPLYING_HISTORY,
+        WAITING_FOR_CLOSING_LEDGER
+    };
+
+    virtual void bootstrap() = 0;
 
     virtual State getState() const = 0;
+
+    virtual CatchupState getCatchupState() const = 0;
 
     virtual std::string getStateHuman() const = 0;
 
@@ -153,7 +162,7 @@ public:
     // LedgerManager detects it is desynchronized from SCP's consensus ledger.
     // This method is present in the public interface to permit testing and
     // command line catchups.
-    virtual void startCatchUp(CatchupConfiguration configuration,
+    virtual void startCatchup(CatchupConfiguration configuration,
                               bool manualCatchup) = 0;
 
     // Called by the history subsystem during catchup: this method asks the

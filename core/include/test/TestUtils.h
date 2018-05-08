@@ -8,6 +8,7 @@
 #include "invariant/InvariantDoesNotHold.h"
 #include "../../src/application/ApplicationImpl.h"
 #include "../../src/invariant/InvariantManagerImpl.h"
+#include "../../src/ledger/LedgerManagerImpl.h"
 #include <type_traits>
 
 

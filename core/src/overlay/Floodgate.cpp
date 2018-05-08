@@ -2,21 +2,27 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include "application/Application.h"
+
 #include "overlay/Floodgate.h"
 #include "overlay/OverlayManager.h"
+
 #include "crypto/Hex.h"
 #include "crypto/SHA.h"
+
 #include "herder/Herder.h"
+
 #include "util/Logging.h"
+#include "util/XDROperators.h"
+
 #include "xdrpp/marshal.h"
-#include "application/Application.h"
+
 
 #include "medida/counter.h"
 #include "medida/metrics_registry.h"
 
 namespace vixal {
 
-using xdr::operator<;
 
 Floodgate::FloodRecord::FloodRecord(VixalMessage const &msg, uint32_t ledger,
                                     Peer::pointer peer)

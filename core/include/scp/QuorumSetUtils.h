@@ -4,11 +4,13 @@
 
 #pragma once
 
-namespace vixal {
+#include "xdr/scp.h"
 
-struct SCPQuorumSet;
+namespace vixal {
 
 bool isQuorumSetSane(SCPQuorumSet const &qSet, bool extraChecks);
 
-void normalizeQSet(SCPQuorumSet &qSet);
+// normalize the quorum set, optionally removing idToRemove
+void normalizeQSet(SCPQuorumSet& qSet, NodeID const* idToRemove = nullptr);
+
 }

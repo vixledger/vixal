@@ -8,7 +8,7 @@
 #include "ledger/AccountFrame.h"
 #include "ledger/EntryFrame.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/LedgerManager.h"
+
 #include "application/Application.h"
 #include "application/Config.h"
 #include "test/test.h"

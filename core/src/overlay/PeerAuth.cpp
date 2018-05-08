@@ -10,11 +10,12 @@
 #include "application/Application.h"
 #include "application/Config.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
+
 #include "xdrpp/marshal.h"
 
 namespace vixal {
 
-using xdr::operator==;
 
 // Certs expire every hour, are reissued every half hour.
 static const uint64_t expirationLimit = 3600;

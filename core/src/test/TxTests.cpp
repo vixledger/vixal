@@ -20,12 +20,12 @@
 #include "transactions/PathPaymentOpFrame.h"
 #include "transactions/PaymentOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
+#include "util/XDROperators.h"
 
 using namespace vixal;
 using namespace vixal::txtest;
 
 namespace vixal {
-using xdr::operator==;
 
 namespace txtest {
 

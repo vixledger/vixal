@@ -5,6 +5,7 @@
 #include "HerderImpl.h"
 #include "crypto/Hex.h"
 #include "crypto/SHA.h"
+#include "ledger/LedgerManager.h"
 #include "herder/HerderPersistence.h"
 #include "herder/HerderUtils.h"
 #include "herder/LedgerCloseData.h"
@@ -13,12 +14,12 @@
 #include "overlay/OverlayManager.h"
 #include "scp/LocalNode.h"
 #include "scp/Slot.h"
+
 #include "util/Logging.h"
 #include "util/format.h"
 #include "util/StatusManager.h"
-
+#include "util/Decoder.h"
 #include "util/XDRStream.h"
-#include "util/basen.h"
 
 using namespace std;
 
@@ -87,10 +88,9 @@ HerderImpl::bootstrap() {
     assert(getSCP().isValidator());
     assert(mApp.getConfig().FORCE_SCP);
 
-    mLedgerManager.setState(LedgerManager::LM_SYNCED_STATE);
+    mLedgerManager.bootstrap();
     mHerderSCPDriver.bootstrap();
 
-    mTriggerTimer.expires_at(mApp.getClock().now() - Herder::EXP_LEDGER_TIMESPAN_SECONDS);
     ledgerClosed();
 }
 
@@ -438,10 +438,10 @@ HerderImpl::ledgerClosed() {
     updateSCPCounters();
     CLOG(TRACE, "Herder") << "HerderImpl::ledgerClosed";
 
-    mPendingEnvelopes.slotClosed(mHerderSCPDriver.lastConsensusLedgerIndex());
+    auto lastIndex = mHerderSCPDriver.lastConsensusLedgerIndex();
+    mPendingEnvelopes.slotClosed(lastIndex);
 
-    mApp.getOverlayManager().ledgerClosed(
-            mHerderSCPDriver.lastConsensusLedgerIndex());
+    mApp.getOverlayManager().ledgerClosed(lastIndex);
 
     uint64_t nextIndex = mHerderSCPDriver.nextConsensusLedgerIndex();
 
@@ -468,35 +468,26 @@ HerderImpl::ledgerClosed() {
         return;
     }
 
-    auto seconds = Herder::EXP_LEDGER_TIMESPAN_SECONDS;
-    if (mApp.getConfig().ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING) {
-        seconds = std::chrono::seconds(1);
-    }
-    if (mApp.getConfig().ARTIFICIALLY_SET_CLOSE_TIME_FOR_TESTING) {
-        seconds = std::chrono::seconds(
-                mApp.getConfig().ARTIFICIALLY_SET_CLOSE_TIME_FOR_TESTING);
-    }
 
-    auto now = mApp.getClock().now();
-    auto lastScheduledTrigger = mTriggerTimer.expiry_time();
-    if (now <= lastScheduledTrigger) {
-        // we externalized before triggering
-        mTriggerTimer.expires_after(seconds);
-    } else if ((now - lastScheduledTrigger) < seconds) {
-        // we closed faster than the target round time, so schedule a trigger
-        // such that we stay on course
-        auto timeout = seconds - (now - lastScheduledTrigger);
-        mTriggerTimer.expires_after(timeout);
+    auto seconds = mApp.getConfig().getExpectedLedgerCloseTime();
 
-    } else {
-        // round took a long time to close
-        mTriggerTimer.expires_after(std::chrono::nanoseconds(0));
+    // bootstrap with a pessimistic estimate of when
+    // the ballot protocol started last
+    auto lastBallotStart = mApp.getClock().now() - seconds;
+    auto lastStart = mHerderSCPDriver.getPrepareStart(lastIndex);
+    if (lastStart) {
+        lastBallotStart = *lastStart;
     }
+    // even if ballot protocol started before triggering, we just use that time
+    // as reference point for triggering again (this may trigger right away if
+    // externalizing took a long time)
+    mTriggerTimer.expires_at(lastBallotStart + seconds);
 
-    if (!mApp.getConfig().MANUAL_CLOSE)
+    if (!mApp.getConfig().MANUAL_CLOSE) {
         mTriggerTimer.async_wait(std::bind(&HerderImpl::triggerNextLedger, this,
                                            static_cast<uint32_t>(nextIndex)),
                                  &VirtualTimer::onFailureNoop);
+    }
 }
 
 void
@@ -786,7 +777,7 @@ HerderImpl::persistSCPState(uint64 slot) {
     auto latestSCPData =
             xdr::xdr_to_opaque(latestEnvs, latestTxSets, latestQSets);
     std::string scpState;
-    scpState = bn::encode_b64(latestSCPData);
+    scpState = decoder::encode_b64(latestSCPData);
 
     mApp.getPersistentState().setState(PersistentState::kLastSCPData, scpState);
 }
@@ -808,7 +799,7 @@ HerderImpl::restoreSCPState() {
     }
 
     std::vector<uint8_t> buffer;
-    bn::decode_b64(latest64, buffer);
+    decoder::decode_b64(latest64, buffer);
 
     xdr::xvector<SCPEnvelope> latestEnvs;
     xdr::xvector<TransactionSet> latestTxSets;

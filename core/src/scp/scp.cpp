@@ -9,11 +9,12 @@
 #include "crypto/Hex.h"
 #include "util/GlobalChecks.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
+
 #include "xdrpp/marshal.h"
 #include "json/json.h"
 
 namespace vixal {
-using xdr::operator==;
 
 SCP::SCP(SCPDriver &driver, NodeID const &nodeID, bool isValidator, SCPQuorumSet const &qSetLocal)
         : mDriver(driver) {
@@ -202,8 +203,10 @@ SCP::getExternalizingState(uint64 slotIndex) {
 SCP::TriBool
 SCP::isNodeInQuorum(NodeID const &node) {
     TriBool res = TB_MAYBE;
-    for (auto &s : mKnownSlots) {
-        auto slot = s.second;
+    // iterate in reverse order as the most recent slots are authoritative over
+    // older ones
+    for (auto it = mKnownSlots.rbegin(); it != mKnownSlots.rend(); it++) {
+        auto slot = it->second;
         res = slot->isNodeInQuorum(node);
         if (res == TB_TRUE || res == TB_FALSE) {
             break;

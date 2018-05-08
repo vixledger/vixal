@@ -62,8 +62,6 @@ public:
 
     virtual std::string getStatus() const;
 
-    virtual VirtualClock::duration getRetryDelay() const;
-
     virtual size_t getMaxRetries() const;
 
     uint64_t getRetryETA() const;
@@ -149,5 +147,8 @@ protected:
     void notifyParent();
 
     void notify(std::string const &childChanged) override;
+
+private:
+    VirtualClock::duration getRetryDelay() const;
 };
 }

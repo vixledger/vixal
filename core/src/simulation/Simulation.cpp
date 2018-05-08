@@ -5,11 +5,16 @@
 #include "simulation/Simulation.h"
 
 #include "herder/Herder.h"
+#include "ledger/LedgerManager.h"
+
 #include "overlay/OverlayManager.h"
 #include "overlay/PeerRecord.h"
 
+#include "scp/LocalNode.h"
+
 #include "test/test.h"
 #include <util/format.h>
+
 #include <chrono>
 
 #include <utility>
@@ -18,13 +23,14 @@ namespace vixal {
 
 using namespace std;
 
-Simulation::Simulation(Mode mode, Hash const &networkID,
-                       ConfigGen confGen)
+Simulation::Simulation(Mode mode, Hash const &networkID, ConfigGen confGen,
+                       QuorumSetAdjuster qSetAdjust)
         : mVirtualClockMode(mode != OVER_TCP),
           mClock(mVirtualClockMode ? VirtualClock::VIRTUAL_TIME : VirtualClock::REAL_TIME),
           mMode(mode),
           mConfigCount(0),
-          mConfigGen(std::move(confGen)) {
+          mConfigGen(std::move(confGen)),
+          mQuorumSetAdjuster(qSetAdjust) {
     mIdleApp = Application::create(mClock, newConfig());
 }
 
@@ -52,7 +58,12 @@ Application::pointer
 Simulation::addNode(SecretKey nodeKey, SCPQuorumSet qSet, Config const *cfg2, bool newDB) {
     auto cfg = cfg2 ? std::make_shared<Config>(*cfg2) : std::make_shared<Config>(newConfig());
     cfg->NODE_SEED = nodeKey;
-    cfg->QUORUM_SET = qSet;
+
+    if (mQuorumSetAdjuster) {
+        cfg->QUORUM_SET = mQuorumSetAdjuster(qSet);
+    } else {
+        cfg->QUORUM_SET = qSet;
+    }
     cfg->RUN_STANDALONE = (mMode == OVER_LOOPBACK);
 
     auto clock = make_shared<VirtualClock>(mVirtualClockMode ? VirtualClock::VIRTUAL_TIME
@@ -480,7 +491,7 @@ Simulation::crankUntil(VirtualClock::time_point timePoint, bool finalCrank) {
 
 
 vector<LoadGenerator::TestAccountPtr>
-Simulation::accountsOutOfSyncWithDb(Application& mainApp) {
+Simulation::accountsOutOfSyncWithDb(Application &mainApp) {
     vector<LoadGenerator::TestAccountPtr> result;
     int iApp = 0;
     for (auto const &p : mNodes) {
@@ -490,7 +501,7 @@ Simulation::accountsOutOfSyncWithDb(Application& mainApp) {
         res = mainApp.getLoadGenerator().checkAccountSynced(app->getDatabase());
         if (!res.empty()) {
             LOG(DEBUG) << "On node " << iApp
-                    << " some accounts are not in sync.";
+                       << " some accounts are not in sync.";
         } else {
             result.insert(result.end(), res.begin(), res.end());
         }

@@ -11,12 +11,15 @@
 
 #include "ledger/LedgerManager.h"
 
+#include "herder/Herder.h"
+
 #include "history/HistoryArchive.h"
 
 #include "scp/LocalNode.h"
 
 #include "util/Fs.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 #include "util/types.h"
 #include "util/TmpDir.h"
 #include "util/format.h"
@@ -27,7 +30,6 @@
 #include <sstream>
 
 namespace vixal {
-using xdr::operator<;
 
 const uint32_t Config::CURRENT_LEDGER_PROTOCOL_VERSION = 10;
 
@@ -584,6 +586,17 @@ Config::expandNodeID(const std::string &s) const {
     } else {
         return {};
     }
+}
+
+std::chrono::seconds
+Config::getExpectedLedgerCloseTime() const {
+    if (ARTIFICIALLY_SET_CLOSE_TIME_FOR_TESTING) {
+        return std::chrono::seconds{ARTIFICIALLY_SET_CLOSE_TIME_FOR_TESTING};
+    }
+    if (ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING) {
+        return std::chrono::seconds{1};
+    }
+    return Herder::EXP_LEDGER_TIMESPAN_SECONDS;
 }
 
 }

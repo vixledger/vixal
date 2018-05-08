@@ -10,9 +10,10 @@ using namespace std;
 
 Simulation::pointer
 Topologies::pair(Simulation::Mode mode, Hash const &networkID,
-                 Simulation::ConfigGen confGen) {
+                 Simulation::ConfigGen confGen,
+                 Simulation::QuorumSetAdjuster qSetAdjust) {
     Simulation::pointer simulation =
-            make_shared<Simulation>(mode, networkID, confGen);
+            make_shared<Simulation>(mode, networkID, confGen, qSetAdjust);
 
     SIMULATION_CREATE_NODE(10);
     SIMULATION_CREATE_NODE(11);
@@ -31,9 +32,10 @@ Topologies::pair(Simulation::Mode mode, Hash const &networkID,
 }
 
 Simulation::pointer
-Topologies::cycle4(Hash const &networkID, Simulation::ConfigGen confGen) {
+Topologies::cycle4(Hash const &networkID, Simulation::ConfigGen confGen,
+                   Simulation::QuorumSetAdjuster qSetAdjust) {
     Simulation::pointer simulation =
-            make_shared<Simulation>(Simulation::OVER_LOOPBACK, networkID, confGen);
+            make_shared<Simulation>(Simulation::OVER_LOOPBACK, networkID, confGen, qSetAdjust);
 
     SIMULATION_CREATE_NODE(0);
     SIMULATION_CREATE_NODE(1);
@@ -82,9 +84,10 @@ Topologies::cycle4(Hash const &networkID, Simulation::ConfigGen confGen) {
 Simulation::pointer
 Topologies::separate(int nNodes, double quorumThresholdFraction,
                      Simulation::Mode mode, Hash const &networkID,
-                     Simulation::ConfigGen confGen) {
+                     Simulation::ConfigGen confGen,
+                     Simulation::QuorumSetAdjuster qSetAdjust) {
     Simulation::pointer simulation =
-            make_shared<Simulation>(mode, networkID, confGen);
+            make_shared<Simulation>(mode, networkID, confGen, qSetAdjust);
 
     vector<SecretKey> keys;
     for (int i = 0; i < nNodes; i++) {
@@ -107,8 +110,9 @@ Topologies::separate(int nNodes, double quorumThresholdFraction,
 Simulation::pointer
 Topologies::core(int nNodes, double quorumThresholdFraction,
                  Simulation::Mode mode, Hash const &networkID,
-                 Simulation::ConfigGen confGen) {
-    auto simulation = Topologies::separate(nNodes, quorumThresholdFraction, mode, networkID, confGen);
+                 Simulation::ConfigGen confGen,
+                 Simulation::QuorumSetAdjuster qSetAdjust) {
+    auto simulation = Topologies::separate(nNodes, quorumThresholdFraction, mode, networkID, confGen, qSetAdjust);
 
     auto nodes = simulation->getNodeIDs();
     assert(nodes.size() == nNodes);
@@ -125,8 +129,9 @@ Topologies::core(int nNodes, double quorumThresholdFraction,
 Simulation::pointer
 Topologies::cycle(int nNodes, double quorumThresholdFraction,
                   Simulation::Mode mode, Hash const &networkID,
-                  Simulation::ConfigGen confGen) {
-    auto simulation = Topologies::separate(nNodes, quorumThresholdFraction, mode, networkID, confGen);
+                  Simulation::ConfigGen confGen,
+                  Simulation::QuorumSetAdjuster qSetAdjust) {
+    auto simulation = Topologies::separate(nNodes, quorumThresholdFraction, mode, networkID, confGen, qSetAdjust);
 
     auto nodes = simulation->getNodeIDs();
     assert(nodes.size() == nNodes);
@@ -142,8 +147,9 @@ Topologies::cycle(int nNodes, double quorumThresholdFraction,
 Simulation::pointer
 Topologies::branchedcycle(int nNodes, double quorumThresholdFraction,
                           Simulation::Mode mode, Hash const &networkID,
-                          Simulation::ConfigGen confGen) {
-    auto simulation = Topologies::separate(nNodes, quorumThresholdFraction, mode, networkID, confGen);
+                          Simulation::ConfigGen confGen,
+                          Simulation::QuorumSetAdjuster qSetAdjust) {
+    auto simulation = Topologies::separate(nNodes, quorumThresholdFraction, mode, networkID, confGen, qSetAdjust);
 
     auto nodes = simulation->getNodeIDs();
     assert(nodes.size() == nNodes);
@@ -163,9 +169,10 @@ Simulation::pointer
 Topologies::hierarchicalQuorum(int nBranches, Simulation::Mode mode,
                                Hash const &networkID,
                                Simulation::ConfigGen confGen,
-                               int connectionsToCore) // Figure 3 from the paper
+                               int connectionsToCore,
+                               Simulation::QuorumSetAdjuster qSetAdjust) // Figure 3 from the paper
 {
-    auto sim = Topologies::core(4, 0.75, mode, networkID, confGen);
+    auto sim = Topologies::core(4, 0.75, mode, networkID, confGen, qSetAdjust);
     vector<NodeID> coreNodeIDs;
     for (auto const &coreNodeID : sim->getNodeIDs()) {
         coreNodeIDs.push_back(coreNodeID);
@@ -224,9 +231,10 @@ Topologies::hierarchicalQuorumSimplified(int coreSize, int nbOuterNodes,
                                          Simulation::Mode mode,
                                          Hash const &networkID,
                                          Simulation::ConfigGen confGen,
-                                         int connectionsToCore) {
+                                         int connectionsToCore,
+                                         Simulation::QuorumSetAdjuster qSetAdjust) {
     // outer nodes are independent validators that point to a [core network]
-    auto sim = Topologies::core(coreSize, 0.75, mode, networkID, confGen);
+    auto sim = Topologies::core(coreSize, 0.75, mode, networkID, confGen, qSetAdjust);
 
     // each additional node considers themselves as validator
     // with a quorum set that also includes the core
@@ -257,8 +265,9 @@ Topologies::hierarchicalQuorumSimplified(int coreSize, int nbOuterNodes,
 
 Simulation::pointer
 Topologies::customA(Simulation::Mode mode, Hash const &networkID,
-                    Simulation::ConfigGen confGen, int connections) {
-    Simulation::pointer s = make_shared<Simulation>(mode, networkID, confGen);
+                    Simulation::ConfigGen confGen, int connections,
+                    Simulation::QuorumSetAdjuster qSetAdjust) {
+    Simulation::pointer s = make_shared<Simulation>(mode, networkID, confGen, qSetAdjust);
 
     enum kIDs {
         A = 0,

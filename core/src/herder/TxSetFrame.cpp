@@ -7,8 +7,10 @@
 #include "crypto/Hex.h"
 #include "crypto/SHA.h"
 #include "database/Database.h"
+#include "ledger/LedgerManager.h"
 #include "application/Application.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 #include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 
@@ -16,8 +18,6 @@ namespace vixal {
 
 using namespace std;
 
-using xdr::operator==;
-using xdr::operator<;
 
 TxSetFrame::TxSetFrame(Hash const &previousLedgerHash)
         : mHashIsValid(false), mPreviousLedgerHash(previousLedgerHash) {

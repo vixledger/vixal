@@ -48,8 +48,6 @@ public:
 
     uint32_t nextCheckpointLedger(uint32_t ledger) const override;
 
-    uint64_t nextCheckpointCatchupProbe(uint32_t ledger) const override;
-
     void logAndUpdatePublishStatus() override;
 
     size_t publishQueueLength() const override;

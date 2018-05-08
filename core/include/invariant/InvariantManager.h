@@ -12,6 +12,8 @@ namespace vixal {
 
 class Application;
 
+class Bucket;
+
 class Invariant;
 
 class LedgerDelta;

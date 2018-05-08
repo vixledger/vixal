@@ -24,17 +24,16 @@
 #include "test/TestUtils.h"
 #include "test/test.h"
 #include "work/WorkManager.h"
-#include <random>
-#include <util/basen.h>
+#include "util/XDROperators.h"
+
 #include <bucket/BucketOutputIterator.h>
 #include <bucket/BucketInputIterator.h>
+
+#include <random>
 
 using namespace vixal;
 using namespace std::placeholders;
 
-namespace vixal {
-using xdr::operator<;
-}
 
 namespace BucketListIsConsistentWithDatabaseTests {
 

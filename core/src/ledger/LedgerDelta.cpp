@@ -7,6 +7,8 @@
 #include "application/Config.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "util/XDROperators.h"
+
 #include "xdr/ledger.h"
 #include "xdrpp/printer.h"
 

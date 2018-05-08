@@ -11,11 +11,13 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/TrustFrame.h"
+
+#include "util/XDROperators.h"
+
 #include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 
 namespace vixal {
-using xdr::operator==;
 
 EntryFrame::pointer
 EntryFrame::fromXDR(LedgerEntry const &from) {

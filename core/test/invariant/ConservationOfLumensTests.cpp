@@ -6,10 +6,13 @@
 #include "invariant/InvariantDoesNotHold.h"
 #include "invariant/InvariantManager.h"
 #include "invariant/InvariantTestUtils.h"
+#include "ledger/LedgerManager.h"
+
 #include "catch.hpp"
 #include "application/Application.h"
 #include "test/TestUtils.h"
 #include "test/test.h"
+
 #include <random>
 #include <xdrpp/autocheck.h>
 

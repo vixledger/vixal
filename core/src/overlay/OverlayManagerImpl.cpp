@@ -12,6 +12,7 @@
 #include "application/Application.h"
 
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 
 #include <random>
 

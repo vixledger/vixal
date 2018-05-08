@@ -19,7 +19,6 @@ struct HistoryArchiveState;
 class GetHistoryArchiveStateWork : public Work {
     HistoryArchiveState &mState;
     uint32_t mSeq;
-    VirtualClock::duration mInitialDelay;
     std::shared_ptr<HistoryArchive> mArchive;
     std::string mLocalFilename;
 
@@ -31,15 +30,12 @@ public:
     GetHistoryArchiveStateWork(
             Application &app, AbstractWork &parent, std::string uniqueName,
             HistoryArchiveState &state, uint32_t seq = 0,
-            VirtualClock::duration const &intitialDelay = std::chrono::seconds(0),
             std::shared_ptr<HistoryArchive> archive = nullptr,
             size_t maxRetries = Work::RETRY_A_FEW);
 
     ~GetHistoryArchiveStateWork();
 
     std::string getStatus() const override;
-
-    VirtualClock::duration getRetryDelay() const override;
 
     void onReset() override;
 

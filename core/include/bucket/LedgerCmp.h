@@ -6,6 +6,7 @@
 
 #include "ledger/EntryFrame.h"
 #include "xdr/xdr.h"
+#include "util/XDROperators.h"
 
 namespace vixal {
 
@@ -27,8 +28,6 @@ struct LedgerEntryIdCmp {
     template<typename T, typename U>
     auto
     operator()(T const &a, U const &b) const -> decltype(a.type(), b.type(), bool()) {
-
-        using xdr::operator<;
 
         LedgerEntryType aty = a.type();
         LedgerEntryType bty = b.type();

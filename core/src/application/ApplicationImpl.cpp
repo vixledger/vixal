@@ -13,6 +13,9 @@
 #include "bucket/Bucket.h"
 #include "bucket/BucketManager.h"
 #include "database/Database.h"
+
+#include "ledger/LedgerManager.h"
+
 #include "herder/Herder.h"
 #include "herder/HerderPersistence.h"
 #include "history/HistoryArchiveManager.h"

@@ -4,22 +4,32 @@
 
 #include "crypto/SignerKey.h"
 #include "catch.hpp"
+
 #include "application/Application.h"
+#include "application/Config.h"
+
 #include "test/TestAccount.h"
 #include "test/TestExceptions.h"
 #include "test/TestUtils.h"
 #include "test/TxTests.h"
 #include "test/test.h"
 
+#include "util/XDROperators.h"
+#include "util/Logging.h"
+#include "util/Timer.h"
+#include "util/XDROperators.h"
+
 using namespace vixal;
 using namespace vixal::txtest;
+
+typedef std::unique_ptr<Application> appPtr;
+
 
 // Try setting each option to make sure it works
 // try setting all at once
 // try setting high threshold ones without the correct sigs
 // make sure it doesn't allow us to add signers when we don't have the minbalance
 TEST_CASE("set options", "[tx][setoptions]") {
-    using xdr::operator==;
 
     Config const &cfg = getTestConfig();
 

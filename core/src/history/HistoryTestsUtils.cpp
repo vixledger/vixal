@@ -3,18 +3,24 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "history/HistoryTestsUtils.h"
-#include "history/HistoryArchiveManager.h"
 #include "bucket/BucketManager.h"
-#include "bucket/BucketList.h"
 #include "crypto/Hex.h"
+#include "crypto/Random.h"
 #include "herder/TxSetFrame.h"
+#include "history/HistoryArchiveManager.h"
 #include "ledger/CheckpointRange.h"
+#include "ledger/LedgerManager.h"
 #include "test/TestAccount.h"
 #include "test/TestUtils.h"
 #include "test/TxTests.h"
 #include "test/test.h"
+#include "util/XDROperators.h"
 #include "work/WorkManager.h"
+
 #include <catch.hpp>
+
+#include "util/XDROperators.h"
+
 
 #include <medida/metrics_registry.h>
 
@@ -24,7 +30,6 @@ using namespace vixal;
 using namespace txtest;
 
 namespace vixal {
-using xdr::operator==;
 
 namespace historytestutils {
 
@@ -34,7 +39,8 @@ HistoryConfigurator::getArchiveDirName() const {
 }
 
 TmpDirHistoryConfigurator::TmpDirHistoryConfigurator()
-        : mArchtmp("archtmp"), mDir(mArchtmp.tmpDir("archive")) {
+        : mArchtmp("archtmp-" + binToHex(randomBytes(8))),
+          mDir(mArchtmp.tmpDir("archive")) {
 }
 
 std::string
@@ -282,7 +288,9 @@ CatchupSimulation::generateAndPublishHistory(size_t nPublishes) {
         // One more ledger is needed to close as vixal-core only publishes to just-before-LCL
         generateRandomLedger();
         ++ledgerSeq;
-
+        // One more for trigger ledger
+        generateRandomLedger();
+        ++ledgerSeq;
         REQUIRE(lm.getCurrentLedgerHeader().ledgerSeq == ledgerSeq);
 
         // Advance until we've published (or failed to!)
@@ -295,7 +303,7 @@ CatchupSimulation::generateAndPublishHistory(size_t nPublishes) {
     REQUIRE(hm.getPublishFailureCount() == 0);
     REQUIRE(hm.getPublishSuccessCount() == publishSuccesses + nPublishes);
     REQUIRE(lm.getLedgerNum() ==
-            ((publishSuccesses + nPublishes) * hm.getCheckpointFrequency()) + 1);
+            ((publishSuccesses + nPublishes) * hm.getCheckpointFrequency()) + 2);
 }
 
 Application::pointer
@@ -366,7 +374,7 @@ CatchupSimulation::catchupApplication(uint32_t initLedger, uint32_t count,
         CLOG(INFO, "History")
                 << "force-starting catchup at initLedger=" << initLedger;
 
-        lm.startCatchUp({initLedger, count}, manual);
+        lm.startCatchup({initLedger, count}, manual);
     }
 
     // Push publishing side forward one-ledger into a history block if it's
@@ -386,9 +394,9 @@ CatchupSimulation::catchupApplication(uint32_t initLedger, uint32_t count,
     // initLedger (inclusive), so that there's something to knit-up with. Do not
     // externalize anything we haven't yet published, of course.
     if (!manual) {
-        uint32_t nextBlockStart =
-                mApp.getHistoryManager().nextCheckpointLedger(initLedger);
-        for (uint32_t n = initLedger + 1; n <= nextBlockStart; ++n) {
+        uint32_t triggerLedger =
+                mApp.getHistoryManager().nextCheckpointLedger(initLedger) + 1;
+        for (uint32_t n = initLedger + 1; n <= triggerLedger; ++n) {
             // Remember the vectors count from 2, not 0.
             if (n - 2 >= mLedgerCloseData.size()) {
                 break;
@@ -426,7 +434,10 @@ CatchupSimulation::catchupApplication(uint32_t initLedger, uint32_t count,
                           << "[" << mLedgerSeqs.front() << ", "
                           << mLedgerSeqs.back() << "]";
 
-    if (app2->getLedgerManager().getState() != LedgerManager::LM_SYNCED_STATE) {
+    if (app2->getLedgerManager().getState() !=
+        LedgerManager::LM_CATCHING_UP_STATE ||
+        app2->getLedgerManager().getCatchupState() !=
+        LedgerManager::CatchupState::WAITING_FOR_CLOSING_LEDGER) {
         CLOG(INFO, "History") << "Catching up failed: state = "
                               << app2->getLedgerManager().getState();
         return false;

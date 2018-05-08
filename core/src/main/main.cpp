@@ -228,7 +228,7 @@ catchup(Config const &cfg, uint32_t to, uint32_t count, Json::Value &catchupInfo
     while (!done && clock.crank(true));
 
     try {
-        app->getLedgerManager().startCatchUp({to, count}, true);
+        app->getLedgerManager().startCatchup({to, count}, true);
     }
     catch (std::invalid_argument const &) {
         LOG(INFO) << "*";
@@ -245,26 +245,40 @@ catchup(Config const &cfg, uint32_t to, uint32_t count, Json::Value &catchupInfo
     while (!done && clock.crank(true)) {
         switch (app->getLedgerManager().getState()) {
             case LedgerManager::LM_BOOTING_STATE: {
-                LOG(INFO) << "*";
-                LOG(INFO) << "* Catchup failed.";
-                LOG(INFO) << "*";
                 done = true;
                 break;
             }
             case LedgerManager::LM_SYNCED_STATE: {
-                LOG(INFO) << "*";
-                LOG(INFO) << "* Catchup finished.";
-                LOG(INFO) << "*";
-                done = true;
-                synced = true;
                 break;
             }
-            case LedgerManager::LM_CATCHING_UP_STATE:
+            case LedgerManager::LM_CATCHING_UP_STATE: {
+                switch (app->getLedgerManager().getCatchupState()) {
+                    case LedgerManager::CatchupState::WAITING_FOR_CLOSING_LEDGER: {
+                        done = true;
+                        synced = true;
+                        break;
+                    }
+                    case LedgerManager::CatchupState::NONE: {
+                        done = true;
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
                 break;
+            }
             case LedgerManager::LM_NUM_STATE:
                 abort();
         }
     }
+    LOG(INFO) << "*";
+    if (synced) {
+        LOG(INFO) << "* Catchup finished.";
+    } else {
+        LOG(INFO) << "* Catchup failed.";
+    }
+    LOG(INFO) << "*";
 
     catchupInfo = app->getJsonInfo();
     app->gracefulStop();

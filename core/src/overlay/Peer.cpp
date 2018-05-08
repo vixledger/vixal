@@ -10,11 +10,13 @@
 #include "crypto/SHA.h"
 #include "herder/Herder.h"
 #include "application/Application.h"
+#include "ledger/LedgerManager.h"
 #include "overlay/LoadManager.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/PeerAuth.h"
 #include "overlay/PeerRecord.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 
 #include "xdrpp/marshal.h"
 
@@ -26,8 +28,6 @@ namespace vixal {
 
 using namespace std;
 using namespace soci;
-
-using xdr::operator<;
 
 using random_t = random_static;
 
@@ -738,8 +738,6 @@ Peer::noteHandshakeSuccessInPeerRecord() {
 
 void
 Peer::recvHello(Hello const &elo) {
-    using xdr::operator==;
-
     if (mState >= GOT_HELLO) {
         CLOG(ERROR, "Overlay") << "received unexpected HELLO";
         mDropInRecvHelloUnexpectedMeter.mark();

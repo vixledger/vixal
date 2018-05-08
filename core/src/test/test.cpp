@@ -24,12 +24,14 @@ static std::vector<std::unique_ptr<Config>> gTestCfg[Config::TESTDB_MODES];
 static std::vector<TmpDir> gTestRoots;
 static bool gTestAllVersions{false};
 static std::vector<uint32> gVersionsToTest;
+static int gBaseInstance{0};
 
 
 bool force_sqlite = (std::getenv("VIXAL_FORCE_SQLITE") != nullptr);
 
 Config const &
 getTestConfig(unsigned instanceNumber, Config::TestDbMode mode) {
+    instanceNumber += gBaseInstance;
     if (mode == Config::TESTDB_DEFAULT) {
         // by default, tests should be run with in memory SQLITE as it's faster
         // you can change this by enabling the appropriate line below
@@ -118,6 +120,8 @@ getTestConfig(unsigned instanceNumber, Config::TestDbMode mode) {
         }
         thisConfig.DATABASE = SecretValue{dbname.str()};
         thisConfig.REPORT_METRICS = gTestMetrics;
+        // disable maintenance
+        thisConfig.AUTOMATIC_MAINTENANCE_COUNT = 0;
     }
     return *cfgs[instanceNumber];
 }
@@ -126,20 +130,27 @@ int
 test(int argc, char *argv[], el::Level ll,
      std::vector<std::string> const &metrics) {
     gTestMetrics = metrics;
-    vixal::Config const &cfg = getTestConfig();
+    // Note: Have to setLogLevel twice here to ensure --list-test-names-only is
+    // not mixed with vixal-core logging.
     Logging::setFmt("<test>");
+    Logging::setLogLevel(ll, nullptr);
+    Config const &cfg = getTestConfig();
     Logging::setLoggingToFile(cfg.LOG_FILE_PATH);
     Logging::setLogLevel(ll, nullptr);
+
     LOG(INFO) << "Testing vixal-core " << VIXAL_CORE_VERSION;
     LOG(INFO) << "Logging to " << cfg.LOG_FILE_PATH;
 
     using namespace Catch;
     Catch::Session session{};
-    session.cli(
-            session.cli() |
-            clara::Opt(gTestAllVersions)["--all-versions"]("Test all versions") |
-            clara::Opt(gVersionsToTest,
-                       "version")["--version"]("Test specific version(s)"));
+    auto cli = session.cli();
+    cli |= clara::Opt(gTestAllVersions)["--all-versions"]("Test all versions");
+    cli |= clara::Opt(gVersionsToTest,
+                      "version")["--version"]("Test specific version(s)");
+    cli |= clara::Opt(gBaseInstance, "offset")["--base-instance"](
+            "Instance number offset so multiple instances of "
+            "vixal-core can run tests concurrently");
+    session.cli(cli);
     auto r = session.applyCommandLine(argc, argv);
 
     if (r != 0) {
@@ -193,8 +204,8 @@ for_versions(std::vector<uint32> const &versions, Application &app, std::functio
     auto previousVersion = app.getLedgerManager().getCurrentLedgerVersion();
     for (auto v : versions) {
         if (!gTestAllVersions &&
-                std::find(gVersionsToTest.begin(), gVersionsToTest.end(), v) ==
-                        gVersionsToTest.end()) {
+            std::find(gVersionsToTest.begin(), gVersionsToTest.end(), v) ==
+            gVersionsToTest.end()) {
             continue;
         }
         SECTION("protocol version " + std::to_string(v)) {

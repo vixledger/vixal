@@ -3,8 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "scp/NominationProtocol.h"
-
 #include "scp/LocalNode.h"
+#include "scp/QuorumSetUtils.h"
 #include "scp/Slot.h"
 
 #include "crypto/Hex.h"
@@ -15,13 +15,12 @@
 
 #include "util/GlobalChecks.h"
 #include "util/Logging.h"
+#include "util/XDROperators.h"
 #include "util/types.h"
 
 #include "xdrpp/marshal.h"
 
 namespace vixal {
-using xdr::operator==;
-using xdr::operator<;
 using namespace std::placeholders;
 
 NominationProtocol::NominationProtocol(Slot &slot)
@@ -176,9 +175,15 @@ NominationProtocol::applyAll(SCPNomination const &nom,
 
 void
 NominationProtocol::updateRoundLeaders() {
+    SCPQuorumSet myQSet = mSlot.getLocalNode()->getQuorumSet();
+
+    // initialize priority with value derived from self
     mRoundLeaders.clear();
-    uint64 topPriority = 0;
-    SCPQuorumSet const &myQSet = mSlot.getLocalNode()->getQuorumSet();
+    auto localID = mSlot.getLocalNode()->getNodeID();
+    normalizeQSet(myQSet, &localID);
+
+    mRoundLeaders.insert(localID);
+    uint64 topPriority = getNodePriority(localID, myQSet);
 
     LocalNode::forAllNodes(myQSet, [&](NodeID const &cur) {
         uint64 w = getNodePriority(cur, myQSet);
@@ -216,7 +221,13 @@ uint64
 NominationProtocol::getNodePriority(NodeID const &nodeID,
                                     SCPQuorumSet const &qset) {
     uint64 res;
-    uint64 w = LocalNode::getNodeWeight(nodeID, qset);
+    uint64 w;
+    if (nodeID == mSlot.getLocalNode()->getNodeID()) {
+        // local node is in all quorum sets
+        w = UINT64_MAX;
+    } else {
+        w = LocalNode::getNodeWeight(nodeID, qset);
+    }
 
     if (hashNode(false, nodeID) < w) {
         res = hashNode(true, nodeID);
