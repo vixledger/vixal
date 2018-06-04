@@ -33,6 +33,7 @@
 #ifndef _WIN32
 
 #include <errno.h>
+#include <fcntl.h>
 
 #endif
 
@@ -466,6 +467,16 @@ ProcessExitEvent::Impl::run() {
     PosixSpawnFileActions fileActions;
     if (!mOutFile.empty()) {
         fileActions.addOpen(1, mOutFile, O_RDWR | O_CREAT, 0600);
+    }
+
+    // Iterate through all possibly open file descriptors except stdin, stdout,
+    // and stderr and set FD_CLOEXEC so the subprocess doesn't inherit them
+    const int maxFds = sysconf(_SC_OPEN_MAX);
+    for (int fd = 3; fd < maxFds; ++fd) {
+        int flags = fcntl(fd, F_GETFD);
+        if (flags != -1) {
+            fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+        }
     }
 
     err = posix_spawnp(&mProcessId, argv[0], fileActions,
