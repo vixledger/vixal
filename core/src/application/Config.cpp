@@ -28,10 +28,22 @@
 
 #include <functional>
 #include <sstream>
+#include <unordered_set>
 
 namespace vixal {
 
 const uint32_t Config::CURRENT_LEDGER_PROTOCOL_VERSION = 10;
+
+// Options that must only be used for testing
+static const std::unordered_set<std::string> TESTING_ONLY_OPTIONS = {
+        "RUN_STANDALONE", "MANUAL_CLOSE", "ARTIFICIALLY_GENERATE_LOAD_FOR_TESTING",
+        "ARTIFICIALLY_ACCELERATE_TIME_FOR_TESTING",
+        "ARTIFICIALLY_SET_CLOSE_TIME_FOR_TESTING"};
+
+// Options that should only be used for testing
+static const std::unordered_set<std::string> TESTING_SUGGESTED_OPTIONS = {
+        "ALLOW_LOCALHOST_FOR_TESTING"};
+
 
 Config::Config() : NODE_SEED(SecretKey::random()) {
     // fill in defaults
@@ -41,7 +53,7 @@ Config::Config() : NODE_SEED(SecretKey::random()) {
     LEDGER_PROTOCOL_VERSION = CURRENT_LEDGER_PROTOCOL_VERSION;
 
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
-    OVERLAY_PROTOCOL_VERSION = 6;
+    OVERLAY_PROTOCOL_VERSION = 7;
 
     VERSION_STR = VIXAL_CORE_VERSION;
 
@@ -213,6 +225,15 @@ Config::load(std::string const &filename) {
         // so we need to process items that are potential dependencies first
         for (auto &item : g) {
             LOG(DEBUG) << "Config item: " << item.first;
+            if (TESTING_ONLY_OPTIONS.count(item.first) > 0) {
+                LOG(INFO) << item.first
+                        << " enabled in configuration file - node will not "
+                           "function properly with most networks";
+            } else if (TESTING_SUGGESTED_OPTIONS.count(item.first) > 0) {
+                LOG(INFO) << item.first
+                        << " enabled in configuration file - node may not "
+                           "be configured for production use";
+            }
             if (item.first == "PEER_PORT") {
                 PEER_PORT = readInt<unsigned short>(item, 1, UINT16_MAX);
             } else if (item.first == "HTTP_PORT") {
