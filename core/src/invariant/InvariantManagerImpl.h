@@ -30,6 +30,7 @@ public:
 
     Json::Value getJsonInfo() override;
 
+    virtual std::vector<std::string> getEnabledInvariants() const override;
 
     void checkOnOperationApply(Operation const &operation,
                                OperationResult const &opres,
