@@ -417,7 +417,6 @@ ApplicationImpl::generateLoad(bool isCreate, uint32_t nAccounts,
                               uint32_t txRate, uint32_t batchSize,
                               bool autoRate) {
     getMetrics().newMeter({"loadgen", "run", "start"}, "run").mark();
-    getLoadGenerator().clear();
     getLoadGenerator().generateLoad(isCreate, nAccounts, offset, nTxs, txRate,
                                     batchSize, autoRate);
 }

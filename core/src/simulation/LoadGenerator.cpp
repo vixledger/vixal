@@ -555,6 +555,7 @@ LoadGenerator::waitTillComplete() {
         mApp.getMetrics()
                 .newMeter({"loadgen", "run", "complete"}, "run")
                 .mark();
+        clear();
         return;
     } else {
         mLoadTimer->expires_after(mApp.getConfig().getExpectedLedgerCloseTime());

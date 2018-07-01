@@ -32,8 +32,8 @@ CreateAccountOpFrame::doApply(Application &app, LedgerDelta &delta,
     destAccount = AccountFrame::loadAccount(delta, mCreateAccount.destination, db);
 
     if (!destAccount) {
-        if (mCreateAccount.startingBalance <
-            ledgerManager.getMinBalance(0)) { // not over the minBalance to make an account
+        if (mCreateAccount.startingBalance < ledgerManager.getMinBalance(0)) {
+            // not over the minBalance to make an account
             app.getMetrics().newMeter({"op-create-account", "failure", "low-reserve"}, "operation").mark();
             innerResult().code(CREATE_ACCOUNT_LOW_RESERVE);
             return false;
@@ -41,8 +41,8 @@ CreateAccountOpFrame::doApply(Application &app, LedgerDelta &delta,
             int64_t minBalance =
                     mSourceAccount->getMinimumBalance(ledgerManager);
 
-            if ((mSourceAccount->getAccount().balance - minBalance) <
-                mCreateAccount.startingBalance) { // they don't have enough to send
+            if ((mSourceAccount->getAccount().balance - minBalance) < mCreateAccount.startingBalance) {
+                // they don't have enough to send
                 app.getMetrics().newMeter({"op-create-account", "failure", "underfunded"}, "operation").mark();
                 innerResult().code(CREATE_ACCOUNT_UNDERFUNDED);
                 return false;
@@ -81,7 +81,8 @@ CreateAccountOpFrame::doCheckValid(Application &app) {
     }
 
     if (mCreateAccount.destination == getSourceID()) {
-        app.getMetrics().newMeter({"op-create-account", "invalid", "malformed-destination-equals-source"},
+        app.getMetrics().newMeter({"op-create-account", "invalid",
+                                   "malformed-destination-equals-source"},
                                   "operation").mark();
         innerResult().code(CREATE_ACCOUNT_MALFORMED);
         return false;

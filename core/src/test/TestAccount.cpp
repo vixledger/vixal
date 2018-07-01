@@ -5,10 +5,12 @@
 #include "test/TestAccount.h"
 
 #include "ledger/DataFrame.h"
-#include "catch.hpp"
 #include "application/Application.h"
+
 #include "test/TestExceptions.h"
 #include "test/TxTests.h"
+
+#include <catch.hpp>
 
 namespace vixal {
 
@@ -133,10 +135,8 @@ TestAccount::hasTrustLine(Asset const &asset) const {
 }
 
 void
-TestAccount::setOptions(AccountID *inflationDest, uint32_t *setFlags,
-                        uint32_t *clearFlags, ThresholdSetter *thrs,
-                        Signer *signer, std::string *homeDomain) {
-    applyTx(tx({txtest::setOptions(inflationDest, setFlags, clearFlags, thrs, signer, homeDomain)}), mApp);
+TestAccount::setOptions(SetOptionsArguments const& arguments) {
+    applyTx(tx({txtest::setOptions(arguments)}), mApp);
 }
 
 void

@@ -235,6 +235,44 @@ TransactionFrame::processSeqNum(LedgerManager &lm, LedgerDelta &delta) {
     }
 }
 
+bool
+TransactionFrame::processSignatures(SignatureChecker &signatureChecker,
+                                    Application &app, LedgerDelta &delta) {
+    if (app.getLedgerManager().getCurrentLedgerVersion() < 10) {
+        return true;
+    }
+
+    auto allOpsValid = true;
+    for (auto &op : mOperations) {
+        if (!op->checkSignature(signatureChecker, app, nullptr)) {
+            allOpsValid = false;
+        }
+    }
+
+    removeUsedOneTimeSignerKeys(signatureChecker, delta,
+                                app.getLedgerManager());
+
+    if (!allOpsValid) {
+        app.getMetrics()
+                .newMeter({"transaction", "invalid", "invalid-op"}, "transaction")
+                .mark();
+        markResultFailed();
+        return false;
+    }
+
+    if (!signatureChecker.checkAllSignaturesUsed()) {
+        getResult().result.code(txBAD_AUTH_EXTRA);
+        app.getMetrics()
+                .newMeter({"transaction", "invalid", "bad-auth-extra"},
+                          "transaction")
+                .mark();
+        return false;
+    }
+
+    return true;
+}
+
+
 TransactionFrame::ValidationType
 TransactionFrame::commonValid(SignatureChecker &signatureChecker,
                               Application &app, LedgerDelta *delta,
@@ -269,6 +307,8 @@ TransactionFrame::commonValid(SignatureChecker &signatureChecker,
         getResult().result.code(txBAD_AUTH);
         return res;
     }
+
+    res = ValidationType::kInvalidPostAuth;
 
     // if we are in applying mode fee was already deduced from signing account
     // balance, if not, we need to check if after that deduction this account
@@ -339,7 +379,8 @@ TransactionFrame::removeUsedOneTimeSignerKeys(
         const AccountID &accountId, const std::set<SignerKey> &keys,
         LedgerDelta &delta, LedgerManager &ledgerManager) const {
 
-    auto account = AccountFrame::loadAccount(accountId, ledgerManager.getDatabase());
+    auto account = AccountFrame::loadAccount(delta, accountId,
+                                             ledgerManager.getDatabase());
     if (!account) {
         return; // probably account was removed due to merge operation
     }
@@ -430,9 +471,9 @@ TransactionFrame::apply(LedgerDelta &delta, Application &app) {
 }
 
 bool
-TransactionFrame::applyOperations(SignatureChecker& signatureChecker,
-                                  LedgerDelta& delta, TransactionMetaV1& meta,
-                                  Application& app) {
+TransactionFrame::applyOperations(SignatureChecker &signatureChecker,
+                                  LedgerDelta &delta, TransactionMetaV1 &meta,
+                                  Application &app) {
 
     bool errorEncountered = false;
 
@@ -461,16 +502,18 @@ TransactionFrame::applyOperations(SignatureChecker& signatureChecker,
         }
 
         if (!errorEncountered) {
-            if (!signatureChecker.checkAllSignaturesUsed()) {
-                getResult().result.code(txBAD_AUTH_EXTRA);
-                // this should never happen: malformed transaction should not be
-                // accepted by nodes
-                return false;
+            if (app.getLedgerManager().getCurrentLedgerVersion() < 10) {
+                if (!signatureChecker.checkAllSignaturesUsed()) {
+                    getResult().result.code(txBAD_AUTH_EXTRA);
+                    // this should never happen: malformed transaction should
+                    // not be accepted by nodes
+                    return false;
+                }
+                // if an error occurred, it is responsibility of account's owner
+                // to remove that signer
+                removeUsedOneTimeSignerKeys(signatureChecker, thisTxOpsDelta,
+                                            app.getLedgerManager());
             }
-
-            // if an error occurred, it is responsibility of account's owner to
-            // remove that signer
-            removeUsedOneTimeSignerKeys(signatureChecker, thisTxOpsDelta, app.getLedgerManager());
             sqlTx.commit();
             thisTxOpsDelta.commit();
         }
@@ -485,8 +528,8 @@ TransactionFrame::applyOperations(SignatureChecker& signatureChecker,
 }
 
 bool
-TransactionFrame::apply(LedgerDelta& delta, TransactionMetaV1& meta,
-                        Application& app) {
+TransactionFrame::apply(LedgerDelta &delta, TransactionMetaV1 &meta,
+                        Application &app) {
     resetSigningAccount();
     SignatureChecker signatureChecker{
             app.getLedgerManager().getCurrentLedgerVersion(), getContentsHash(),
@@ -501,9 +544,12 @@ TransactionFrame::apply(LedgerDelta& delta, TransactionMetaV1& meta,
         if (cv >= ValidationType::kInvalidUpdateSeqNum) {
             processSeqNum(app.getLedgerManager(), txDelta);
         }
+        auto signaturesValid =
+                cv >= (ValidationType::kInvalidPostAuth) &&
+                        processSignatures(signatureChecker, app, txDelta);
         meta.txChanges = txDelta.getChanges();
         txDelta.commit();
-        valid = (cv == ValidationType::kFullyValid);
+        valid = signaturesValid && (cv == ValidationType::kFullyValid);
 
     }
     return valid && applyOperations(signatureChecker, delta, meta, app);
@@ -542,8 +588,8 @@ TransactionFrame::storeTransaction(LedgerManager &ledgerManager,
     auto &db = ledgerManager.getDatabase();
     auto prep = db.getPreparedStatement(
             "INSERT INTO txhistory "
-                    "( txid, ledgerseq, txindex,  txbody, txresult, txmeta) VALUES "
-                    "(:id,  :seq,      :txindex, :txb,   :txres,   :meta)");
+            "( txid, ledgerseq, txindex,  txbody, txresult, txmeta) VALUES "
+            "(:id,  :seq,      :txindex, :txb,   :txres,   :meta)");
 
     auto &st = prep.statement();
     st.exchange(soci::use(txIDString));
@@ -577,8 +623,8 @@ TransactionFrame::storeTransactionFee(LedgerManager &ledgerManager,
     auto &db = ledgerManager.getDatabase();
     auto prep = db.getPreparedStatement(
             "INSERT INTO txfeehistory "
-                    "( txid, ledgerseq, txindex,  txchanges) VALUES "
-                    "(:id,  :seq,      :txindex, :txchanges)");
+            "( txid, ledgerseq, txindex,  txchanges) VALUES "
+            "(:id,  :seq,      :txindex, :txchanges)");
 
     auto &st = prep.statement();
     st.exchange(soci::use(txIDString));
@@ -623,7 +669,7 @@ TransactionFrame::getTransactionHistoryResults(Database &db, uint32 ledgerSeq) {
     std::string txresult64;
     auto prep =
             db.getPreparedStatement("SELECT txresult FROM txhistory "
-                                            "WHERE ledgerseq = :lseq ORDER BY txindex ASC");
+                                    "WHERE ledgerseq = :lseq ORDER BY txindex ASC");
     auto &st = prep.statement();
 
     st.exchange(soci::use(ledgerSeq));
@@ -651,7 +697,7 @@ TransactionFrame::getTransactionFeeMeta(Database &db, uint32 ledgerSeq) {
     std::string changes64;
     auto prep =
             db.getPreparedStatement("SELECT txchanges FROM txfeehistory "
-                                            "WHERE ledgerseq = :lseq ORDER BY txindex ASC");
+                                    "WHERE ledgerseq = :lseq ORDER BY txindex ASC");
     auto &st = prep.statement();
 
     st.exchange(soci::into(changes64));
@@ -691,8 +737,8 @@ TransactionFrame::copyTransactionsToStream(Hash const &networkID, Database &db,
     assert(begin <= end);
     statement st =
             (sess.prepare << "SELECT ledgerseq, txbody, txresult FROM txhistory "
-                    "WHERE ledgerseq >= :begin AND ledgerseq < :end ORDER "
-                    "BY ledgerseq ASC, txindex ASC", into(curLedgerSeq),
+                             "WHERE ledgerseq >= :begin AND ledgerseq < :end ORDER "
+                             "BY ledgerseq ASC, txindex ASC", into(curLedgerSeq),
                     into(txBody), into(txResult), use(begin), use(end));
 
     Hash h;
@@ -752,23 +798,23 @@ TransactionFrame::dropAll(Database &db) {
     db.getSession() << "DROP TABLE IF EXISTS txfeehistory";
 
     db.getSession() << "CREATE TABLE txhistory ("
-            "txid        CHARACTER(64) NOT NULL,"
-            "ledgerseq   INT NOT NULL CHECK (ledgerseq >= 0),"
-            "txindex     INT NOT NULL,"
-            "txbody      TEXT NOT NULL,"
-            "txresult    TEXT NOT NULL,"
-            "txmeta      TEXT NOT NULL,"
-            "PRIMARY KEY (ledgerseq, txindex)"
-            ")";
+                       "txid        CHARACTER(64) NOT NULL,"
+                       "ledgerseq   INT NOT NULL CHECK (ledgerseq >= 0),"
+                       "txindex     INT NOT NULL,"
+                       "txbody      TEXT NOT NULL,"
+                       "txresult    TEXT NOT NULL,"
+                       "txmeta      TEXT NOT NULL,"
+                       "PRIMARY KEY (ledgerseq, txindex)"
+                       ")";
     db.getSession() << "CREATE INDEX histbyseq ON txhistory (ledgerseq);";
 
     db.getSession() << "CREATE TABLE txfeehistory ("
-            "txid        CHARACTER(64) NOT NULL,"
-            "ledgerseq   INT NOT NULL CHECK (ledgerseq >= 0),"
-            "txindex     INT NOT NULL,"
-            "txchanges   TEXT NOT NULL,"
-            "PRIMARY KEY (ledgerseq, txindex)"
-            ")";
+                       "txid        CHARACTER(64) NOT NULL,"
+                       "ledgerseq   INT NOT NULL CHECK (ledgerseq >= 0),"
+                       "txindex     INT NOT NULL,"
+                       "txchanges   TEXT NOT NULL,"
+                       "PRIMARY KEY (ledgerseq, txindex)"
+                       ")";
     db.getSession() << "CREATE INDEX histfeebyseq ON txfeehistory (ledgerseq);";
 }
 
