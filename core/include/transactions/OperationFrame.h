@@ -57,6 +57,8 @@ public:
 
     OperationFrame(OperationFrame const &) = delete;
 
+    virtual ~OperationFrame() = default;
+
     bool checkSignature(SignatureChecker& signatureChecker, Application& app,
                         LedgerDelta* delta);
 

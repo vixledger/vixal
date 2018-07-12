@@ -362,7 +362,7 @@ HerderImpl::recvSCPEnvelope(SCPEnvelope const &envelope, const SCPQuorumSet &qse
 }
 
 void
-HerderImpl::sendSCPStateToPeer(uint32 ledgerSeq, PeerPtr peer) {
+HerderImpl::sendSCPStateToPeer(uint32 ledgerSeq, Peer::pointer peer) {
     if (getSCP().empty()) {
         return;
     }
@@ -536,7 +536,7 @@ HerderImpl::recvTxSet(Hash const &hash, const TxSetFrame &t) {
 
 void
 HerderImpl::peerDoesntHave(MessageType type, uint256 const &itemID,
-                           PeerPtr peer) {
+                           Peer::pointer peer) {
     mPendingEnvelopes.peerDoesntHave(type, itemID, peer);
 }
 

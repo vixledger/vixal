@@ -40,6 +40,8 @@ public:
 
     EntryFrame(LedgerEntry const &from);
 
+    virtual ~EntryFrame() = default;
+
     static pointer fromXDR(LedgerEntry const &from);
 
     static pointer storeLoad(LedgerKey const &key, Database &db);

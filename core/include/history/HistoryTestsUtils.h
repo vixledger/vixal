@@ -29,6 +29,9 @@ struct CatchupPerformedWork;
 
 class HistoryConfigurator : noncopyable {
 public:
+
+    virtual ~HistoryConfigurator() = default;
+
     virtual Config &configure(Config &cfg, bool writable) const = 0;
 
     virtual std::string getArchiveDirName() const;

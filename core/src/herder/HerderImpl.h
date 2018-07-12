@@ -70,14 +70,14 @@ public:
                                    const SCPQuorumSet &qset,
                                    TxSetFrame txset) override;
 
-    void sendSCPStateToPeer(uint32 ledgerSeq, PeerPtr peer) override;
+    void sendSCPStateToPeer(uint32 ledgerSeq, Peer::pointer peer) override;
 
     bool recvSCPQuorumSet(Hash const &hash, const SCPQuorumSet &qset) override;
 
     bool recvTxSet(Hash const &hash, const TxSetFrame &txset) override;
 
     void peerDoesntHave(MessageType type, uint256 const &itemID,
-                        PeerPtr peer) override;
+                        Peer::pointer peer) override;
 
     TxSetFramePtr getTxSet(Hash const &hash) override;
 

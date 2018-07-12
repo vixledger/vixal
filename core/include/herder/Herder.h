@@ -7,6 +7,7 @@
 #include "herder/TxSetFrame.h"
 #include "herder/Upgrades.h"
 #include "json/json-forwards.h"
+#include "overlay/Peer.h"
 #include "xdr/xdr.h"
 #include "scp/SCP.h"
 #include "util/Timer.h"
@@ -17,11 +18,9 @@
 namespace vixal {
 class Application;
 
-class Peer;
 
 class XDROutputFileStream;
 
-typedef std::shared_ptr<Peer> PeerPtr;
 
 /**
  * Public Interface to the Herder module
@@ -107,7 +106,7 @@ public:
     // We are learning about a new transaction.
     virtual TransactionSubmitStatus recvTransaction(TransactionFramePtr tx) = 0;
 
-    virtual void peerDoesntHave(vixal::MessageType type, uint256 const &itemID, PeerPtr peer) = 0;
+    virtual void peerDoesntHave(vixal::MessageType type, uint256 const &itemID, Peer::pointer peer) = 0;
 
     virtual TxSetFramePtr getTxSet(Hash const &hash) = 0;
 
@@ -122,7 +121,7 @@ public:
                                            TxSetFrame txset) = 0;
 
     // a peer needs our SCP state
-    virtual void sendSCPStateToPeer(uint32 ledgerSeq, PeerPtr peer) = 0;
+    virtual void sendSCPStateToPeer(uint32 ledgerSeq, Peer::pointer peer) = 0;
 
     // returns the latest known ledger seq using consensus information
     // and local state
