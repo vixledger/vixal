@@ -11,7 +11,7 @@ typedef opaque Thresholds[4];
 typedef string string32<32>;
 typedef string string64<64>;
 typedef int64 SequenceNumber;
-typedef opaque DataValue<64>; 
+typedef opaque DataValue<64>;
 
 enum AssetType {
     ASSET_TYPE_NATIVE = 0,
@@ -43,6 +43,12 @@ struct Price {
     int32 n; // numerator
     int32 d; // denominator
 };
+
+struct Liabilities {
+    int64 buying;
+    int64 selling;
+};
+
 
 // the 'Thresholds' type is packed uint8_t values
 // defined by these indexes
@@ -111,6 +117,16 @@ struct AccountEntry {
     union switch (int v) {
     case 0:
         void;
+    case 1:
+        struct {
+            Liabilities liabilities;
+
+            union switch (int v) {
+            case 0:
+                void;
+            }
+            ext;
+        } v1;
     }
     ext;
 };
@@ -124,7 +140,6 @@ enum TrustLineFlags {
     // issuer has authorized account to perform transactions with its credit
     AUTHORIZED_FLAG = 1
 };
-
 
 // mask for all trustline flags
 const MASK_TRUSTLINE_FLAGS = 1;
@@ -142,6 +157,16 @@ struct TrustLineEntry {
     union switch (int v) {
     case 0:
         void;
+    case 1:
+        struct {
+            Liabilities liabilities;
+
+            union switch (int v) {
+            case 0:
+                void;
+            }
+            ext;
+        } v1;
     } ext;
 };
 
@@ -196,7 +221,6 @@ struct DataEntry {
         void;
     } ext;
 };
-
 
 struct LedgerEntry {
     uint32 lastModifiedLedgerSeq; // ledger the LedgerEntry was last changed
