@@ -81,6 +81,12 @@ makeValid(AccountEntry &a) {
         a.seqNum = -a.seqNum;
     }
     a.flags = a.flags & MASK_ACCOUNT_FLAGS;
+
+    if (a.ext.v() == 1) {
+        a.ext.v1().liabilities.buying = std::abs(a.ext.v1().liabilities.buying);
+        a.ext.v1().liabilities.selling =
+                std::abs(a.ext.v1().liabilities.selling);
+    }
 }
 
 void
@@ -94,6 +100,13 @@ makeValid(TrustLineEntry &tl) {
     strToAssetCode(tl.asset.alphaNum4().assetCode, "USD");
     clampHigh<int64_t>(tl.limit, tl.balance);
     tl.flags = tl.flags & MASK_TRUSTLINE_FLAGS;
+
+    if (tl.ext.v() == 1) {
+        tl.ext.v1().liabilities.buying =
+                std::abs(tl.ext.v1().liabilities.buying);
+        tl.ext.v1().liabilities.selling =
+                std::abs(tl.ext.v1().liabilities.selling);
+    }
 }
 
 void

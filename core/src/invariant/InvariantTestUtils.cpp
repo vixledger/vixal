@@ -21,6 +21,9 @@ generateRandomAccount(uint32_t ledgerSeq) {
     le.data.type(ACCOUNT);
     le.data.account() = LedgerTestUtils::generateValidAccountEntry(5);
     le.data.account().balance = 0;
+    if (le.data.account().ext.v() > 0) {
+        le.data.account().ext.v1().liabilities = Liabilities{0, 0};
+    }
     return le;
 }
 
@@ -68,5 +71,28 @@ makeUpdateList(EntryFrame::pointer left, EntryFrame::pointer right) {
     ul.push_back(std::make_tuple(left, right));
     return ul;
 }
+
+std::vector<EntryFrame::pointer>
+generateEntryFrames(std::vector<LedgerEntry> const &entries) {
+    std::vector<EntryFrame::pointer> result;
+    std::transform(
+            entries.begin(), entries.end(), std::back_inserter(result),
+            [](LedgerEntry const &le) { return EntryFrame::fromXDR(le); });
+    return result;
 }
+
+UpdateList
+generateUpdateList(std::vector<EntryFrame::pointer> const &current,
+                   std::vector<EntryFrame::pointer> const &previous) {
+    assert(current.size() == previous.size());
+    UpdateList updates;
+    std::transform(
+            current.begin(), current.end(), previous.begin(),
+            std::back_inserter(updates),
+            [](EntryFrame::pointer const &curr, EntryFrame::pointer const &prev) {
+                return UpdateList::value_type{curr, prev};
+            });
+    return updates;
 }
+} // end namespace InvariantTestUtils
+} // end namespace vixal
