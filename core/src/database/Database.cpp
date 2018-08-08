@@ -15,6 +15,8 @@
 
 #include "bucket/BucketManager.h"
 #include "herder/HerderPersistence.h"
+#include "herder/Upgrades.h"
+
 #include "history/HistoryManager.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/DataFrame.h"

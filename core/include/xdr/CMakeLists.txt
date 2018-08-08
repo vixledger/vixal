@@ -1,7 +1,7 @@
 file(GLOB XDRS "*.x")
 foreach (GENERATE_XDR ${XDRS})
     get_filename_component(XDRNAME ${GENERATE_XDR} NAME_WE)
-    set(OUT_NAME ${CMAKE_CURRENT_SOURCE_DIR}/xdr/${XDRNAME})
+    set(OUT_NAME ${CMAKE_CURRENT_SOURCE_DIR}/${XDRNAME})
 
     list(APPEND XDR_COMPILED_FILES ${OUT_NAME}.h)
 

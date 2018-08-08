@@ -313,13 +313,11 @@ TransactionFrame::commonValid(SignatureChecker &signatureChecker,
     // if we are in applying mode fee was already deduced from signing account
     // balance, if not, we need to check if after that deduction this account
     // will still have minimum balance
-    auto balanceAfter =
-            (applying && (lm.getCurrentLedgerVersion() > 8))
-            ? mSigningAccount->getAccount().balance
-            : mSigningAccount->getAccount().balance - mEnvelope.tx.fee;
-
-    // don't let the account go below the reserve
-    if (balanceAfter < mSigningAccount->getMinimumBalance(lm)) {
+    uint32_t feeToPay =
+            (applying && (lm.getCurrentLedgerVersion() > 8)) ? 0 : mEnvelope.tx.fee;
+    // don't let the account go below the reserve after accounting for
+    // liabilities
+    if (mSigningAccount->getAvailableBalance(lm) < feeToPay) {
         app.getMetrics().newMeter({"transaction", "invalid", "insufficient-balance"}, "transaction").mark();
         getResult().result.code(txINSUFFICIENT_BALANCE);
         return res;
@@ -344,7 +342,10 @@ TransactionFrame::processFeeSeqNum(LedgerDelta &delta,
 
     if (fee > 0) {
         fee = std::min(mSigningAccount->getAccount().balance, fee);
-        mSigningAccount->addBalance(-fee);
+        // Note: AccountFrame::addBalance checks that reserve plus liabilities
+        // are respected. In this case, we allow it to fall below that since it
+        // will be caught later in commonValid.
+        vixal::addBalance(mSigningAccount->getAccount().balance, -fee);
         delta.getHeader().feePool += fee;
     }
     // in v10 we update sequence numbers during apply
@@ -546,7 +547,7 @@ TransactionFrame::apply(LedgerDelta &delta, TransactionMetaV1 &meta,
         }
         auto signaturesValid =
                 cv >= (ValidationType::kInvalidPostAuth) &&
-                        processSignatures(signatureChecker, app, txDelta);
+                processSignatures(signatureChecker, app, txDelta);
         meta.txChanges = txDelta.getChanges();
         txDelta.commit();
         valid = signaturesValid && (cv == ValidationType::kFullyValid);

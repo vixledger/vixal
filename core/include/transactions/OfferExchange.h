@@ -40,13 +40,16 @@ struct ExchangeResultV10 {
 
 int64_t canSellAtMostBasedOnSheep(Asset const &sheep,
                                   TrustFrame::pointer sheepLine,
-                                  Price const &wheatPrice);
+                                  Price const &wheatPrice,
+                                  LedgerManager &ledgerManager);
 
 int64_t canSellAtMost(AccountFrame::pointer account, Asset const &asset,
                       TrustFrame::pointer trustLine,
                       LedgerManager &ledgerManager);
 
-int64_t canBuyAtMost(Asset const &asset, TrustFrame::pointer trustLine);
+int64_t canBuyAtMost(AccountFrame::pointer account, Asset const &asset,
+                     TrustFrame::pointer trustLine,
+                     LedgerManager &ledgerManager);
 
 ExchangeResult exchangeV2(int64_t wheatReceived, Price price, int64_t maxWheatReceive, int64_t maxSheepSend);
 
@@ -55,6 +58,15 @@ ExchangeResult exchangeV3(int64_t wheatReceived, Price price, int64_t maxWheatRe
 ExchangeResultV10 exchangeV10(Price price, int64_t maxWheatSend,
                               int64_t maxWheatReceive, int64_t maxSheepSend,
                               int64_t maxSheepReceive, bool isPathPayment);
+
+ExchangeResultV10 exchangeV10WithoutPriceErrorThresholds(
+        Price price, int64_t maxWheatSend, int64_t maxWheatReceive,
+        int64_t maxSheepSend, int64_t maxSheepReceive, bool isPathPayment);
+
+ExchangeResultV10 applyPriceErrorThresholds(Price price, int64_t wheatReceive,
+                                            int64_t sheepSend, bool wheatStays,
+                                            bool isPathPayment);
+
 
 void adjustOffer(OfferFrame &offer, LedgerManager &lm,
                  AccountFrame::pointer account, Asset const &wheat,
@@ -71,15 +83,17 @@ class LoadBestOfferContext {
     Asset const mSelling;
     Asset const mBuying;
 
-    Database& mDb;
+    Database &mDb;
     std::vector<OfferFrame::pointer> mBatch;
     std::vector<OfferFrame::pointer>::iterator mBatchIterator;
 
     void loadBatchIfNecessary();
+
 public:
-    LoadBestOfferContext(Database& db, Asset const& selling, Asset const& buying);
+    LoadBestOfferContext(Database &db, Asset const &selling, Asset const &buying);
 
     OfferFrame::pointer loadBestOffer();
+
     void eraseAndUpdate();
 };
 
@@ -105,11 +119,11 @@ public:
                                 int64_t &numWheatReceived, int64_t maxSheepSend,
                                 int64_t &numSheepSent);
 
-    CrossOfferResult crossOfferV10(OfferFrame& sellingWheatOffer,
+    CrossOfferResult crossOfferV10(OfferFrame &sellingWheatOffer,
                                    int64_t maxWheatReceived,
-                                   int64_t& numWheatReceived,
-                                   int64_t maxSheepSend, int64_t& numSheepSent,
-                                   bool& wheatStays, bool isPathPayment);
+                                   int64_t &numWheatReceived,
+                                   int64_t maxSheepSend, int64_t &numSheepSent,
+                                   bool &wheatStays, bool isPathPayment);
 
     enum OfferFilterResult {
         eKeep,
@@ -125,7 +139,7 @@ public:
     // buys wheat with sheep, crossing as many offers as necessary
     ConvertResult convertWithOffers(
             Asset const &sheep, int64_t maxSheepSent, int64_t &sheepSend,
-            Asset const& wheat, int64_t maxWheatReceive, int64_t& wheatReceived,
+            Asset const &wheat, int64_t maxWheatReceive, int64_t &wheatReceived,
             bool isPathPayment,
             std::function<OfferFilterResult(OfferFrame const &)> filter);
 

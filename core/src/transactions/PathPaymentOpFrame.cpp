@@ -70,7 +70,7 @@ PathPaymentOpFrame::doApply(Application &app, LedgerDelta &delta,
 
     // update last balance in the chain
     if (curB.type() == ASSET_TYPE_NATIVE) {
-        if (!destination->addBalance(curBReceived)) {
+        if (!destination->addBalance(curBReceived, ledgerManager)) {
             app.getMetrics().newMeter({"op-path-payment", "invalid", "balance-overflow"}, "operation").mark();
             innerResult().code(PATH_PAYMENT_MALFORMED);
             return false;
@@ -104,7 +104,7 @@ PathPaymentOpFrame::doApply(Application &app, LedgerDelta &delta,
             return false;
         }
 
-        if (!destLine->addBalance(curBReceived)) {
+        if (!destLine->addBalance(curBReceived, ledgerManager)) {
             app.getMetrics().newMeter({"op-path-payment", "failure", "line-full"}, "operation").mark();
             innerResult().code(PATH_PAYMENT_LINE_FULL);
             return false;
@@ -202,15 +202,13 @@ PathPaymentOpFrame::doApply(Application &app, LedgerDelta &delta,
             }
         }
 
-        int64_t minBalance = sourceAccount->getMinimumBalance(ledgerManager);
-
-        if ((sourceAccount->getAccount().balance - curBSent) < minBalance) { // they don't have enough to send
+        if (curBSent > sourceAccount->getAvailableBalance(ledgerManager)) { // they don't have enough to send
             app.getMetrics().newMeter({"op-path-payment", "failure", "underfunded"}, "operation").mark();
             innerResult().code(PATH_PAYMENT_UNDERFUNDED);
             return false;
         }
 
-        auto ok = sourceAccount->addBalance(-curBSent);
+        auto ok = sourceAccount->addBalance(-curBSent, ledgerManager);
         assert(ok);
         sourceAccount->storeChange(delta, db);
     } else {
@@ -241,7 +239,7 @@ PathPaymentOpFrame::doApply(Application &app, LedgerDelta &delta,
             return false;
         }
 
-        if (!sourceLineFrame->addBalance(-curBSent)) {
+        if (!sourceLineFrame->addBalance(-curBSent, ledgerManager)) {
             app.getMetrics().newMeter({"op-path-payment", "failure", "underfunded"}, "operation").mark();
             innerResult().code(PATH_PAYMENT_UNDERFUNDED);
             return false;

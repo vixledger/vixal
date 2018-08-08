@@ -2,13 +2,16 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/TrustFrame.h"
-#include "ledger/LedgerDelta.h"
-#include "ledger/LedgerRange.h"
 #include "crypto/KeyUtils.h"
 #include "crypto/SHA.h"
 #include "crypto/SecretKey.h"
 #include "database/Database.h"
+
+#include "ledger/TrustFrame.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerRange.h"
+#include "ledger/LedgerManager.h"
+
 #include "util/XDROperators.h"
 #include "util/types.h"
 
@@ -20,17 +23,17 @@ namespace vixal {
 // note: the primary key omits assettype as assetcodes are non overlapping
 const char *TrustFrame::kSQLCreateStatement1 =
         "CREATE TABLE trustlines"
-                "("
-                "accountid    VARCHAR(56)     NOT NULL,"
-                "assettype    INT             NOT NULL,"
-                "issuer       VARCHAR(56)     NOT NULL,"
-                "assetcode    VARCHAR(12)     NOT NULL,"
-                "tlimit       BIGINT          NOT NULL CHECK (tlimit > 0),"
-                "balance      BIGINT          NOT NULL CHECK (balance >= 0),"
-                "flags        INT             NOT NULL,"
-                "lastmodified INT             NOT NULL,"
-                "PRIMARY KEY  (accountid, issuer, assetcode)"
-                ");";
+        "("
+        "accountid    VARCHAR(56)     NOT NULL,"
+        "assettype    INT             NOT NULL,"
+        "issuer       VARCHAR(56)     NOT NULL,"
+        "assetcode    VARCHAR(12)     NOT NULL,"
+        "tlimit       BIGINT          NOT NULL CHECK (tlimit > 0),"
+        "balance      BIGINT          NOT NULL CHECK (balance >= 0),"
+        "flags        INT             NOT NULL,"
+        "lastmodified INT             NOT NULL,"
+        "PRIMARY KEY  (accountid, issuer, assetcode)"
+        ");";
 
 TrustFrame::TrustFrame()
         : EntryFrame(TRUSTLINE), mTrustLine(mEntry.data.trustLine()), mIsIssuer(false) {
@@ -70,12 +73,101 @@ TrustFrame::getKeyFields(LedgerKey const &key, std::string &actIDStrKey,
 
     if (actIDStrKey == issuerStrKey)
         throw std::runtime_error("Issuer's own trustline should not be used "
-                                         "outside of OperationFrame");
+                                 "outside of OperationFrame");
 }
 
 int64_t
 TrustFrame::getBalance() const {
     return mTrustLine.balance;
+}
+
+int64_t
+TrustFrame::getAvailableBalance(LedgerManager const &lm) const {
+    int64_t availableBalance = getBalance();
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        availableBalance -= getSellingLiabilities(lm);
+    }
+    return availableBalance;
+}
+
+int64_t
+TrustFrame::getMinimumLimit(LedgerManager const &lm) const {
+    int64_t minLimit = getBalance();
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        minLimit += getBuyingLiabilities(lm);
+    }
+    return minLimit;
+}
+
+int64_t
+getBuyingLiabilities(TrustLineEntry const &tl, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    return (tl.ext.v() == 0) ? 0 : tl.ext.v1().liabilities.buying;
+}
+
+int64_t
+getSellingLiabilities(TrustLineEntry const &tl, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    return (tl.ext.v() == 0) ? 0 : tl.ext.v1().liabilities.selling;
+}
+
+int64_t
+TrustFrame::getBuyingLiabilities(LedgerManager const &lm) const {
+    return vixal::getBuyingLiabilities(mTrustLine, lm);
+}
+
+int64_t
+TrustFrame::getSellingLiabilities(LedgerManager const &lm) const {
+    return vixal::getSellingLiabilities(mTrustLine, lm);
+}
+
+bool
+TrustFrame::addBuyingLiabilities(int64_t delta, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    assert(getBalance() >= 0);
+    assert(mTrustLine.limit >= 0);
+    if (mIsIssuer || delta == 0) {
+        return true;
+    }
+    if (!isAuthorized()) {
+        return false;
+    }
+    int64_t buyingLiab =
+            (mTrustLine.ext.v() == 0) ? 0 : mTrustLine.ext.v1().liabilities.buying;
+    int64_t maxLiabilities = mTrustLine.limit - getBalance();
+    bool res = vixal::addBalance(buyingLiab, delta, maxLiabilities);
+    if (res) {
+        if (mTrustLine.ext.v() == 0) {
+            mTrustLine.ext.v(1);
+            mTrustLine.ext.v1().liabilities = Liabilities{0, 0};
+        }
+        mTrustLine.ext.v1().liabilities.buying = buyingLiab;
+    }
+    return res;
+}
+
+bool
+TrustFrame::addSellingLiabilities(int64_t delta, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    assert(getBalance() >= 0);
+    if (mIsIssuer || delta == 0) {
+        return true;
+    }
+    if (!isAuthorized()) {
+        return false;
+    }
+    int64_t sellingLiab =
+            (mTrustLine.ext.v() == 0) ? 0 : mTrustLine.ext.v1().liabilities.selling;
+    int64_t maxLiabilities = mTrustLine.balance;
+    bool res = vixal::addBalance(sellingLiab, delta, maxLiabilities);
+    if (res) {
+        if (mTrustLine.ext.v() == 0) {
+            mTrustLine.ext.v(1);
+            mTrustLine.ext.v1().liabilities = Liabilities{0, 0};
+        }
+        mTrustLine.ext.v1().liabilities.selling = sellingLiab;
+    }
+    return res;
 }
 
 bool
@@ -93,23 +185,40 @@ TrustFrame::setAuthorized(bool authorized) {
 }
 
 bool
-TrustFrame::addBalance(int64_t delta) {
+TrustFrame::addBalance(int64_t delta, LedgerManager const &lm) {
     if (mIsIssuer || delta == 0) {
         return true;
     }
     if (!isAuthorized()) {
         return false;
     }
-    return vixal::addBalance(mTrustLine.balance, delta, mTrustLine.limit);
+    auto newBalance = mTrustLine.balance;
+    if (!vixal::addBalance(newBalance, delta, mTrustLine.limit)) {
+        return false;
+    }
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        if (newBalance < getSellingLiabilities(lm)) {
+            return false;
+        }
+        if (newBalance > mTrustLine.limit - getBuyingLiabilities(lm)) {
+            return false;
+        }
+    }
+
+    mTrustLine.balance = newBalance;
+    return true;
 }
 
 int64_t
-TrustFrame::getMaxAmountReceive() const {
+TrustFrame::getMaxAmountReceive(LedgerManager &lm) const {
     int64_t amount = 0;
     if (mIsIssuer) {
         amount = INT64_MAX;
     } else if (isAuthorized()) {
         amount = mTrustLine.limit - mTrustLine.balance;
+        if (lm.getCurrentLedgerVersion() >= 10) {
+            amount -= getBuyingLiabilities(lm);
+        }
     }
     return amount;
 }
@@ -126,7 +235,7 @@ TrustFrame::exists(Database &db, LedgerKey const &key) {
     auto timer = db.getSelectTimer("trust-exists");
     auto prep = db.getPreparedStatement(
             "SELECT EXISTS (SELECT NULL FROM trustlines "
-                    "WHERE accountid=:v1 AND issuer=:v2 AND assetcode=:v3)");
+            "WHERE accountid=:v1 AND issuer=:v2 AND assetcode=:v3)");
     auto &st = prep.statement();
     st.exchange(use(actIDStrKey));
     st.exchange(use(issuerStrKey));
@@ -187,7 +296,7 @@ TrustFrame::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key) 
 
     auto timer = db.getDeleteTimer("trust");
     db.getSession() << "DELETE FROM trustlines "
-            "WHERE accountid=:v1 AND issuer=:v2 AND assetcode=:v3",
+                       "WHERE accountid=:v1 AND issuer=:v2 AND assetcode=:v3",
             use(actIDStrKey), use(issuerStrKey), use(assetCode);
 
     delta.deleteEntry(key);
@@ -209,8 +318,8 @@ TrustFrame::storeChange(LedgerDelta &delta, Database &db) {
 
     auto prep = db.getPreparedStatement(
             "UPDATE trustlines "
-                    "SET balance=:b, tlimit=:tl, flags=:a, lastmodified=:lm "
-                    "WHERE accountid=:v1 AND issuer=:v2 AND assetcode=:v3");
+            "SET balance=:b, tlimit=:tl, flags=:a, lastmodified=:lm "
+            "WHERE accountid=:v1 AND issuer=:v2 AND assetcode=:v3");
     auto &st = prep.statement();
     st.exchange(use(mTrustLine.balance));
     st.exchange(use(mTrustLine.limit));
@@ -248,9 +357,9 @@ TrustFrame::storeAdd(LedgerDelta &delta, Database &db) {
 
     auto prep = db.getPreparedStatement(
             "INSERT INTO trustlines "
-                    "(accountid, assettype, issuer, assetcode, balance, tlimit, flags, "
-                    "lastmodified) "
-                    "VALUES (:v1, :v2, :v3, :v4, :v5, :v6, :v7, :v8)");
+            "(accountid, assettype, issuer, assetcode, balance, tlimit, flags, "
+            "lastmodified) "
+            "VALUES (:v1, :v2, :v3, :v4, :v5, :v6, :v7, :v8)");
     auto &st = prep.statement();
     st.exchange(use(actIDStrKey));
     st.exchange(use(assetType));
@@ -275,8 +384,8 @@ TrustFrame::storeAdd(LedgerDelta &delta, Database &db) {
 
 static const char *trustLineColumnSelector =
         "SELECT "
-                "accountid,assettype,issuer,assetcode,tlimit,balance,flags,lastmodified "
-                "FROM trustlines";
+        "accountid,assettype,issuer,assetcode,tlimit,balance,flags,lastmodified "
+        "FROM trustlines";
 
 TrustFrame::pointer
 TrustFrame::createIssuerFrame(Asset const &issuer) {
@@ -332,8 +441,8 @@ TrustFrame::loadTrustLine(AccountID const &accountID, Asset const &asset,
 
     auto query = std::string(trustLineColumnSelector);
     query += (" WHERE accountid = :id "
-            " AND issuer = :issuer "
-            " AND assetcode = :asset");
+              " AND issuer = :issuer "
+              " AND assetcode = :asset");
     auto prep = db.getPreparedStatement(query);
     auto &st = prep.statement();
     st.exchange(use(accStr));

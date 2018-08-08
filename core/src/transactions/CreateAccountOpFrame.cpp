@@ -41,23 +41,23 @@ CreateAccountOpFrame::doApply(Application &app, LedgerDelta &delta,
             int64_t minBalance =
                     mSourceAccount->getMinimumBalance(ledgerManager);
 
-            if ((mSourceAccount->getAccount().balance - minBalance) < mCreateAccount.startingBalance) {
-                // they don't have enough to send
+            if (mSourceAccount->getAvailableBalance(ledgerManager) <
+                mCreateAccount.startingBalance) { // they don't have enough to send
                 app.getMetrics().newMeter({"op-create-account", "failure", "underfunded"}, "operation").mark();
                 innerResult().code(CREATE_ACCOUNT_UNDERFUNDED);
                 return false;
             }
 
-            auto ok =
-                    mSourceAccount->addBalance(-mCreateAccount.startingBalance);
+            auto ok = mSourceAccount->addBalance(
+                    -mCreateAccount.startingBalance, ledgerManager);
             assert(ok);
 
             mSourceAccount->storeChange(delta, db);
 
             destAccount = make_shared<AccountFrame>(mCreateAccount.destination);
-            destAccount->getAccount().seqNum =
-                    delta.getHeaderFrame().getStartingSequenceNumber();
-            destAccount->getAccount().balance = mCreateAccount.startingBalance;
+            auto& acc = destAccount->getAccount();
+            acc.seqNum = delta.getHeaderFrame().getStartingSequenceNumber();
+            acc.balance = mCreateAccount.startingBalance;
 
             destAccount->storeAdd(delta, db);
 

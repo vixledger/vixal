@@ -24,33 +24,33 @@ namespace vixal {
 
 const char *AccountFrame::kSQLCreateStatement1 =
         "CREATE TABLE accounts"
-                "("
-                "accountid       VARCHAR(56)  PRIMARY KEY,"
-                "balance         BIGINT       NOT NULL CHECK (balance >= 0),"
-                "seqnum          BIGINT       NOT NULL,"
-                "numsubentries   INT          NOT NULL CHECK (numsubentries >= 0),"
-                "inflationdest   VARCHAR(56),"
-                "homedomain      VARCHAR(32)  NOT NULL,"
-                "thresholds      TEXT         NOT NULL,"
-                "flags           INT          NOT NULL,"
-                "lastmodified    INT          NOT NULL"
-                ");";
+        "("
+        "accountid       VARCHAR(56)  PRIMARY KEY,"
+        "balance         BIGINT       NOT NULL CHECK (balance >= 0),"
+        "seqnum          BIGINT       NOT NULL,"
+        "numsubentries   INT          NOT NULL CHECK (numsubentries >= 0),"
+        "inflationdest   VARCHAR(56),"
+        "homedomain      VARCHAR(32)  NOT NULL,"
+        "thresholds      TEXT         NOT NULL,"
+        "flags           INT          NOT NULL,"
+        "lastmodified    INT          NOT NULL"
+        ");";
 
 const char *AccountFrame::kSQLCreateStatement2 =
         "CREATE TABLE signers"
-                "("
-                "accountid       VARCHAR(56) NOT NULL,"
-                "publickey       VARCHAR(56) NOT NULL,"
-                "weight          INT         NOT NULL,"
-                "PRIMARY KEY (accountid, publickey)"
-                ");";
+        "("
+        "accountid       VARCHAR(56) NOT NULL,"
+        "publickey       VARCHAR(56) NOT NULL,"
+        "weight          INT         NOT NULL,"
+        "PRIMARY KEY (accountid, publickey)"
+        ");";
 
 const char *AccountFrame::kSQLCreateStatement3 =
         "CREATE INDEX signersaccount ON signers (accountid)";
 
 const char *AccountFrame::kSQLCreateStatement4 = "CREATE INDEX accountbalances "
-        "ON accounts (balance) WHERE "
-        "balance >= 1000000000";
+                                                 "ON accounts (balance) WHERE "
+                                                 "balance >= 1000000000";
 
 AccountFrame::AccountFrame()
         : EntryFrame(ACCOUNT), mAccountEntry(mEntry.data.account()) {
@@ -109,9 +109,98 @@ AccountFrame::getBalance() const {
     return (mAccountEntry.balance);
 }
 
+int64_t
+getBuyingLiabilities(AccountEntry const &acc, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    return (acc.ext.v() == 0) ? 0 : acc.ext.v1().liabilities.buying;
+}
+
+int64_t
+getSellingLiabilities(AccountEntry const &acc, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    return (acc.ext.v() == 0) ? 0 : acc.ext.v1().liabilities.selling;
+}
+
+int64_t
+AccountFrame::getBuyingLiabilities(LedgerManager const &lm) const {
+    return vixal::getBuyingLiabilities(mAccountEntry, lm);
+}
+
+int64_t
+AccountFrame::getSellingLiabilities(LedgerManager const &lm) const {
+    return vixal::getSellingLiabilities(mAccountEntry, lm);
+}
+
 bool
-AccountFrame::addBalance(int64_t delta) {
-    return vixal::addBalance(mAccountEntry.balance, delta);
+AccountFrame::addBuyingLiabilities(int64_t delta, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    assert(getBalance() >= 0);
+    if (delta == 0) {
+        return true;
+    }
+    int64_t buyingLiab = (mAccountEntry.ext.v() == 0)
+                         ? 0
+                         : mAccountEntry.ext.v1().liabilities.buying;
+    int64_t maxLiabilities = INT64_MAX - getBalance();
+    bool res = vixal::addBalance(buyingLiab, delta, maxLiabilities);
+    if (res) {
+        if (mAccountEntry.ext.v() == 0) {
+            mAccountEntry.ext.v(1);
+            mAccountEntry.ext.v1().liabilities = Liabilities{0, 0};
+        }
+        mAccountEntry.ext.v1().liabilities.buying = buyingLiab;
+    }
+    return res;
+}
+
+bool
+AccountFrame::addSellingLiabilities(int64_t delta, LedgerManager const &lm) {
+    assert(lm.getCurrentLedgerVersion() >= 10);
+    assert(getBalance() >= 0);
+    if (delta == 0) {
+        return true;
+    }
+    int64_t sellingLiab = (mAccountEntry.ext.v() == 0)
+                          ? 0
+                          : mAccountEntry.ext.v1().liabilities.selling;
+    int64_t maxLiabilities = getBalance() - getMinimumBalance(lm);
+    if (maxLiabilities < 0) {
+        return false;
+    }
+    bool res = vixal::addBalance(sellingLiab, delta, maxLiabilities);
+    if (res) {
+        if (mAccountEntry.ext.v() == 0) {
+            mAccountEntry.ext.v(1);
+            mAccountEntry.ext.v1().liabilities = Liabilities{0, 0};
+        }
+        mAccountEntry.ext.v1().liabilities.selling = sellingLiab;
+    }
+    return res;
+}
+
+bool
+AccountFrame::addBalance(int64_t delta, LedgerManager const &lm) {
+    if (delta == 0) {
+        return true;
+    }
+
+    auto newBalance = mAccountEntry.balance;
+    if (!vixal::addBalance(newBalance, delta)) {
+        return false;
+    }
+
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        if (delta < 0 &&
+            newBalance - getMinimumBalance(lm) < getSellingLiabilities(lm)) {
+            return false;
+        }
+        if (newBalance > INT64_MAX - getBuyingLiabilities(lm)) {
+            return false;
+        }
+    }
+
+    mAccountEntry.balance = newBalance;
+    return true;
 }
 
 int64_t
@@ -120,15 +209,22 @@ AccountFrame::getMinimumBalance(LedgerManager const &lm) const {
 }
 
 int64_t
-AccountFrame::getBalanceAboveReserve(LedgerManager const &lm) const {
+AccountFrame::getAvailableBalance(LedgerManager const &lm) const {
     int64_t avail =
             getBalance() - lm.getMinBalance(mAccountEntry.numSubEntries);
-    if (avail < 0) {
-        // nothing can leave this account if below the reserve
-        // (this can happen if the reserve is raised)
-        avail = 0;
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        avail -= getSellingLiabilities(lm);
     }
     return avail;
+}
+
+int64_t
+AccountFrame::getMaxAmountReceive(LedgerManager const& lm) const {
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        return INT64_MAX - getBalance() - getBuyingLiabilities(lm);
+    } else {
+        return INT64_MAX;
+    }
 }
 
 // returns true if successfully updated,
@@ -139,8 +235,14 @@ AccountFrame::addNumEntries(int count, LedgerManager const &lm) {
     if (newEntriesCount < 0) {
         throw std::runtime_error("invalid account state");
     }
+
+    int64_t effMinBalance = lm.getMinBalance(newEntriesCount);
+    if (lm.getCurrentLedgerVersion() >= 10) {
+        effMinBalance += getSellingLiabilities(lm);
+    }
+
     // only check minBalance when attempting to add subEntries
-    if (count > 0 && getBalance() < lm.getMinBalance(newEntriesCount)) {
+    if (count > 0 && getBalance() < effMinBalance) {
         // balance too low
         return false;
     }
@@ -204,9 +306,9 @@ AccountFrame::loadAccount(AccountID const &accountID, Database &db) {
 
     auto prep =
             db.getPreparedStatement("SELECT balance, seqnum, numsubentries, "
-                                            "inflationdest, homedomain, thresholds, "
-                                            "flags, lastmodified "
-                                            "FROM accounts WHERE accountid=:v1");
+                                    "inflationdest, homedomain, thresholds, "
+                                    "flags, lastmodified "
+                                    "FROM accounts WHERE accountid=:v1");
     auto &st = prep.statement();
     st.exchange(into(account.balance));
     st.exchange(into(account.seqNum));
@@ -230,7 +332,7 @@ AccountFrame::loadAccount(AccountID const &accountID, Database &db) {
     account.homeDomain = homeDomain;
 
     decoder::decode_b64(thresholds.begin(), thresholds.end(),
-                   res->mAccountEntry.thresholds.begin());
+                        res->mAccountEntry.thresholds.begin());
 
     if (inflationDestInd == soci::i_ok) {
         account.inflationDest.activate() =
@@ -259,7 +361,7 @@ AccountFrame::loadSigners(Database &db, std::string const &actIDStrKey) {
     Signer signer;
 
     auto prep2 = db.getPreparedStatement("SELECT publickey, weight FROM "
-                                                 "signers WHERE accountid =:id");
+                                         "signers WHERE accountid =:id");
     auto &st2 = prep2.statement();
     st2.exchange(use(actIDStrKey));
     st2.exchange(into(pubKey));
@@ -291,7 +393,7 @@ AccountFrame::exists(Database &db, LedgerKey const &key) {
     {
         auto timer = db.getSelectTimer("account-exists");
         auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
-                                                    "WHERE accountid=:v1)");
+                                            "WHERE accountid=:v1)");
         auto &st = prep.statement();
         st.exchange(use(actIDStrKey));
         st.exchange(into(exists));
@@ -329,7 +431,7 @@ AccountFrame::deleteAccountsModifiedOnOrAfterLedger(Database &db,
     {
         auto prep = db.getPreparedStatement(
                 "DELETE FROM signers WHERE accountid IN"
-                        " (SELECT accountid FROM accounts WHERE lastmodified >= :v1)");
+                " (SELECT accountid FROM accounts WHERE lastmodified >= :v1)");
         auto &st = prep.statement();
         st.exchange(soci::use(oldestLedger));
         st.define_and_bind();
@@ -388,15 +490,15 @@ AccountFrame::storeUpdate(LedgerDelta &delta, Database &db, bool insert) {
     if (insert) {
         sql = std::string(
                 "INSERT INTO accounts ( accountid, balance, seqnum, "
-                        "numsubentries, inflationdest, homedomain, thresholds, flags, "
-                        "lastmodified ) "
-                        "VALUES ( :id, :v1, :v2, :v3, :v4, :v5, :v6, :v7, :v8 )");
+                "numsubentries, inflationdest, homedomain, thresholds, flags, "
+                "lastmodified ) "
+                "VALUES ( :id, :v1, :v2, :v3, :v4, :v5, :v6, :v7, :v8 )");
     } else {
         sql = std::string(
                 "UPDATE accounts SET balance = :v1, seqnum = :v2, "
-                        "numsubentries = :v3, "
-                        "inflationdest = :v4, homedomain = :v5, thresholds = :v6, "
-                        "flags = :v7, lastmodified = :v8 WHERE accountid = :id");
+                "numsubentries = :v3, "
+                "inflationdest = :v4, homedomain = :v5, thresholds = :v6, "
+                "flags = :v7, lastmodified = :v8 WHERE accountid = :id");
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -481,7 +583,7 @@ AccountFrame::applySigners(Database &db, bool insert) {
                 auto timer = db.getUpdateTimer("signer");
                 auto prep2 = db.getPreparedStatement(
                         "UPDATE signers set weight=:v1 WHERE "
-                                "accountid=:v2 AND publickey=:v3");
+                        "accountid=:v2 AND publickey=:v3");
                 auto &st = prep2.statement();
                 st.exchange(use(it_new->weight));
                 st.exchange(use(actIDStrKey));
@@ -500,8 +602,8 @@ AccountFrame::applySigners(Database &db, bool insert) {
             std::string signerStrKey = KeyUtils::toStrKey(it_new->key);
 
             auto prep2 = db.getPreparedStatement("INSERT INTO signers "
-                                                         "(accountid,publickey,weight) "
-                                                         "VALUES (:v1,:v2,:v3)");
+                                                 "(accountid,publickey,weight) "
+                                                 "VALUES (:v1,:v2,:v3)");
             auto &st = prep2.statement();
             st.exchange(use(actIDStrKey));
             st.exchange(use(signerStrKey));
@@ -519,8 +621,8 @@ AccountFrame::applySigners(Database &db, bool insert) {
             std::string signerStrKey = KeyUtils::toStrKey(it_old->key);
 
             auto prep2 = db.getPreparedStatement("DELETE from signers WHERE "
-                                                         "accountid=:v2 AND "
-                                                         "publickey=:v3");
+                                                 "accountid=:v2 AND "
+                                                 "publickey=:v3");
             auto &st = prep2.statement();
             st.exchange(use(actIDStrKey));
             st.exchange(use(signerStrKey));
@@ -567,10 +669,10 @@ AccountFrame::processForInflation(
     soci::statement st =
             (session.prepare
                     << "SELECT"
-                            " sum(balance) AS votes, inflationdest FROM accounts WHERE"
-                            " inflationdest IS NOT NULL"
-                            " AND balance >= 1000000000 GROUP BY inflationdest"
-                            " ORDER BY votes DESC, inflationdest DESC LIMIT :lim",
+                       " sum(balance) AS votes, inflationdest FROM accounts WHERE"
+                       " inflationdest IS NOT NULL"
+                       " AND balance >= 1000000000 GROUP BY inflationdest"
+                       " ORDER BY votes DESC, inflationdest DESC LIMIT :lim",
                     into(v.mVotes), into(inflationDest), use(maxWinners));
     st.execute(true);
 
@@ -609,7 +711,7 @@ AccountFrame::checkDB(Database &db) {
         // sanity check signers state
         soci::statement st =
                 (db.getSession().prepare << "select count(*), accountid from "
-                        "signers group by accountid",
+                                            "signers group by accountid",
                         soci::into(n), soci::into(id));
         st.execute(true);
         while (st.got_data()) {

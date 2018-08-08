@@ -24,6 +24,11 @@ class TrustSetTx;
 
 class StatementContext;
 
+int64_t getBuyingLiabilities(TrustLineEntry const &tl, LedgerManager const &lm);
+
+int64_t getSellingLiabilities(TrustLineEntry const &tl,
+                              LedgerManager const &lm);
+
 class TrustFrame : public EntryFrame {
 public:
     typedef std::shared_ptr<TrustFrame> pointer;
@@ -93,14 +98,26 @@ public:
 
     int64_t getBalance() const;
 
-    bool addBalance(int64_t delta);
+    bool addBalance(int64_t delta, LedgerManager const &lm);
+
+    int64_t getAvailableBalance(LedgerManager const &lm) const;
+
+    int64_t getMinimumLimit(LedgerManager const &lm) const;
+
+    int64_t getBuyingLiabilities(LedgerManager const &lm) const;
+
+    int64_t getSellingLiabilities(LedgerManager const &lm) const;
+
+    bool addBuyingLiabilities(int64_t delta, LedgerManager const &lm);
+
+    bool addSellingLiabilities(int64_t delta, LedgerManager const &lm);
 
     bool isAuthorized() const;
 
     void setAuthorized(bool authorized);
 
     // returns the maximum amount that can be added to this trust line
-    int64_t getMaxAmountReceive() const;
+    int64_t getMaxAmountReceive(LedgerManager& lm) const;
 
     TrustLineEntry const &
     getTrustLine() const {

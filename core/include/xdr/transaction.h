@@ -1,9 +1,9 @@
 // -*- C++ -*-
-// Automatically generated from /Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/core/src/xdr/transaction.x.
+// Automatically generated from /Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/core/include/xdr/transaction.x.
 // DO NOT EDIT or your changes may be overwritten
 
-#ifndef __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TRANSACTION_H_INCLUDED__
-#define __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TRANSACTION_H_INCLUDED__ 1
+#ifndef __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_INCLUDE_XDR_TRANSACTION_H_INCLUDED__
+#define __XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_INCLUDE_XDR_TRANSACTION_H_INCLUDED__ 1
 
 #include <xdrpp/types.h>
 
@@ -3721,6 +3721,7 @@ enum AccountMergeResultCode : std::int32_t {
   ACCOUNT_MERGE_IMMUTABLE_SET = -3,
   ACCOUNT_MERGE_HAS_SUB_ENTRIES = -4,
   ACCOUNT_MERGE_SEQNUM_TOO_FAR = -5,
+  ACCOUNT_MERGE_DEST_FULL = -6,
 };
 } 
 namespace xdr {
@@ -3743,6 +3744,8 @@ template<> struct xdr_traits<::vixal::AccountMergeResultCode>
       return "ACCOUNT_MERGE_HAS_SUB_ENTRIES";
     case ::vixal::ACCOUNT_MERGE_SEQNUM_TOO_FAR:
       return "ACCOUNT_MERGE_SEQNUM_TOO_FAR";
+    case ::vixal::ACCOUNT_MERGE_DEST_FULL:
+      return "ACCOUNT_MERGE_DEST_FULL";
     default:
       return nullptr;
     }
@@ -3754,7 +3757,8 @@ template<> struct xdr_traits<::vixal::AccountMergeResultCode>
       ::vixal::ACCOUNT_MERGE_NO_ACCOUNT,
       ::vixal::ACCOUNT_MERGE_IMMUTABLE_SET,
       ::vixal::ACCOUNT_MERGE_HAS_SUB_ENTRIES,
-      ::vixal::ACCOUNT_MERGE_SEQNUM_TOO_FAR
+      ::vixal::ACCOUNT_MERGE_SEQNUM_TOO_FAR,
+      ::vixal::ACCOUNT_MERGE_DEST_FULL
     };
     return _xdr_enum_vec;
   }
@@ -5380,4 +5384,4 @@ namespace vixal {
 
 }
 
-#endif // !__XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_SRC_XDR_TRANSACTION_H_INCLUDED__
+#endif // !__XDR__USERS_LIUWEI_WORKS_BLOCKCHAIN_SRC_GITHUB_COM_VIXLEDGER_VIXAL_CORE_INCLUDE_XDR_TRANSACTION_H_INCLUDED__

@@ -41,7 +41,7 @@ ChangeTrustOpFrame::doApply(Application &app, LedgerDelta &delta,
 
     if (trustLine) { // we are modifying an old trustline
 
-        if (mChangeTrust.limit < trustLine->getBalance()) { // Can't drop the limit
+        if (mChangeTrust.limit < trustLine->getMinimumLimit(ledgerManager)) { // Can't drop the limit
             // below the balance you
             // are holding with them
             app.getMetrics().newMeter({"op-change-trust", "failure", "invalid-limit"}, "operation").mark();
