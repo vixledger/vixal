@@ -4,10 +4,10 @@ set(Sources
         InvariantManagerImpl.cpp
         BucketListIsConsistentWithDatabase.cpp
         ConservationOfLumens.cpp
-        MinimumAccountBalance.cpp
         InvariantTestUtils.cpp
         AccountSubEntriesCountIsValid.cpp
         LedgerEntryIsValid.cpp
+        LiabilitiesMatchOffers.cpp
         )
 
 set(PublicHeaders
@@ -17,10 +17,10 @@ set(PublicHeaders
         ${VIXAL_INCLUDE_DIR}/invariant/InvariantManager.h
         ${VIXAL_INCLUDE_DIR}/invariant/BucketListIsConsistentWithDatabase.h
         ${VIXAL_INCLUDE_DIR}/invariant/ConservationOfLumens.h
-        ${VIXAL_INCLUDE_DIR}/invariant/MinimumAccountBalance.h
         ${VIXAL_INCLUDE_DIR}/invariant/LedgerEntryIsValid.h
         ${VIXAL_INCLUDE_DIR}/invariant/InvariantTestUtils.h
         ${VIXAL_INCLUDE_DIR}/invariant/AccountSubEntriesCountIsValid.h
+        ${VIXAL_INCLUDE_DIR}/invariant/LiabilitiesMatchOffers.h
         )
 
 add_library(invariant SHARED ${Sources} ${PublicHeaders})

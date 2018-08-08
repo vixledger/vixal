@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.0.5.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.4"
+#define YYBISON_VERSION "3.0.5"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -1036,6 +1036,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
       case N:                               \
         yyformat = S;                       \
       break
+    default: /* Avoid compiler warnings. */
       YYCASE_(0, YY_("syntax error"));
       YYCASE_(1, YY_("syntax error, unexpected %s"));
       YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
@@ -1352,36 +1353,36 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 58 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 58 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { checkliterals(); }
-#line 1358 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1359 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 3:
-#line 59 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 59 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { checkliterals(); }
-#line 1364 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1365 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 4:
-#line 59 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 59 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { checkliterals(); }
-#line 1370 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1371 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 12:
-#line 72 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 72 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back();
 	  s->settype(rpc_sym::TYPEDEF);
 	  *s->stypedef = (yyvsp[0].decl);
 	  s->stypedef->id = getnewid(s->stypedef->id, true);
 	}
-#line 1381 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1382 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 13:
-#line 79 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 79 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back();
 	  s->settype(rpc_sym::TYPEDEF);
@@ -1389,122 +1390,122 @@ yyreduce:
 	  s->stypedef->type = string("struct ") + (yyvsp[0].decl).type;
 	  s->stypedef->id = getnewid(s->stypedef->id, true);
 	}
-#line 1393 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1394 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 14:
-#line 89 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 89 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back();
 	  s->settype(rpc_sym::CONST);
 	  s->sconst->id = (yyvsp[-3].str);
 	  s->sconst->val = (yyvsp[-1].str);
 	}
-#line 1404 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1405 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 15:
-#line 97 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 97 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.cnst).id = (yyvsp[-2].str); (yyval.cnst).val = (yyvsp[0].str); }
-#line 1410 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1411 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 16:
-#line 99 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 99 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.cnst).id = (yyvsp[0].str);
 	  yywarn("RFC4506 requires a value for each enum tag");
 	}
-#line 1419 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1420 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 17:
-#line 105 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 105 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.const_list).select(); assert((yyval.const_list)->empty()); (yyval.const_list)->push_back(std::move((yyvsp[0].cnst))); }
-#line 1425 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1426 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 18:
-#line 107 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 107 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.const_list) = std::move((yyvsp[-2].const_list)); (yyval.const_list)->push_back(std::move((yyvsp[0].cnst))); }
-#line 1431 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1432 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 19:
-#line 109 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 109 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.const_list) = std::move((yyvsp[-2].const_list)); }
-#line 1437 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1438 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 20:
-#line 113 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 113 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back();
 	  s->settype(rpc_sym::ENUM);
 	  s->senum->id = (yyvsp[-2].str);
 	  s->senum->tags = std::move(*(yyvsp[-1].const_list));
 	}
-#line 1448 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1449 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 22:
-#line 122 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 122 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { yywarn("RFC4506 disallows comma after last enum tag"); }
-#line 1454 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1455 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 23:
-#line 126 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 126 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl_list).select();
 	  assert((yyval.decl_list)->empty());
 	  (yyval.decl_list)->push_back(std::move((yyvsp[0].decl)));
 	}
-#line 1464 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1465 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 24:
-#line 132 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 132 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl_list) = std::move((yyvsp[-1].decl_list));
 	  (yyval.decl_list)->push_back(std::move((yyvsp[0].decl)));
 	}
-#line 1473 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1474 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 25:
-#line 139 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 139 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl_list) = std::move((yyvsp[-1].decl_list));
 	}
-#line 1481 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1482 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 26:
-#line 145 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 145 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back();
 	  s->settype(rpc_sym::STRUCT);
 	  s->sstruct->id = (yyvsp[-2].str);
 	  s->sstruct->decls = std::move(*(yyvsp[-1].decl_list));
 	}
-#line 1492 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1493 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 27:
-#line 153 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 153 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = (yyvsp[-1].str); }
-#line 1498 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1499 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 28:
-#line 154 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 154 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = ""; }
-#line 1504 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1505 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 29:
-#line 158 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 158 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.ufield).select();
 	  assert((yyval.ufield)->cases.empty());
@@ -1517,11 +1518,11 @@ yyreduce:
 	  }
 	  (yyval.ufield)->cases.push_back((yyvsp[0].str));
 	}
-#line 1521 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1522 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 30:
-#line 171 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 171 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.ufield) = std::move((yyvsp[-1].ufield));
 	  if ((yyvsp[0].str).empty()) {
@@ -1533,36 +1534,36 @@ yyreduce:
 	  }
 	  (yyval.ufield)->cases.push_back((yyvsp[0].str));
 	}
-#line 1537 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1538 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 31:
-#line 184 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 184 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl) = std::move((yyvsp[0].decl)); }
-#line 1543 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1544 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 32:
-#line 186 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 186 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl).qual = rpc_decl::SCALAR;
 	  (yyval.decl).ts_which = rpc_decl::TS_ID;
 	  (yyval.decl).type = "void";
 	}
-#line 1553 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1554 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 33:
-#line 194 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 194 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.ufield) = std::move((yyvsp[-1].ufield));
 	  (yyval.ufield)->decl = std::move((yyvsp[0].decl));
 	}
-#line 1562 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1563 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 34:
-#line 200 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 200 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.ubody).select();
 	  assert((yyval.ubody)->fields.empty());
@@ -1570,11 +1571,11 @@ yyreduce:
 	    (yyval.ubody)->hasdefault = true;
 	  (yyval.ubody)->fields.push_back(std::move(*(yyvsp[0].ufield)));
 	}
-#line 1574 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1575 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 35:
-#line 208 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 208 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  if ((yyvsp[-1].ubody)->hasdefault && (yyvsp[0].ufield)->hasdefault) {
 	    yyerror("duplicate default statement");
@@ -1585,11 +1586,11 @@ yyreduce:
 	    (yyval.ubody)->hasdefault = true;
 	  (yyval.ubody)->fields.push_back(std::move(*(yyvsp[0].ufield)));
 	}
-#line 1589 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1590 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 36:
-#line 220 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 220 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.ubody) = std::move((yyvsp[-1].ubody));
 	  (yyval.ubody)->tagtype = (yyvsp[-5].str);
@@ -1602,11 +1603,11 @@ yyreduce:
 	      uf.fieldno = ++next;
 	  }
 	}
-#line 1606 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1607 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 37:
-#line 235 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 235 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
           symlist.push_back();
 	  symlist.back().settype(rpc_sym::UNION);
@@ -1614,42 +1615,42 @@ yyreduce:
 	  u = std::move(*(yyvsp[-1].ubody));
 	  u.id = (yyvsp[-2].str);
 	}
-#line 1618 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1619 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 38:
-#line 245 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 245 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back();
 	  s->settype(rpc_sym::PROGRAM);
 	  s->sprogram->id = (yyvsp[-1].str);
 	}
-#line 1628 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1629 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 39:
-#line 251 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 251 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.back();
 	  s->sprogram->val = (yyvsp[-1].num);
 	  qsort(s->sprogram->vers.data(), s->sprogram->vers.size(),
 	        sizeof (rpc_vers), vers_compare);
 	}
-#line 1639 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1640 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 42:
-#line 263 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 263 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.back();
 	  rpc_vers *rv = &s->sprogram->vers.push_back();
 	  rv->id = (yyvsp[-1].str);
 	}
-#line 1649 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1650 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 43:
-#line 269 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 269 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.back();
 	  rpc_vers *rv = &s->sprogram->vers.back();
@@ -1657,11 +1658,11 @@ yyreduce:
 	  qsort(rv->procs.data(), rv->procs.size(),
 		sizeof (rpc_proc), proc_compare);
 	}
-#line 1661 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1662 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 46:
-#line 282 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 282 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.back();
 	  rpc_vers *rv = &s->sprogram->vers.back();
@@ -1671,234 +1672,234 @@ yyreduce:
 	  rp->arg = std::move(*(yyvsp[-4].str_list));
 	  rp->res = (yyvsp[-7].str);
 	}
-#line 1675 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1676 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 47:
-#line 294 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 294 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back ();
 	  s->settype (rpc_sym::NAMESPACE);
 	  s->sliteral = (yyvsp[-1].str);
         }
-#line 1685 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1686 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 48:
-#line 300 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 300 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  rpc_sym *s = &symlist.push_back ();
 	  s->settype (rpc_sym::CLOSEBRACE);
 	}
-#line 1694 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1695 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 49:
-#line 306 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 306 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl).type = (yyvsp[0].str); }
-#line 1700 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1701 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 50:
-#line 308 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 308 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl).ts_which = rpc_decl::TS_ENUM;
 	  (yyval.decl).ts_enum.reset(new rpc_enum {"", std::move(*(yyvsp[0].const_list))});
 	}
-#line 1709 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1710 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 51:
-#line 313 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 313 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl).ts_which = rpc_decl::TS_STRUCT;
 	  (yyval.decl).ts_struct.reset(new rpc_struct {"", std::move(*(yyvsp[0].decl_list))});
 	}
-#line 1718 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1719 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 52:
-#line 318 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 318 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.decl).ts_which = rpc_decl::TS_UNION;
 	  (yyval.decl).ts_union.reset(new rpc_union {std::move(*(yyvsp[0].ubody))});
 	}
-#line 1727 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1728 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 53:
-#line 324 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 324 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = xdr_unbounded; }
-#line 1733 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1734 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 54:
-#line 325 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 325 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = (yyvsp[-1].str); }
-#line 1739 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1740 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 55:
-#line 329 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 329 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl) = std::move((yyvsp[-2].decl)); (yyval.decl).set_id((yyvsp[-1].str)); }
-#line 1745 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1746 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 56:
-#line 331 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 331 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl) = std::move((yyvsp[-5].decl)); (yyval.decl).set_id((yyvsp[-4].str));
 	  (yyval.decl).qual = rpc_decl::ARRAY; (yyval.decl).bound = (yyvsp[-2].str); }
-#line 1752 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1753 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 57:
-#line 334 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 334 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl).type = std::move((yyvsp[-5].str)); (yyval.decl).set_id((yyvsp[-4].str));
 	  (yyval.decl).qual = rpc_decl::ARRAY; (yyval.decl).bound = (yyvsp[-2].str); }
-#line 1759 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1760 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 58:
-#line 337 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 337 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl) = std::move((yyvsp[-3].decl)); (yyval.decl).set_id((yyvsp[-2].str));
 	  (yyval.decl).qual = rpc_decl::VEC; (yyval.decl).bound = (yyvsp[-1].str); }
-#line 1766 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1767 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 59:
-#line 340 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 340 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl).type = std::move((yyvsp[-3].str)); (yyval.decl).set_id((yyvsp[-2].str));
 	  (yyval.decl).qual = rpc_decl::VEC; (yyval.decl).bound = (yyvsp[-1].str); }
-#line 1773 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1774 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 60:
-#line 343 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 343 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl).type = std::move((yyvsp[-3].str)); (yyval.decl).set_id((yyvsp[-2].str));
 	  (yyval.decl).qual = rpc_decl::VEC; (yyval.decl).bound = (yyvsp[-1].str); }
-#line 1780 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1781 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 61:
-#line 346 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 346 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl) = std::move((yyvsp[-3].decl)); (yyval.decl).qual = rpc_decl::PTR; (yyval.decl).set_id((yyvsp[-1].str)); }
-#line 1786 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1787 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 62:
-#line 348 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 348 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.decl).set_id((yyvsp[-1].str)); (yyval.decl).type = (yyvsp[-2].str); (yyval.decl).qual = rpc_decl::VEC;
 	  (yyval.decl).bound = xdr_unbounded;
 	  yywarn ("strings require variable-length array declarations (<>)");
 	}
-#line 1795 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1796 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 64:
-#line 354 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 354 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "void"; }
-#line 1801 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1802 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 65:
-#line 357 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 357 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str_list).select(); }
-#line 1807 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1808 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 66:
-#line 359 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 359 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str_list).select() = std::move(*(yyvsp[0].str_list));
 	  std::reverse((yyval.str_list)->begin(), (yyval.str_list)->end());
 	}
-#line 1815 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1816 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 67:
-#line 364 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 364 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str_list).select().push_back((yyvsp[0].str)); }
-#line 1821 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1822 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 68:
-#line 366 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 366 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str_list).select() = std::move(*(yyvsp[0].str_list));
 	  (yyval.str_list)->push_back((yyvsp[-2].str));
         }
-#line 1829 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1830 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 71:
-#line 374 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 374 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "int"; }
-#line 1835 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1836 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 72:
-#line 375 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 375 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "unsigned"; }
-#line 1841 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1842 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 73:
-#line 376 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 376 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "hyper"; }
-#line 1847 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1848 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 74:
-#line 377 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 377 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "unsigned hyper"; }
-#line 1853 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1854 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 75:
-#line 379 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 379 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     {
 	  (yyval.str) = "unsigned";
 	  yywarn("RFC4506 requires \"int\" after \"unsigned\"");
 	}
-#line 1862 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1863 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 76:
-#line 383 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 383 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "float"; }
-#line 1868 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1869 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 77:
-#line 384 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 384 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "double"; }
-#line 1874 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1875 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 78:
-#line 385 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 385 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "quadruple"; }
-#line 1880 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1881 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 79:
-#line 386 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 386 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = "bool"; }
-#line 1886 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1887 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 82:
-#line 392 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 392 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.num) = strtoul ((yyvsp[0].str).c_str(), NULL, 0); }
-#line 1892 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1893 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
   case 83:
-#line 395 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1661  */
+#line 395 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1663  */
     { (yyval.str) = getnewid ((yyvsp[0].str), true); }
-#line 1898 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1899 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
     break;
 
 
-#line 1902 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1661  */
+#line 1903 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.cc" /* yacc.c:1663  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2126,7 +2127,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 401 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1906  */
+#line 401 "/Users/liuwei/works/blockchain/src/github.com/vixledger/vixal/xdrpp/src/xdrc/parse.yy" /* yacc.c:1907  */
 
 symlist_t symlist;
 
