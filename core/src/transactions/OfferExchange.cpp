@@ -863,8 +863,8 @@ OfferExchange::crossOfferV10(OfferFrame &sellingWheatOffer,
                                              wheatLineAccountB, mDelta, db,
                                              mLedgerManager);
     }
-    // Note: As of the asset-backed offers proposal, this call to adjustOffer
-    // should only effect offers that remained after the version upgrade.
+    // As of the protocol version 10, this call to adjustOffer should have no
+    // effect. We leave it here only as a preventative measure.
     adjustOffer(sellingWheatOffer, mLedgerManager, accountB, wheat,
                 wheatLineAccountB, sheep, sheepLineAccountB);
 

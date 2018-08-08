@@ -625,7 +625,7 @@ LedgerManagerImpl::historyCaughtup(asio::error_code const &ec,
         // Now replay remaining txs from buffered local network history.
         for (auto const &lcd : mSyncingLedgers) {
             assert(lcd.getLedgerSeq() ==
-                           mLastClosedLedger.header.ledgerSeq + 1);
+                   mLastClosedLedger.header.ledgerSeq + 1);
             CLOG(INFO, "Ledger")
                     << "Replaying buffered ledger-close: "
                     << "[seq=" << lcd.getLedgerSeq()
@@ -636,8 +636,8 @@ LedgerManagerImpl::historyCaughtup(asio::error_code const &ec,
         }
 
         CLOG(INFO, "Ledger") << "Caught up to LCL including recent network activity: "
-                << ledgerAbbrev(mLastClosedLedger)
-                << "; waiting for closing ledger";
+                             << ledgerAbbrev(mLastClosedLedger)
+                             << "; waiting for closing ledger";
         setCatchupState(CatchupState::WAITING_FOR_CLOSING_LEDGER);
     }
 
@@ -739,17 +739,43 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const &ledgerData) {
     // apply any upgrades that were decided during consensus
     // this must be done after applying transactions as the txset
     // was validated before upgrades
+    LedgerHeader headerBeforeUpgrades = getCurrentLedgerHeader();
     for (size_t i = 0; i < sv.upgrades.size(); i++) {
         LedgerUpgrade lupgrade;
         try {
             xdr::xdr_from_opaque(sv.upgrades[i], lupgrade);
-            Upgrades::applyTo(lupgrade, ledgerDelta.getHeader());
         }
         catch (xdr::xdr_runtime_error &e) {
             CLOG(FATAL, "Ledger") << "Unknown upgrade step at index " << i;
             throw;
         }
+
+        LedgerHeader previousHeader = getCurrentLedgerHeader();
+        try {
+            soci::transaction upgradeScope(getDatabase().getSession());
+            LedgerDelta upgradeDelta(ledgerDelta);
+            Upgrades::applyTo(lupgrade, *this, upgradeDelta);
+            // Note: Index from 1 rather than 0 to match the behavior of
+            // storeTransaction and storeTransactionFee.
+            Upgrades::storeUpgradeHistory(*this, lupgrade,
+                                          upgradeDelta.getChanges(), i + 1);
+            upgradeDelta.commit();
+            upgradeScope.commit();
+        }
+        catch (std::runtime_error &e) {
+            CLOG(ERROR, "Ledger") << "Exception during upgrade: " << e.what();
+            getCurrentLedgerHeader() = previousHeader;
+        }
+        catch (...) {
+            CLOG(ERROR, "Ledger") << "Unknown exception during upgrade";
+            getCurrentLedgerHeader() = previousHeader;
+        }
+
     }
+
+    // It is required to rollback the current LedgerHeader in order to satisfy
+    // the consistency checks enforced by LedgerDelta::commit.
+    getCurrentLedgerHeader() = headerBeforeUpgrades;
 
     ledgerDelta.commit();
     ledgerClosed(ledgerDelta);
@@ -794,6 +820,7 @@ LedgerManagerImpl::deleteOldEntries(Database &db, uint32_t ledgerSeq, uint32_t c
     LedgerHeaderFrame::deleteOldEntries(db, ledgerSeq, count);
     TransactionFrame::deleteOldEntries(db, ledgerSeq, count);
     HerderPersistence::deleteOldEntries(db, ledgerSeq, count);
+    Upgrades::deleteOldEntries(db, ledgerSeq, count);
     db.clearPreparedStatementCache();
     txscope.commit();
 }

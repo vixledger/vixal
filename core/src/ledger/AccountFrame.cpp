@@ -219,7 +219,7 @@ AccountFrame::getAvailableBalance(LedgerManager const &lm) const {
 }
 
 int64_t
-AccountFrame::getMaxAmountReceive(LedgerManager const& lm) const {
+AccountFrame::getMaxAmountReceive(LedgerManager const &lm) const {
     if (lm.getCurrentLedgerVersion() >= 10) {
         return INT64_MAX - getBalance() - getBuyingLiabilities(lm);
     } else {
@@ -299,7 +299,9 @@ AccountFrame::loadAccount(AccountID const &accountID, Database &db) {
 
     std::string publicKey, inflationDest, creditAuthKey;
     std::string homeDomain, thresholds;
+    Liabilities liabilities;
     soci::indicator inflationDestInd;
+    soci::indicator buyingLiabilitiesInd, sellingLiabilitiesInd;
 
     AccountFrame::pointer res = make_shared<AccountFrame>(accountID);
     AccountEntry &account = res->getAccount();
@@ -307,7 +309,8 @@ AccountFrame::loadAccount(AccountID const &accountID, Database &db) {
     auto prep =
             db.getPreparedStatement("SELECT balance, seqnum, numsubentries, "
                                     "inflationdest, homedomain, thresholds, "
-                                    "flags, lastmodified "
+                                    "flags, lastmodified, buyingliabilities, "
+                                    "sellingliabilities "
                                     "FROM accounts WHERE accountid=:v1");
     auto &st = prep.statement();
     st.exchange(into(account.balance));
@@ -318,6 +321,8 @@ AccountFrame::loadAccount(AccountID const &accountID, Database &db) {
     st.exchange(into(thresholds));
     st.exchange(into(account.flags));
     st.exchange(into(res->getLastModified()));
+    st.exchange(into(liabilities.buying, buyingLiabilitiesInd));
+    st.exchange(into(liabilities.selling, sellingLiabilitiesInd));
     st.exchange(use(actIDStrKey));
     st.define_and_bind();
     {
@@ -345,6 +350,12 @@ AccountFrame::loadAccount(AccountID const &accountID, Database &db) {
         auto signers = loadSigners(db, actIDStrKey);
         account.signers.insert(account.signers.begin(), signers.begin(),
                                signers.end());
+    }
+
+    assert(buyingLiabilitiesInd == sellingLiabilitiesInd);
+    if (buyingLiabilitiesInd == soci::i_ok) {
+        account.ext.v(1);
+        account.ext.v1().liabilities = liabilities;
     }
 
     res->normalize();
@@ -491,14 +502,16 @@ AccountFrame::storeUpdate(LedgerDelta &delta, Database &db, bool insert) {
         sql = std::string(
                 "INSERT INTO accounts ( accountid, balance, seqnum, "
                 "numsubentries, inflationdest, homedomain, thresholds, flags, "
-                "lastmodified ) "
-                "VALUES ( :id, :v1, :v2, :v3, :v4, :v5, :v6, :v7, :v8 )");
+                "lastmodified, buyingliabilities, sellingliabilities ) "
+                "VALUES ( :id, :v1, :v2, :v3, :v4, :v5, :v6, :v7, :v8, :v9, :v10 "
+                ")");
     } else {
         sql = std::string(
                 "UPDATE accounts SET balance = :v1, seqnum = :v2, "
                 "numsubentries = :v3, "
                 "inflationdest = :v4, homedomain = :v5, thresholds = :v6, "
-                "flags = :v7, lastmodified = :v8 WHERE accountid = :id");
+                "flags = :v7, lastmodified = :v8, buyingliabilities = :v9, "
+                "sellingliabilities = :v10 WHERE accountid = :id");
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -509,6 +522,13 @@ AccountFrame::storeUpdate(LedgerDelta &delta, Database &db, bool insert) {
     if (mAccountEntry.inflationDest) {
         inflationDestStrKey = KeyUtils::toStrKey(*mAccountEntry.inflationDest);
         inflation_ind = soci::i_ok;
+    }
+
+    Liabilities liabilities;
+    soci::indicator liabilitiesInd = soci::i_null;
+    if (mAccountEntry.ext.v() == 1) {
+        liabilities = mAccountEntry.ext.v1().liabilities;
+        liabilitiesInd = soci::i_ok;
     }
 
     string thresholds(decoder::encode_b64(mAccountEntry.thresholds));
@@ -525,6 +545,8 @@ AccountFrame::storeUpdate(LedgerDelta &delta, Database &db, bool insert) {
         st.exchange(use(thresholds, "v6"));
         st.exchange(use(mAccountEntry.flags, "v7"));
         st.exchange(use(getLastModified(), "v8"));
+        st.exchange(use(liabilities.buying, liabilitiesInd, "v9"));
+        st.exchange(use(liabilities.selling, liabilitiesInd, "v10"));
         st.define_and_bind();
         {
             auto timer = insert ? db.getInsertTimer("account")

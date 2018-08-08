@@ -17,6 +17,12 @@
 namespace vixal {
 class Config;
 
+class Database;
+
+class LedgerDelta;
+
+class LedgerManager;
+
 struct LedgerHeader;
 struct LedgerUpgrade;
 
@@ -38,10 +44,10 @@ public:
         }
 
         VirtualClock::time_point mUpgradeTime;
-        optional <uint32> mProtocolVersion;
-        optional <uint32> mBaseFee;
-        optional <uint32> mMaxTxSize;
-        optional <uint32> mBaseReserve;
+        optional<uint32> mProtocolVersion;
+        optional<uint32> mBaseFee;
+        optional<uint32> mMaxTxSize;
+        optional<uint32> mBaseReserve;
 
         std::string toJson() const;
 
@@ -60,16 +66,17 @@ public:
     std::vector<LedgerUpgrade> createUpgradesFor(LedgerHeader const &header) const;
 
     // apply upgrade to ledger header
-    static void applyTo(LedgerUpgrade const &upgrade, LedgerHeader &header);
+    static void applyTo(LedgerUpgrade const &upgrade,
+                        LedgerManager &ledgerManager, LedgerDelta &ld);
 
     // convert upgrade value to string
     static std::string toString(LedgerUpgrade const &upgrade);
 
     // returns true if upgrade is a valid upgrade step
     // in which case it also sets upgradeType
-    bool isValid(UpgradeType const &upgrade, LedgerUpgradeType& upgradeType,
-                 bool nomination, Config const& cfg,
-                 LedgerHeader const& header) const;
+    bool isValid(UpgradeType const &upgrade, LedgerUpgradeType &upgradeType,
+                 bool nomination, Config const &cfg,
+                 LedgerHeader const &header) const;
 
     // constructs a human readable string that represents
     // the pending upgrades
@@ -79,11 +86,27 @@ public:
     UpgradeParameters
     removeUpgrades(std::vector<UpgradeType>::const_iterator beginUpdates,
                    std::vector<UpgradeType>::const_iterator endUpdates,
-                   bool& updated);
+                   bool &updated);
+
+    static void dropAll(Database &db);
+
+    static void storeUpgradeHistory(LedgerManager &ledgerManager,
+                                    LedgerUpgrade const &upgrade,
+                                    LedgerEntryChanges const &changes,
+                                    int index);
+
+    static void deleteOldEntries(Database &db, uint32_t ledgerSeq,
+                                 uint32_t count);
 
 private:
     UpgradeParameters mParams;
 
     bool timeForUpgrade(uint64_t time) const;
+
+    static void applyVersionUpgrade(LedgerManager &lm, LedgerDelta &ld,
+                                    uint32_t newVersion);
+
+    static void applyReserveUpgrade(LedgerManager &lm, LedgerDelta &ld,
+                                    uint32_t newReserve);
 };
 }
