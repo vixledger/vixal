@@ -1677,9 +1677,6 @@ TEST_CASE("create offer", "[tx][offers]") {
                 });
 
                 // Test when existing offers
-                auto reserve = app->getLedgerManager()
-                        .getCurrentLedgerHeader()
-                        .baseReserve;
                 root.pay(acc1, xlm, txfee);
                 REQUIRE_THROWS_AS(
                         market.addOffer(acc1, {usd, xlm, Price{1, 1}, 501}),
@@ -2430,9 +2427,6 @@ TEST_CASE("create offer", "[tx][offers]") {
 
         SECTION("when modifying an offer") {
             SECTION("selling native") {
-                auto reserve = app->getLedgerManager()
-                        .getCurrentLedgerHeader()
-                        .baseReserve;
                 auto const minBalance =
                         app->getLedgerManager().getMinBalance(2);
                 auto acc1 = root.create("acc1", minBalance + 3 * txfee + 499);
@@ -2465,9 +2459,6 @@ TEST_CASE("create offer", "[tx][offers]") {
             }
 
             SECTION("buying native") {
-                auto reserve = app->getLedgerManager()
-                        .getCurrentLedgerHeader()
-                        .baseReserve;
                 auto const minBalance =
                         app->getLedgerManager().getMinBalance(4);
                 auto acc1 = root.create("acc1", minBalance + 5 * txfee);
@@ -2509,9 +2500,6 @@ TEST_CASE("create offer", "[tx][offers]") {
             }
 
             SECTION("non-native") {
-                auto reserve = app->getLedgerManager()
-                        .getCurrentLedgerHeader()
-                        .baseReserve;
                 auto const minBalance =
                         app->getLedgerManager().getMinBalance(3);
                 auto acc1 = root.create("acc1", minBalance + 4 * txfee);
@@ -2549,8 +2537,6 @@ TEST_CASE("create offer", "[tx][offers]") {
 
     SECTION("issuer offers") {
         SECTION("issuer offers do not overflow selling liabilities") {
-            auto reserve =
-                    app->getLedgerManager().getCurrentLedgerHeader().baseReserve;
             auto const minBalance = app->getLedgerManager().getMinBalance(3);
             auto acc1 = root.create("acc1", minBalance + 10000);
             auto cur1 = acc1.asset("CUR1");
@@ -2571,8 +2557,6 @@ TEST_CASE("create offer", "[tx][offers]") {
         }
 
         SECTION("issuer offers do not overflow buying liabilities") {
-            auto reserve =
-                    app->getLedgerManager().getCurrentLedgerHeader().baseReserve;
             auto const minBalance = app->getLedgerManager().getMinBalance(3);
             auto acc1 = root.create("acc1", minBalance + 10000);
             auto cur1 = acc1.asset("CUR1");
@@ -2594,8 +2578,6 @@ TEST_CASE("create offer", "[tx][offers]") {
         }
 
         SECTION("issuer offers contribute buying liabilities to other assets") {
-            auto reserve =
-                    app->getLedgerManager().getCurrentLedgerHeader().baseReserve;
             auto const minBalance = app->getLedgerManager().getMinBalance(3);
             auto acc1 = root.create("acc1", minBalance + 10000);
             auto cur1 = acc1.asset("CUR1");
@@ -2615,8 +2597,6 @@ TEST_CASE("create offer", "[tx][offers]") {
         }
 
         SECTION("issuer offers contribute selling liabilities to other assets") {
-            auto reserve =
-                    app->getLedgerManager().getCurrentLedgerHeader().baseReserve;
             auto const minBalance = app->getLedgerManager().getMinBalance(3);
             auto acc1 = root.create("acc1", minBalance + 10000);
             auto cur1 = acc1.asset("CUR1");
