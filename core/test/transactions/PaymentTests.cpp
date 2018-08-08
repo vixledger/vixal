@@ -116,6 +116,46 @@ TEST_CASE("payment", "[tx][payment]") {
                         ex_CREATE_ACCOUNT_LOW_RESERVE);
             });
         }
+
+        SECTION("with native selling liabilities") {
+            auto const minBal0 = app->getLedgerManager().getMinBalance(0);
+            auto const minBal3 = app->getLedgerManager().getMinBalance(3);
+
+            auto txfee = app->getLedgerManager().getTxFee();
+            auto const native = makeNativeAsset();
+            auto acc1 = root.create("acc1", minBal3 + 2 * txfee + 500);
+            TestMarket market(*app);
+
+            auto cur1 = acc1.asset("CUR1");
+            market.requireChangesWithOffer({}, [&] {
+                return market.addOffer(acc1, {native, cur1, Price{1, 1}, 500});
+            });
+
+            for_versions_to(9, *app, [&] { acc1.create("acc2", minBal0 + 1); });
+            for_versions_from(10, *app, [&] {
+                REQUIRE_THROWS_AS(acc1.create("acc2", minBal0 + 1),
+                                  ex_CREATE_ACCOUNT_UNDERFUNDED);
+                root.pay(acc1, txfee);
+                acc1.create("acc2", minBal0);
+            });
+        }
+
+        SECTION("with native buying liabilities") {
+            auto const minBal0 = app->getLedgerManager().getMinBalance(0);
+            auto const minBal3 = app->getLedgerManager().getMinBalance(3);
+
+            auto txfee = app->getLedgerManager().getTxFee();
+            auto const native = makeNativeAsset();
+            auto acc1 = root.create("acc1", minBal3 + 2 * txfee + 500);
+            TestMarket market(*app);
+
+            auto cur1 = acc1.asset("CUR1");
+            market.requireChangesWithOffer({}, [&] {
+                return market.addOffer(acc1, {cur1, native, Price{1, 1}, 500});
+            });
+
+            for_all_versions(*app, [&] { acc1.create("acc2", minBal0 + 500); });
+        }
     }
 
     SECTION("a pays b, then a merge into b") {
@@ -1607,7 +1647,7 @@ TEST_CASE("payment", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + one operation fee - "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from",
                     app->getLedgerManager().getMinBalance(0) + amount + txfee - 1);
@@ -1633,7 +1673,7 @@ TEST_CASE("payment", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + one operation fee + "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from",
                     app->getLedgerManager().getMinBalance(0) + amount + txfee + 1);
@@ -1646,7 +1686,7 @@ TEST_CASE("payment", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + two operation fees - "
-                        "two stroops") {
+                "two stroops") {
             auto payFrom = root.create(
                     "pay-from", app->getLedgerManager().getMinBalance(0) + amount +
                                 2 * txfee - 2);
@@ -1659,7 +1699,7 @@ TEST_CASE("payment", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + two operation fees - "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from", app->getLedgerManager().getMinBalance(0) + amount +
                                 2 * txfee - 1);
@@ -1673,6 +1713,42 @@ TEST_CASE("payment", "[tx][payment]") {
                     app->getLedgerManager().getMinBalance(0) + amount + 2 * txfee);
             for_all_versions(*app,
                              [&] { REQUIRE_NOTHROW(payFrom.pay(root, 1)); });
+        }
+    }
+
+    SECTION("liabilities") {
+        SECTION("cannot pay balance below selling liabilities") {
+            a1.changeTrust(idr, 200);
+            gateway.pay(a1, idr, 100);
+
+            TestMarket market(*app);
+            auto offer = market.requireChangesWithOffer({}, [&] {
+                return market.addOffer(a1, {idr, xlm, Price{1, 1}, 50});
+            });
+
+            for_versions_to(9, *app, [&] { a1.pay(gateway, idr, 51); });
+            for_versions_from(10, *app, [&] {
+                REQUIRE_THROWS_AS(a1.pay(gateway, idr, 51),
+                                  ex_PAYMENT_UNDERFUNDED);
+                a1.pay(gateway, idr, 50);
+            });
+        }
+
+        SECTION("cannot receive such that balance + buying liabilities exceeds"
+                " limit") {
+            a1.changeTrust(idr, 100);
+
+            TestMarket market(*app);
+            auto offer = market.requireChangesWithOffer({}, [&] {
+                return market.addOffer(a1, {xlm, idr, Price{1, 1}, 50});
+            });
+
+            for_versions_to(9, *app, [&] { gateway.pay(a1, idr, 51); });
+            for_versions_from(10, *app, [&] {
+                REQUIRE_THROWS_AS(gateway.pay(a1, idr, 51),
+                                  ex_PAYMENT_LINE_FULL);
+                gateway.pay(a1, idr, 50);
+            });
         }
     }
 }
@@ -1712,7 +1788,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + one operation fee - "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from",
                     app->getLedgerManager().getMinBalance(0) + amount + txfee - 1);
@@ -1738,7 +1814,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + one operation fee + "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from",
                     app->getLedgerManager().getMinBalance(0) + amount + txfee + 1);
@@ -1751,7 +1827,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + two operation fees - "
-                        "two stroops") {
+                "two stroops") {
             auto payFrom = root.create(
                     "pay-from", app->getLedgerManager().getMinBalance(0) + amount +
                                 2 * txfee - 2);
@@ -1764,7 +1840,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + two operation fees - "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from", app->getLedgerManager().getMinBalance(0) + amount +
                                 2 * txfee - 1);
@@ -1813,7 +1889,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + one operation fee - "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from",
                     app->getLedgerManager().getMinBalance(0) + amount + txfee - 1);
@@ -1839,7 +1915,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + one operation fee + "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from",
                     app->getLedgerManager().getMinBalance(0) + amount + txfee + 1);
@@ -1852,7 +1928,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + two operation fees - "
-                        "two stroops") {
+                "two stroops") {
             auto payFrom = root.create(
                     "pay-from", app->getLedgerManager().getMinBalance(0) + amount +
                                 2 * txfee - 2);
@@ -1865,7 +1941,7 @@ TEST_CASE("payment fees", "[tx][payment]") {
         }
 
         SECTION("account has only base reserve + amount + two operation fees - "
-                        "one stroop") {
+                "one stroop") {
             auto payFrom = root.create(
                     "pay-from", app->getLedgerManager().getMinBalance(0) + amount +
                                 2 * txfee - 1);
